@@ -83,7 +83,7 @@ const DownloadSection = () => {
             <div className="flex items-center gap-8 pt-4">
               {[
                 { value: "4.8★", label: "App Rating" },
-                { value: "50K+", label: "Downloads" },
+                { value: "500+", label: "Downloads" },
                 { value: "99%", label: "Satisfaction" },
               ].map(({ value, label }, i) => (
                 <div key={i} className="text-center">

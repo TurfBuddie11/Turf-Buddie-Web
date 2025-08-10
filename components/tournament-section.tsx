@@ -139,7 +139,7 @@ const TournamentsSection = () => {
             <div className="flex items-center justify-center mb-3">
               <Users className="w-8 h-8 text-primary" />
             </div>
-            <div className="text-3xl font-bold text-foreground mb-2">2000+</div>
+            <div className="text-3xl font-bold text-foreground mb-2">500+</div>
             <div className="text-muted-foreground">Players Participated</div>
           </div>
 
@@ -155,7 +155,7 @@ const TournamentsSection = () => {
             <div className="flex items-center justify-center mb-3">
               <Trophy className="w-8 h-8 text-primary" />
             </div>
-            <div className="text-3xl font-bold text-foreground mb-2">₹10L+</div>
+            <div className="text-3xl font-bold text-foreground mb-2">₹5K+</div>
             <div className="text-muted-foreground">Prizes Distributed</div>
           </div>
         </div>
