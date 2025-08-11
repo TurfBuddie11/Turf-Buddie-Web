@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export default function Header() {
+export default function Header2() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, profile } = useAuth();
@@ -27,23 +27,9 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  //Prevent body scroll when mobile menu is open for better UX
-  useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "auto";
-    }
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [isMobileMenuOpen]);
-
   const primaryLinks = [
-    { name: "Download", href: "#download" },
-    { name: "Tournaments", href: "#tournaments" },
-    { name: "About", href: "#about" },
-    { name: "Privacy", href: "#privacy" },
+    { name: "Explore", href: "/explore" },
+    { name: "Tournaments", href: "/tournaments" },
   ];
 
   return (
@@ -137,13 +123,7 @@ export default function Header() {
 
           <Button
             className="bg-green-500 hover:bg-green-600"
-            onClick={() => {
-              if (user) {
-                router.push("/explore");
-              } else {
-                router.push("/login");
-              }
-            }}
+            onClick={() => router.push("/explore")}
           >
             Book Now
           </Button>
@@ -225,13 +205,7 @@ export default function Header() {
 
           <Button
             className="bg-green-500 hover:bg-green-600"
-            onClick={() => {
-              if (user) {
-                router.push("/explore");
-              } else {
-                router.push("/login");
-              }
-            }}
+            onClick={() => setIsMobileMenuOpen(false)}
           >
             Book Now
           </Button>

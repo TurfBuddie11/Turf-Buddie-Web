@@ -89,7 +89,7 @@ export function BookingFlow({
         });
         setBookedSlots(normalized);
       } catch (error) {
-        toast("Data Fetch Error", {
+        toast.error("Data Fetch Error", {
           description:
             error instanceof Error ? error.message : "Could not fetch slots.",
         });
@@ -109,7 +109,7 @@ export function BookingFlow({
 
   const handleBooking = useCallback(async () => {
     if (!selectedSlot || !user || !profile) {
-      toast("Please select a slot and ensure you are logged in.");
+      toast.info("Please select a slot and ensure you are logged in.");
       return;
     }
 
@@ -160,22 +160,20 @@ export function BookingFlow({
         transactionId: paymentId,
       });
 
-      toast("Booking Confirmed!", {
+      toast.success("Booking Confirmed!", {
         description: "Your turf has been booked successfully.",
       });
 
-      // --- ✅ MODIFICATION START ---
       setBookedSlots((prev) =>
         new Set(prev).add(`${selectedSlot.startTime} - ${selectedSlot.endTime}`)
       );
       setSelectedSlot(null);
-      // --- ✅ MODIFICATION END ---
 
       if (booking) {
         onBookingComplete(booking);
       }
     } catch (error) {
-      toast("Booking Failed", {
+      toast.error("Booking Failed", {
         description:
           error instanceof Error ? error.message : "An unknown error occurred.",
       });

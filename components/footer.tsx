@@ -123,11 +123,11 @@ const Footer = () => {
               </div>
               <div className="flex items-center gap-3 text-muted-foreground">
                 <Phone className="w-4 h-4 text-primary" />
-                <span className="text-sm">+91 98765 43210</span>
+                <span className="text-sm">+91 98906 92974</span>
               </div>
               <div className="flex items-center gap-3 text-muted-foreground">
                 <Mail className="w-4 h-4 text-primary" />
-                <span className="text-sm">hello@turfbuddie.com</span>
+                <span className="text-sm">turfbuddy11@gmail.com </span>
               </div>
             </div>
           </div>
@@ -137,7 +137,7 @@ const Footer = () => {
         <div className="border-t border-border pt-8 mt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-sm text-muted-foreground">
-              © 2024 TurfBuddie. All rights reserved.
+              © 2025 TurfBuddie. All rights reserved.
             </div>
             <div className="flex gap-6 text-sm">
               <span className="text-muted-foreground hover:text-primary cursor-pointer">

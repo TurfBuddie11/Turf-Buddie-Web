@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { FormProvider, useForm } from "react-hook-form";
-import Header from "@/components/header";
 
 import {
   collection,
@@ -31,6 +30,7 @@ import {
   GeoPoint,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import Header2 from "@/components/header2";
 
 // Types
 type TimeSlot = {
@@ -77,13 +77,12 @@ const extractCity = (address: string) => {
 export default function ExplorePage() {
   const form = useForm();
   const shouldReduceMotion = useReducedMotion();
-  
+
   // State for client-side readiness and data loading
   const [hasMounted, setHasMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [turfs, setTurfs] = useState<Turf[]>([]);
 
-  
   // Filter states
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("all");
@@ -93,12 +92,14 @@ export default function ExplorePage() {
   useEffect(() => {
     // This effect runs only once on the client after initial render
     setHasMounted(true);
-    
+
     async function fetchTurfs() {
       setIsLoading(true);
       try {
         const turfCollection = collection(db, "Turfs");
-        const snapshot: QuerySnapshot<DocumentData> = await getDocs(turfCollection);
+        const snapshot: QuerySnapshot<DocumentData> = await getDocs(
+          turfCollection
+        );
 
         const turfList: Turf[] = snapshot.docs.map((doc) => {
           const data = doc.data();
@@ -132,7 +133,7 @@ export default function ExplorePage() {
     }
     fetchTurfs();
   }, []);
-  
+
   useEffect(() => {
     // This effect runs only on the client after the component has mounted
     if (hasMounted && navigator.geolocation) {
@@ -145,14 +146,16 @@ export default function ExplorePage() {
   }, [hasMounted]);
 
   const cities = useMemo(() => {
-    const unique = Array.from(new Set(turfs.map((t) => extractCity(t.address))));
+    const unique = Array.from(
+      new Set(turfs.map((t) => extractCity(t.address)))
+    );
     return ["all", ...unique];
   }, [turfs]);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function showCity(_: GeolocationPosition) {} // Keep empty function for API compatibility
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
- function handleGeolocationError(_: GeolocationPositionError) {} // Keep empty function for API compatibility
+  function handleGeolocationError(_: GeolocationPositionError) {} // Keep empty function for API compatibility
   const filtered = useMemo(() => {
     return turfs.filter((t) => {
       const inSearch =
@@ -177,7 +180,9 @@ export default function ExplorePage() {
 
   return (
     <>
-      <Header />
+      <div>
+        <Header2 />
+      </div>
       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 py-10 px-4">
         <div className="max-w-7xl mx-auto space-y-8">
           <motion.div
@@ -195,7 +200,9 @@ export default function ExplorePage() {
 
           {/* Render filters and results only after initial data load */}
           {isLoading ? (
-             <div className="text-center text-muted-foreground py-16">Loading turfs...</div>
+            <div className="text-center text-muted-foreground py-16">
+              Loading turfs...
+            </div>
           ) : (
             <>
               <Card className="glass-card bg-gradient-to-br from-gray-950 via-black to-gray-900">
@@ -217,60 +224,65 @@ export default function ExplorePage() {
                         </FormControl>
                       </FormItem>
                       {/* ... other filters */}
-                       <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl>
-                      <Select
-                        value={location}
-                        onValueChange={(val) => setLocation(val)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {cities.map((c) => (
-                            <SelectItem key={c} value={c}>
-                              {c === "all" ? "All cities" : c}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                  </FormItem>
-
-                  <FormItem>
-                    <FormLabel>
-                      Price: {formatINR(price[0])} – {formatINR(price[1])}
-                    </FormLabel>
-                    <FormControl>
-                      <Slider
-                        value={price}
-                        min={400}
-                        max={1000}
-                        step={50}
-                        onValueChange={(v: number[]) => setPrice([v[0], v[1]])}
-                      />
-                    </FormControl>
-                  </FormItem>
-
-                  <FormItem>
-                    <FormLabel>Minimum rating</FormLabel>
-                    <FormControl>
-                      <div className="flex gap-2 flex-wrap">
-                        {[0, 1, 2, 3, 4, 5].map((r) => (
-                          <Button
-                            key={r}
-                            size="sm"
-                            variant={r === minRating ? "default" : "outline"}
-                            onClick={() => setMinRating(r)}
-                            aria-pressed={r === minRating}
+                      <FormItem>
+                        <FormLabel>Location</FormLabel>
+                        <FormControl>
+                          <Select
+                            value={location}
+                            onValueChange={(val) => setLocation(val)}
                           >
-                            {r} <Star className="w-3 h-3 ml-1 fill-current" />
-                          </Button>
-                        ))}
-                      </div>
-                    </FormControl>
-                  </FormItem>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {cities.map((c) => (
+                                <SelectItem key={c} value={c}>
+                                  {c === "all" ? "All cities" : c}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                      </FormItem>
+
+                      <FormItem>
+                        <FormLabel>
+                          Price: {formatINR(price[0])} – {formatINR(price[1])}
+                        </FormLabel>
+                        <FormControl>
+                          <Slider
+                            value={price}
+                            min={400}
+                            max={1000}
+                            step={50}
+                            onValueChange={(v: number[]) =>
+                              setPrice([v[0], v[1]])
+                            }
+                          />
+                        </FormControl>
+                      </FormItem>
+
+                      <FormItem>
+                        <FormLabel>Minimum rating</FormLabel>
+                        <FormControl>
+                          <div className="flex gap-2 flex-wrap">
+                            {[0, 1, 2, 3, 4, 5].map((r) => (
+                              <Button
+                                key={r}
+                                size="sm"
+                                variant={
+                                  r === minRating ? "default" : "outline"
+                                }
+                                onClick={() => setMinRating(r)}
+                                aria-pressed={r === minRating}
+                              >
+                                {r}{" "}
+                                <Star className="w-3 h-3 ml-1 fill-current" />
+                              </Button>
+                            ))}
+                          </div>
+                        </FormControl>
+                      </FormItem>
                     </FormProvider>
                   </div>
                   <Separator className="my-6" />
@@ -283,13 +295,16 @@ export default function ExplorePage() {
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {filtered.map((t, i) => (
                   <motion.div
- key={t.id}
+                    key={t.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05, duration: shouldReduceMotion ? 0 : 0.4 }}
+                    transition={{
+                      delay: i * 0.05,
+                      duration: shouldReduceMotion ? 0 : 0.4,
+                    }}
                   >
                     <Card className="glass-card overflow-hidden bg-gradient-to-br from-gray-950 via-black to-gray-900">
-                       <div className="relative h-44 w-full">
+                      <div className="relative h-44 w-full">
                         {t.image && (
                           <Image
                             src={t.image}
@@ -316,12 +331,21 @@ export default function ExplorePage() {
                         </div>
                         <div className="flex justify-between items-center text-sm">
                           <div>
-                            <span className="font-medium">{formatINR(t.price)}</span>{" "}
-                            <span className="text-muted-foreground">/ hour</span>
+                            <span className="font-medium">
+                              {formatINR(t.price)}
+                            </span>{" "}
+                            <span className="text-muted-foreground">
+                              / hour
+                            </span>
                           </div>
-                          <div className="text-muted-foreground">{t.timeSlots.length} slots</div>
+                          <div className="text-muted-foreground">
+                            {t.timeSlots.length} slots
+                          </div>
                         </div>
-                        <Link href={`/turfs/${t.id}`} className="w-full pt-2 block">
+                        <Link
+                          href={`/turfs/${t.id}`}
+                          className="w-full pt-2 block"
+                        >
                           <Button className="w-full" variant="secondary">
                             View Details
                           </Button>
@@ -334,7 +358,8 @@ export default function ExplorePage() {
 
               {filtered.length === 0 && (
                 <div className="text-center text-muted-foreground py-16">
-                  No turfs match your filters. Try adjusting your search or selection.
+                  No turfs match your filters. Try adjusting your search or
+                  selection.
                 </div>
               )}
             </>

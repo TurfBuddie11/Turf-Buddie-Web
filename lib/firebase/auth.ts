@@ -3,6 +3,7 @@ import {
   sendEmailVerification,
   signInWithEmailAndPassword,
   signOut,
+  UserCredential,
 } from "firebase/auth";
 import { auth, db } from "./config";
 import { FirebaseError } from "firebase/app";
@@ -68,29 +69,54 @@ export const register = async (
 /**
  * Login existing user
  */
-export const login = async (email: string, password: string) => {
-  try {
-    const { user } = await signInWithEmailAndPassword(auth, email, password);
 
-    if (user.emailVerified) {
-      await updateDoc(doc(db, "users", user.uid), { emailVerified: true });
+export const login = async (
+  email: string,
+  password: string
+): Promise<UserCredential> => {
+  try {
+    const userCredentials = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+    const user = userCredentials.user;
+
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      throw new Error("User not found.");
     }
 
-    return user;
+    const data = userSnap.data();
+
+    if (user.emailVerified && !data.emailVerified) {
+      await updateDoc(userRef, { emailVerified: true });
+    }
+
+    return userCredentials;
   } catch (error: unknown) {
     if (error instanceof FirebaseError) {
-      if (error.code === "auth/user-not-found") {
-        throw new Error("No account found with this email.");
+      switch (error.code) {
+        case "auth/user-not-found":
+          throw new Error("No account found with this email.");
+        case "auth/wrong-password":
+          throw new Error("Incorrect password.");
+        case "auth/too-many-requests":
+          throw new Error("Too many failed attempts. Try again later.");
+        default:
+          throw new Error(error.message || "Login failed.");
       }
-      if (error.code === "auth/wrong-password") {
-        throw new Error("Incorrect password.");
-      }
-      if (error.code === "auth/too-many-requests") {
-        throw new Error("Too many failed attempts. Try again later.");
-      }
-      throw new Error(error.message || "Login failed.");
     }
-    throw new Error("An unexpected error occurred during login.");
+
+    if (error instanceof Error) {
+      throw error;
+    }
+
+    console.error("Unexpected login error:", error);
+    throw new Error("Something went wrong while logging in. Please try again.");
   }
 };
 
@@ -121,6 +147,8 @@ export const getUserProfile = async (
     if (error instanceof FirebaseError) {
       throw new Error(error.message || "Error fetching user profile.");
     }
-    throw new Error("An unexpected error occurred while fetching user profile.");
+    throw new Error(
+      "An unexpected error occurred while fetching user profile."
+    );
   }
 };

@@ -33,10 +33,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { register } from "@/lib/firebase/auth";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { CustomCalendar } from "@/components/custom-calendar";
 
 const genderOptions = ["Male", "Female", "Other"] as const;
 
@@ -105,15 +105,17 @@ export default function SignUpPage() {
         state: data.state,
       });
 
-      toast("Account created! Please check your email for verification.");
+      toast.success(
+        "Account created! Please check your email for verification."
+      );
 
       router.push("/login");
       form.reset();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        toast(error.message);
+        toast.error(error.message);
       } else {
-        toast("An unknown error occurred during signup.");
+        toast.error("An unknown error occurred during signup.");
       }
     } finally {
       setLoading(false);
@@ -252,8 +254,7 @@ export default function SignUpPage() {
                               className="glass-card border-border w-auto p-0"
                               align="start"
                             >
-                              <Calendar
-                                mode="single"
+                              <CustomCalendar
                                 selected={
                                   field.value
                                     ? new Date(field.value)
@@ -262,9 +263,6 @@ export default function SignUpPage() {
                                 onSelect={(date) => {
                                   if (date) field.onChange(date.toISOString());
                                 }}
-                                disabled={(date) => date > new Date()}
-                                initialFocus
-                                className="bg-transparent text-foreground"
                               />
                             </PopoverContent>
                           </Popover>

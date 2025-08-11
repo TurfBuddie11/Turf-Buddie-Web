@@ -4,6 +4,7 @@
 /* TurfBuddies Design System - Dark Sports Theme */
 @layer base {
   :root {
+    --header-height: 6rem;
     /* Dark theme base colors */
     --background: 220 15% 8%;
     --foreground: 120 20% 95%;
@@ -115,6 +116,21 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+
+  /* Success Toasts */
+  --success-background: hsl(140 80% 25%);
+  --success-foreground: hsl(140 10% 95%);
+  --success-border: hsl(140 80% 30%);
+
+  /* Error Toasts */
+  --error-background: hsl(0 90% 30%);
+  --error-foreground: hsl(0 10% 95%);
+  --error-border: hsl(0 90% 35%);
+
+  /* Info Toasts */
+  --info-background: hsl(210 90% 30%);
+  --info-foreground: hsl(210 10% 95%);
+  --info-border: hsl(210 90% 35%);
 }
 
 @layer base {

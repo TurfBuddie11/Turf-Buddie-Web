@@ -3,9 +3,12 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MapPin, Users, MapIcon, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/auth-provider";
 
 const HeroSection = () => {
   const [parallaxOffset, setParallaxOffset] = useState(0);
+
+  const { user } = useAuth();
 
   const router = useRouter();
 
@@ -20,7 +23,7 @@ const HeroSection = () => {
   }, []);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden hero-section">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden hero-section pt-36">
       {/* Parallax Background */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -63,7 +66,13 @@ const HeroSection = () => {
             <Button
               size="lg"
               className="glow-button text-lg px-8 py-6"
-              onClick={() => router.push("/login")}
+              onClick={() => {
+                if (user) {
+                  router.push("/explore");
+                } else {
+                  router.push("/login");
+                }
+              }}
             >
               Book Now
             </Button>

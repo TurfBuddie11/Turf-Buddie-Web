@@ -1,8 +1,10 @@
+"use client";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, Trophy, Users, Clock } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const tournaments = [
   {
@@ -44,6 +46,7 @@ const tournaments = [
 ];
 
 const TournamentsSection = () => {
+  const router = useRouter();
   return (
     <section id="tournaments" className="section-padding ">
       <div className="container max-w-7xl mx-auto px-4o">
@@ -119,7 +122,12 @@ const TournamentsSection = () => {
                   </div>
                 </div>
 
-                <Button className="w-full glow-button">Register Now</Button>
+                <Button
+                  className="w-full glow-button"
+                  onClick={() => router.push("/tournaments")}
+                >
+                  Register Now
+                </Button>
               </div>
             </Card>
           ))}
