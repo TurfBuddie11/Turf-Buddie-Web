@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MapPin, Download, Users, MapIcon, Calendar} from "lucide-react";
+import { MapPin, Users, MapIcon, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const HeroSection = () => {
@@ -60,15 +60,18 @@ const HeroSection = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button size="lg" className="glow-button text-lg px-8 py-6">
-              <Download className="w-5 h-5 mr-2" />
-              Download App
+            <Button
+              size="lg"
+              className="glow-button text-lg px-8 py-6"
+              onClick={() => router.push("/login")}
+            >
+              Book Now
             </Button>
             <Button
               size="lg"
               variant="outline"
               className="text-lg px-8 py-6 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-              onClick={()=> router.push("/explore")}
+              onClick={() => router.push("/explore")}
             >
               Explore Turfs
             </Button>
@@ -80,21 +83,21 @@ const HeroSection = () => {
               <div className="flex items-center justify-center mb-2 w-12 h-12 bg-primary/20 rounded-full mx-auto">
                 <Users className="w-6 h-6 text-primary" />
               </div>
-              <div className="text-3xl font-bold text-primary">10K+</div>
+              <div className="text-3xl font-bold text-primary">50+</div>
               <div className="text-muted-foreground">Happy Players</div>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center mb-2 w-12 h-12 bg-primary/20 rounded-full mx-auto">
                 <MapIcon className="w-6 h-6 text-primary" />
               </div>
-              <div className="text-3xl font-bold text-primary">50+</div>
+              <div className="text-3xl font-bold text-primary">10+</div>
               <div className="text-muted-foreground">Premium Turfs</div>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center mb-2 w-12 h-12 bg-primary/20 rounded-full mx-auto">
                 <Calendar className="w-6 h-6 text-primary" />
               </div>
-              <div className="text-3xl font-bold text-primary">1000+</div>
+              <div className="text-3xl font-bold text-primary">40+</div>
               <div className="text-muted-foreground">Games Booked</div>
             </div>
           </div>

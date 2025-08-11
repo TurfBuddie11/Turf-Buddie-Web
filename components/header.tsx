@@ -4,7 +4,7 @@ import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import { useAuth } from "@/context/auth-provider"; // ✅ import auth context
+import { useAuth } from "@/context/auth-provider";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
@@ -18,8 +18,7 @@ import {
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, profile } = useAuth(); // ✅ grab user + profile
-
+  const { user, profile } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -40,6 +39,8 @@ export default function Header() {
       className={`fixed top-0 w-full z-50 transition-colors duration-300 ${
         isScrolled
           ? "bg-slate-900/95 backdrop-blur-sm border-b border-slate-800"
+          : isMobileMenuOpen
+          ? "bg-gradient-to-r from-gray-900 via-black to-gray-900"
           : "bg-transparent"
       }`}
     >
@@ -88,11 +89,9 @@ export default function Header() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-3 pl-4 border-l border-slate-800 focus:outline-none">
-                    {/* Avatar */}
                     <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-black font-bold text-sm">
                       {profile.fullname?.charAt(0).toUpperCase()}
                     </div>
-                    {/* Name */}
                     <span className="text-sm text-white font-medium">
                       {profile.fullname}
                     </span>
@@ -124,10 +123,7 @@ export default function Header() {
             )
           )}
 
-          {/* Optional CTA */}
-          <Button className="bg-green-500 hover:bg-green-600 text-white">
-            Book Now
-          </Button>
+          <Button className="bg-green-500 hover:bg-green-600">Book Now</Button>
         </nav>
 
         {/* Mobile Menu Button */}
@@ -142,7 +138,76 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Mobile Nav remains unchanged for now — but can add profile there too if you want */}
+      {/* Mobile Nav */}
+      {isMobileMenuOpen && (
+        <nav
+          id="mobile-nav"
+          className="md:hidden bg-gradient-to-r from-gray-900 via-black to-gray-900 px-4 py-4 flex flex-col gap-4"
+        >
+          {primaryLinks.map((link) => (
+            <Link
+              key={link.name}
+              href={link.href}
+              className="text-slate-300 hover:text-white transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {link.name}
+            </Link>
+          ))}
+
+          <span className="h-px bg-slate-800" />
+
+          {!user ? (
+            <>
+              <Button
+                asChild
+                variant="ghost"
+                className="text-slate-300 hover:text-white hover:bg-slate-800/50"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Link href="/login">Log in</Link>
+              </Button>
+              <Button
+                asChild
+                className="glow-button text-primary-foreground font-semibold shadow-md"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Link href="/signup">Sign up</Link>
+              </Button>
+            </>
+          ) : (
+            profile && (
+              <>
+                <Link
+                  href="/profile"
+                  className="text-slate-300 hover:text-white"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {profile.fullname}
+                </Link>
+                <button
+                  className="text-red-400 hover:text-red-300 text-left"
+                  onClick={async () => {
+                    const { logout } = await import("@/lib/firebase/auth");
+                    await logout();
+                    router.push("/login");
+                    setIsMobileMenuOpen(false);
+                  }}
+                >
+                  Logout
+                </button>
+              </>
+            )
+          )}
+
+          <Button
+            className="bg-green-500 hover:bg-green-600"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Book Now
+          </Button>
+        </nav>
+      )}
     </header>
   );
 }
