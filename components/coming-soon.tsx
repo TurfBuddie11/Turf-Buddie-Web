@@ -1,5 +1,4 @@
 import { motion, Variants } from "framer-motion";
-import Header from "@/components/header";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0, y: 40 },
@@ -29,8 +28,6 @@ export default function ComingSoonPage({
 }) {
   return (
     <>
-      <Header />
-
       <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-black  to-gray-900 px-6 py-12">
         <motion.section
           initial={shouldReduceMotion ? false : "hidden"}
