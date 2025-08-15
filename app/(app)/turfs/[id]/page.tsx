@@ -64,7 +64,7 @@ export default async function TurfDetailsPage({
     .slice(0, 10);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white pt-8">
       <TurfDetailsClient turf={turf} localDate={localDate} />
     </div>
   );

@@ -1,7 +1,6 @@
 import HeroSection from "@/components/hero-section";
-import Header from "@/components/header";
+import Header from "@/components/landing-header";
 import TournamentSection from "@/components/tournament-section";
-import AboutSection from "@/components/about-section";
 import DownloadSection from "@/components/download-section";
 import PrivacySection from "@/components/privacy-section";
 import Footer from "@/components/footer";
@@ -15,8 +14,6 @@ export default function TurfBuddieLanding() {
       <HeroSection />
       {/*Tournament*/}
       <TournamentSection />
-      {/* About Section */}
-      <AboutSection />
       {/* App Download Section */}
       <DownloadSection />
       {/* Privacy Section */}

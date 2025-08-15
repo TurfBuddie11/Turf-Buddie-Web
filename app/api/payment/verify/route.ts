@@ -3,6 +3,7 @@ import crypto from "crypto";
 // Use the Admin SDK for server-side operations
 import { adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
+import { Booking } from "@/lib/types/booking";
 
 export async function POST(request: NextRequest) {
   console.log("Payment verification request received.");
@@ -48,6 +49,23 @@ export async function POST(request: NextRequest) {
     }
 
     if (isAuthentic) {
+      const turfDocRef = adminDb.collection("Turfs").doc(bookingData.turfId);
+      const turfDoc = await turfDocRef.get();
+
+      if (turfDoc.exists) {
+        const timeSlots = turfDoc.data()?.timeSlots || [];
+        const alreadyExists = timeSlots.some(
+          (slot: Booking) => slot.transactionId === paymentId
+        );
+
+        if (alreadyExists) {
+          return NextResponse.json({
+            verified: true,
+            turfId: bookingData.turfId,
+            message: "Booking already confirmed.",
+          });
+        }
+      }
       // Calculate commission and payout if not already provided
       const commission = bookingData.commission || bookingData.price * 0.094;
       const payout = bookingData.payout || bookingData.price - commission;
@@ -71,8 +89,9 @@ export async function POST(request: NextRequest) {
       };
 
       // Get a reference to the specific turf document using the Admin SDK
-      const turfDocRef = adminDb.collection("Turfs").doc(bookingData.turfId);
-      console.log(`Attempting to update Firestore document: ${bookingData.turfId}`);
+      console.log(
+        `Attempting to update Firestore document: ${bookingData.turfId}`
+      );
 
       try {
         // Atomically update the document by adding the new booking to the array

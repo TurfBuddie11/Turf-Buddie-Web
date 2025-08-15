@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export default function Header() {
+export default function LandingPageHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, profile } = useAuth();
@@ -41,8 +41,8 @@ export default function Header() {
 
   const primaryLinks = [
     { name: "Download", href: "#download" },
-    { name: "Tournaments", href: "#tournaments" },
-    { name: "About", href: "#about" },
+    { name: "Tournaments", href: "/tournaments" },
+    { name: "About", href: "/about" },
     { name: "Privacy", href: "#privacy" },
   ];
 

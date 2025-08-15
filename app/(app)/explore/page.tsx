@@ -30,7 +30,6 @@ import {
   GeoPoint,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
-import Header2 from "@/components/header2";
 
 // Types
 type TimeSlot = {
@@ -170,19 +169,16 @@ export default function ExplorePage() {
   }, [turfs, search, location, price, minRating]);
 
   // Render a loading state on the server and on initial client render
-  if (!hasMounted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white flex items-center justify-center">
-        <div>Loading...</div>
-      </div>
-    );
-  }
+  // if (!hasMounted) {
+  //   return (
+  //     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white flex items-center justify-center">
+  //       <div>Loading...</div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <>
-      <div>
-        <Header2 />
-      </div>
       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 py-10 px-4">
         <div className="max-w-7xl mx-auto space-y-8">
           <motion.div

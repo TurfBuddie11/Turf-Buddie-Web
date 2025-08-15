@@ -1,35 +1,21 @@
 "use client";
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MapPin, Users, MapIcon, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-provider";
 
 const HeroSection = () => {
-  const [parallaxOffset, setParallaxOffset] = useState(0);
-
   const { user } = useAuth();
 
   const router = useRouter();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrolled = window.pageYOffset;
-      setParallaxOffset(scrolled * 0.5);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden hero-section pt-36">
       {/* Parallax Background */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-fixed"
         style={{
           backgroundImage: `url(/hero-turf.jpg)`,
-          transform: `translateY(${parallaxOffset}px)`,
         }}
       />
       {/* Overlay */}

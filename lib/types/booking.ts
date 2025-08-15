@@ -69,5 +69,4 @@ export interface TimeSlot {
   startTime: string;
   endTime: string;
   price: number;
-  // The isAvailable property has been removed
 }
