@@ -30,35 +30,9 @@ import {
   GeoPoint,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import type { Turf } from "@/lib/types/booking";
 
 // Types
-type TimeSlot = {
-  bookingDate: Timestamp;
-  commision: number;
-  daySlot: string;
-  monthSlot: string;
-  paid: string;
-  payout: number;
-  status: string | "confirmed" | "pending";
-  timeSlot: string;
-  transactionId: string;
-  userUid: string;
-};
-
-type Turf = {
-  id: string;
-  name: string;
-  address: string;
-  image: string;
-  rating: number;
-  price: number;
-  timeSlots: TimeSlot[];
-  amenities: string[]; // e.g. ["Parking", "Lights"]
-  description: string;
-  location: { lat: number; lng: number }; // normalized GeoPoint
-  ownerId: string;
-  createdAt: Date;
-};
 
 // Helper for INR formatting
 const formatINR = (v: number) =>
@@ -186,7 +160,7 @@ export default function ExplorePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: shouldReduceMotion ? 0 : 0.5 }}
           >
-            <h1 className="text-4xl font-bold tracking-tight mt-6">
+            <h1 className="text-4xl font-bold tracking-tight mt-10">
               Find your turf 🏟️
             </h1>
             <p className="text-muted-foreground mt-2">
@@ -195,6 +169,7 @@ export default function ExplorePage() {
           </motion.div>
 
           {/* Render filters and results only after initial data load */}
+
           {isLoading ? (
             <div className="text-center text-muted-foreground py-16">
               Loading turfs...

@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Image from "next/image";
 
 export default function LandingPageHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -56,11 +57,19 @@ export default function LandingPageHeader() {
           : "bg-transparent"
       }`}
     >
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <div className="container max-w-7xl mx-auto py-4 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-hero rounded-lg flex items-center justify-center shadow-sm">
-            <span className="text-primary-foreground font-bold text-lg">T</span>
+          <div className="w-12 h-12  rounded-full flex items-center justify-center shadow-sm">
+            {/* <div className="w-8 h-8 bg-gradient-hero rounded-lg flex items-center justify-center shadow-sm"> */}
+            {/* <span className="text-primary-foreground font-bold text-lg">T</span> */}
+            <Image
+              src="/logo.png"
+              alt="TurfBuddie"
+              title="TurfBiddie"
+              width={64}
+              height={64}
+            />
           </div>
           <span className="text-xl font-bold text-foreground">TurfBuddie</span>
         </Link>

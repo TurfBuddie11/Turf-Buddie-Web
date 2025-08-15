@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       const bookingData = await getBookingDetailsFromOrderId(orderId);
 
       if (!bookingData) {
-        return NextResponse.json({ recieved: true });
+        return NextResponse.json({ verified: true });
       }
 
       const turfDocRef = adminDb.collection("Turfs").doc(bookingData.turfId);
@@ -96,6 +96,8 @@ export async function POST(request: NextRequest) {
       await turfDocRef.update({
         timeSlots: FieldValue.arrayUnion(newBookingSlot),
       });
+
+      adminDb.collection("pendingOrders").doc(orderId).delete();
 
       return NextResponse.json({ veriried: true, turfId: bookingData.turfId });
     }

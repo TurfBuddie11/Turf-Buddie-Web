@@ -26,7 +26,7 @@ export interface Turf {
 
 export interface Booking {
   id?: string;
-  turfId: string;
+  turfId?: string;
   timeSlot: string;
   daySlot: string;
   monthSlot: string;
@@ -40,7 +40,6 @@ export interface Booking {
     | "booked_offline";
   price: number;
   commission?: number; // Optional for offline bookings
-  commision?: number; // Typo in database - keeping for compatibility
   payout?: number; // Optional for offline bookings
   paid?: "Not Paid to Owner" | "Paid to Owner"; // Optional for offline bookings
   createdAt?: Date; // Optional since some bookings might not have this
