@@ -81,8 +81,6 @@ export function BookingFlow({
         }
         const data = await response.json();
 
-        // --- FIX 1: Simplified and robust data processing ---
-        // Directly create a Set from the trimmed API response
         const normalized = new Set<string>(
           (data.bookedSlots || []).map((slot: string) => slot.trim())
         );
@@ -100,7 +98,6 @@ export function BookingFlow({
     fetchBookedSlots();
   }, [selectedDate, turf.id]);
 
-  // --- FIX 2: Correctly calculate available slots using the 12-hour format ---
   const availableSlotsCount = useMemo(() => {
     return ALL_POSSIBLE_SLOTS.filter(
       (slot) => !bookedSlots.has(getSlotLabel(slot.startTime, slot.endTime))
@@ -115,34 +112,33 @@ export function BookingFlow({
 
     setIsLoading(true);
     try {
-      const orderResponse = await fetch("/api/payment/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: turf.price }),
-      });
-      if (!orderResponse.ok) throw new Error("Failed to create payment order.");
-      const { orderId, amount } = await orderResponse.json();
-
-      const commission = Number((turf.price * 0.094).toFixed(3));
-      const daySlot = dateObj.toLocaleDateString("en-US", { weekday: "long" });
-      const monthSlot = dateObj.toLocaleDateString("en-US", {
-        day: "numeric",
-        month: "short",
-      });
-
-      const bookingData = {
+      // 1. Prepare ONLY the essential booking info for the server
+      const initialBookingData = {
         turfId: turf.id,
         timeSlot: getSlotLabel(selectedSlot.startTime, selectedSlot.endTime),
-        daySlot,
-        monthSlot,
-        price: turf.price,
-        commission,
-        payout: Number((turf.price - commission).toFixed(3)),
+        daySlot: dateObj.toLocaleDateString("en-US", { weekday: "long" }),
+        monthSlot: dateObj.toLocaleDateString("en-US", {
+          day: "numeric",
+          month: "short",
+        }),
         userUid: user.uid,
         status: "pending" as const,
         paid: "Not Paid to Owner" as const,
       };
 
+      // 2. Create the order AND the pending document on the server
+      const orderResponse = await fetch("/api/payment/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: turf.price,
+          bookingDetails: initialBookingData, // Send initial details to be stored securely
+        }),
+      });
+      if (!orderResponse.ok) throw new Error("Failed to create payment order.");
+      const { orderId, amount } = await orderResponse.json();
+
+      // 3. Initiate payment on the frontend (no longer passes bookingDetails)
       const { paymentId, signature } = await initiatePayment({
         amount: amount.toString(),
         currency: "INR",
@@ -152,19 +148,16 @@ export function BookingFlow({
           email: profile.email,
           contact: profile.mobile,
         },
-        bookingDetails: bookingData,
       });
 
-      const { booking } = await verifyPayment(paymentId, orderId, signature, {
-        ...bookingData,
-        transactionId: paymentId,
-      });
+      // 4. Verify payment with only the secure identifiers
+      const { booking } = await verifyPayment(paymentId, orderId, signature);
 
       toast.success("Booking Confirmed!", {
         description: "Your turf has been booked successfully.",
       });
 
-      // --- FIX 3: Update local state with the correct 12-hour format ---
+      // Update local state as before
       setBookedSlots((prev) =>
         new Set(prev).add(
           getSlotLabel(selectedSlot.startTime, selectedSlot.endTime)
@@ -192,7 +185,6 @@ export function BookingFlow({
     dateObj,
     onBookingComplete,
   ]);
-
   return (
     <div className="space-y-6">
       {/* Turf Info */}

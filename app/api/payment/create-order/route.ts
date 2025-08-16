@@ -1,3 +1,6 @@
+// app/api/payment/create-order/route.ts
+
+import { adminDb } from "@/lib/firebase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
 
@@ -8,25 +11,27 @@ const razorpay = new Razorpay({
 
 export async function POST(request: NextRequest) {
   try {
-    const { amount, currency = "INR" } = await request.json();
+    const { amount, bookingDetails } = await request.json();
 
-    // Validate amount
-    if (!amount || isNaN(amount) || amount <= 0) {
+    if (!amount || isNaN(amount) || amount <= 0 || !bookingDetails) {
       return NextResponse.json(
-        { error: "Invalid amount provided" },
+        { error: "Invalid amount or missing booking details" },
         { status: 400 }
       );
     }
-
-    // Convert amount to paise (smallest currency unit) for Razorpay
     const amountInPaise = Math.round(parseFloat(amount) * 100);
-
-    console.log(`Creating Razorpay order: Amount ₹${amount} (${amountInPaise} paise)`);
 
     const order = await razorpay.orders.create({
       amount: amountInPaise,
-      currency,
+      currency: "INR",
       receipt: `receipt_${Date.now()}`,
+    });
+
+    // Create the secure pending order document in Firestore
+    const pendingOrderRef = adminDb.collection("pendingOrders").doc(order.id);
+    await pendingOrderRef.set({
+      ...bookingDetails,
+      price: amount,
     });
 
     return NextResponse.json({

@@ -9,104 +9,78 @@ async function getBookingDetailsFromOrderId(
 ): Promise<DocumentData | undefined> {
   const orderRef = adminDb.collection("pendingOrders").doc(orderId);
   const orderDoc = await orderRef.get();
-  if (!orderDoc.exists) {
-    console.log(
-      `Webhook: No pending order found for orderId ${orderId}. It might have been processed already.`
-    );
-    return;
-  }
-  return orderDoc.data();
+  return orderDoc.exists ? orderDoc.data() : undefined;
 }
 
 export async function POST(request: NextRequest) {
   const receivedSignature = request.headers.get("x-razorpay-signature");
   const body = await request.text();
 
-  if (!process.env.RAZORPAY_WEBHOOK_SECRET) {
-    throw new Error("RAZORPAY_WEBHOOK_SECRET is not defined");
-  }
-
-  // 1. Verify Webhook Signature
-  const expectedSignature = crypto
-    .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET)
-    .update(body)
-    .digest("hex");
-
-  if (receivedSignature !== expectedSignature) {
-    console.error("Invalid Webhook Signature");
-    return NextResponse.json({ error: "Invalid Signature" }, { status: 400 });
-  }
-
   try {
-    const event = JSON.parse(body);
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET!)
+      .update(body)
+      .digest("hex");
 
+    if (receivedSignature !== expectedSignature) {
+      return NextResponse.json({ error: "Invalid Signature" }, { status: 400 });
+    }
+
+    const event = JSON.parse(body);
     if (event.event === "payment.captured") {
       const paymentEntity = event.payload.payment.entity;
-      const paymentId = paymentEntity.id;
       const orderId = paymentEntity.order_id;
-      const paymentDate = new Date(paymentEntity.created_at * 1000);
+      const paymentId = paymentEntity.id;
 
-      const bookingData = await getBookingDetailsFromOrderId(orderId);
-      if (!bookingData) {
+      const serverBookingData = await getBookingDetailsFromOrderId(orderId);
+      if (!serverBookingData) {
         return NextResponse.json({
           status: "acknowledged",
           message: "Order already processed or not found.",
         });
       }
 
-      const turfDocRef = adminDb.collection("Turfs").doc(bookingData.turfId);
-      const pendingOrderRef = adminDb.collection("pendingOrders").doc(orderId);
-
-      // 2. Check if booking already exists
+      const turfDocRef = adminDb
+        .collection("Turfs")
+        .doc(serverBookingData.turfId);
       const turfDoc = await turfDocRef.get();
-      if (turfDoc.exists) {
-        const timeSlots = turfDoc.data()?.timeSlots || [];
-        const alreadyExist = timeSlots.some(
-          (slot: Booking) => slot.transactionId == paymentId
-        );
-        if (alreadyExist) {
-          console.log(
-            "Webhook: Booking already exists. Cleaning up pending order."
-          );
-          await pendingOrderRef.delete().catch(() => {});
-          return NextResponse.json({
-            verified: true,
-            turfId: bookingData.turfId,
-          });
-        }
+      if (
+        turfDoc.exists &&
+        turfDoc
+          .data()
+          ?.timeSlots?.some((s: Booking) => s.transactionId === paymentId)
+      ) {
+        const pendingOrderRef = adminDb
+          .collection("pendingOrders")
+          .doc(orderId);
+        await pendingOrderRef.delete().catch(() => {});
+        return NextResponse.json({
+          status: "acknowledged",
+          message: "Booking already exists.",
+        });
       }
 
-      // 3. Prepare the final booking object
-      const commission = bookingData.commision || bookingData.price * 0.094;
-      const payout = bookingData.payout || bookingData.price - commission;
+      const price = serverBookingData.price;
+      const commission = price * 0.094;
+      const payout = price - commission;
 
       const newBookingSlot = {
-        daySlot: bookingData.daySlot,
-        monthSlot: bookingData.monthSlot,
-        timeSlot: bookingData.timeSlot,
-        userUid: bookingData.userUid,
-        price: bookingData.price,
+        ...serverBookingData,
         transactionId: paymentId,
-        status: "confirmed",
-        bookingDate: paymentDate, // Use accurate date from payload
+        status: "confirmed" as const,
+        bookingDate: new Date(paymentEntity.created_at * 1000),
         commission: Math.round(commission * 1000) / 1000,
-        commision: Math.round(commission * 1000) / 1000, // Typo for consistency
         payout: Math.round(payout * 1000) / 1000,
-        paid: "Not Paid to Owner",
       };
 
-      // 4. BEST PRACTICE: Use a batched write for an atomic operation
+      const pendingOrderRef = adminDb.collection("pendingOrders").doc(orderId);
       const batch = adminDb.batch();
       batch.update(turfDocRef, {
         timeSlots: FieldValue.arrayUnion(newBookingSlot),
       });
       batch.delete(pendingOrderRef);
       await batch.commit();
-
-      console.log(`Webhook successfully processed order ${orderId}`);
-      return NextResponse.json({ verified: true, turfId: bookingData.turfId });
     }
-
     return NextResponse.json({ status: "event_received" });
   } catch (error) {
     console.error("Error processing webhook:", error);

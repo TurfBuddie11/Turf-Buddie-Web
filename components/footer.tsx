@@ -1,18 +1,13 @@
 "use client";
 
-import {
-  Facebook,
-  Instagram,
-  Twitter,
-  Mail,
-  Phone,
-  MapPin,
-} from "lucide-react";
+import { Instagram, Mail, Phone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const Footer = () => {
+  const router = useRouter();
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -83,13 +78,13 @@ const Footer = () => {
                 Download App
               </button>
               <button
-                onClick={() => scrollToSection("tournaments")}
+                onClick={() => router.push("tournaments")}
                 className="block text-muted-foreground hover:text-primary transition-colors"
               >
                 Tournaments
               </button>
               <button
-                onClick={() => scrollToSection("about")}
+                onClick={() => router.push("/about")}
                 className="block text-muted-foreground hover:text-primary transition-colors"
               >
                 About Us
