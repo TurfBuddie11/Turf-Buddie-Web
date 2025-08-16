@@ -13,9 +13,10 @@ export const metadata: Metadata = {
   title:
     "TurfBuddie | A Premium Turf Booking Platform for Vidharbha and Nagpur",
   description:
-    "Book footbal, cricket and badminton turfs with TurfBuddies. Join Tournamnets, track live scores & enjoy seamless booking with secure payments.",
+    "Book football, cricket and badminton turfs with TurfBuddies. Join Tournamnets, track live scores & enjoy seamless booking with secure payments.",
   keywords: [
     "turf booking",
+    "turf booking websites",
     "sports turf",
     "football turf",
     "cricket turf",

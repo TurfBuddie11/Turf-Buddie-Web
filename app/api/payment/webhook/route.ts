@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
       batch.delete(pendingOrderRef);
       await batch.commit();
     }
+    console.log("Webhook Payment Done");
     return NextResponse.json({ status: "event_received" });
   } catch (error) {
     console.error("Error processing webhook:", error);
