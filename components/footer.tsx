@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import React from "react";
+import Link from "next/link";
 
 const Footer = () => {
   const scrollToSection = (sectionId: string) => {
@@ -40,27 +41,32 @@ const Footer = () => {
               Nagpur and Vidarbha.
             </p>
             <div className="flex space-x-3">
-              <Button
+              {/* <Button
                 size="sm"
                 variant="outline"
                 className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
               >
                 <Facebook className="w-4 h-4" />
-              </Button>
+              </Button> */}
               <Button
                 size="sm"
                 variant="outline"
                 className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
               >
-                <Instagram className="w-4 h-4" />
+                <Link
+                  href="https://www.instagram.com/turfbuddie?igsh=MWRqajY5cGp1Zzc2MQ=="
+                  target="_blank"
+                >
+                  <Instagram className="w-4 h-4" />
+                </Link>
               </Button>
-              <Button
+              {/* <Button
                 size="sm"
                 variant="outline"
                 className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
               >
                 <Twitter className="w-4 h-4" />
-              </Button>
+              </Button> */}
             </div>
           </div>
 

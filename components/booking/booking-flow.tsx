@@ -80,13 +80,12 @@ export function BookingFlow({
           throw new Error(errorData.error || "Failed to fetch booking data.");
         }
         const data = await response.json();
-        const normalized = new Set<string>();
-        (data.bookedSlots || []).forEach((slotRange: string) => {
-          const [start, end] = slotRange.split(" - ");
-          if (start && end) {
-            normalized.add(`${start} - ${end}`);
-          }
-        });
+
+        // --- FIX 1: Simplified and robust data processing ---
+        // Directly create a Set from the trimmed API response
+        const normalized = new Set<string>(
+          (data.bookedSlots || []).map((slot: string) => slot.trim())
+        );
         setBookedSlots(normalized);
       } catch (error) {
         toast.error("Data Fetch Error", {
@@ -101,9 +100,10 @@ export function BookingFlow({
     fetchBookedSlots();
   }, [selectedDate, turf.id]);
 
+  // --- FIX 2: Correctly calculate available slots using the 12-hour format ---
   const availableSlotsCount = useMemo(() => {
     return ALL_POSSIBLE_SLOTS.filter(
-      (slot) => !bookedSlots.has(`${slot.startTime} - ${slot.endTime}`)
+      (slot) => !bookedSlots.has(getSlotLabel(slot.startTime, slot.endTime))
     ).length;
   }, [bookedSlots]);
 
@@ -132,10 +132,7 @@ export function BookingFlow({
 
       const bookingData = {
         turfId: turf.id,
-        timeSlot: `${getSlotLabel(
-          selectedSlot.startTime,
-          selectedSlot.endTime
-        )}`,
+        timeSlot: getSlotLabel(selectedSlot.startTime, selectedSlot.endTime),
         daySlot,
         monthSlot,
         price: turf.price,
@@ -167,8 +164,11 @@ export function BookingFlow({
         description: "Your turf has been booked successfully.",
       });
 
+      // --- FIX 3: Update local state with the correct 12-hour format ---
       setBookedSlots((prev) =>
-        new Set(prev).add(`${selectedSlot.startTime} - ${selectedSlot.endTime}`)
+        new Set(prev).add(
+          getSlotLabel(selectedSlot.startTime, selectedSlot.endTime)
+        )
       );
       setSelectedSlot(null);
 
@@ -237,7 +237,7 @@ export function BookingFlow({
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {ALL_POSSIBLE_SLOTS.map((slot) => {
                   const isBooked = bookedSlots.has(
-                    `${slot.startTime} - ${slot.endTime}`
+                    getSlotLabel(slot.startTime, slot.endTime)
                   );
                   const isSelected = selectedSlot?.id === slot.id;
                   return (

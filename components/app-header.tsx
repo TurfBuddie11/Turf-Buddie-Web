@@ -28,6 +28,15 @@ export default function AppHeader() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    document.body.style.overflow = isMobileMenuOpen ? "hidden" : "auto";
+
+    return () => {
+      // Just in case the component unmounts while menu is open
+      document.body.style.overflow = "auto";
+    };
+  }, [isMobileMenuOpen]);
+
   const primaryLinks = [
     { name: "Explore", href: "/explore" },
     { name: "Tournaments", href: "/tournaments" },
@@ -47,15 +56,15 @@ export default function AppHeader() {
       <div className="container max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2">
-          <div className="w-12 h-12  rounded-lg flex items-center justify-center shadow-sm">
+          <div className="w-10 h-10 bg-white  rounded-full flex items-center justify-center shadow-sm">
             {/* <div className="w-8 h-8 bg-gradient-hero rounded-lg flex items-center justify-center shadow-sm"> */}
             {/* <span className="text-primary-foreground font-bold text-lg">T</span> */}
             <Image
               src="/logo.png"
               alt="TurfBuddie"
               title="TurfBiddie"
-              width={64}
-              height={64}
+              width={56}
+              height={56}
             />
             {/* <span className="text-primary-foreground font-bold text-lg">T</span> */}
           </div>
@@ -107,7 +116,7 @@ export default function AppHeader() {
                   </button>
                 </DropdownMenuTrigger>
 
-                <DropdownMenuContent className="bg-slate-900 border-slate-800">
+                <DropdownMenuContent className="bg-slate-900 border-slate-800 fixed">
                   <DropdownMenuLabel className="text-slate-300">
                     My Account
                   </DropdownMenuLabel>
