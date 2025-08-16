@@ -55,6 +55,7 @@ export const signInWithGoogle = async (): Promise<UserCredential> => {
           city: null,
           pincode: null,
           state: null,
+          emailVerified: true,
         },
         {
           merge: true,

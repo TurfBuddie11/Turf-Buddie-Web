@@ -132,7 +132,10 @@ export function BookingFlow({
 
       const bookingData = {
         turfId: turf.id,
-        timeSlot: `${selectedSlot.startTime} - ${selectedSlot.endTime}`,
+        timeSlot: `${getSlotLabel(
+          selectedSlot.startTime,
+          selectedSlot.endTime
+        )}`,
         daySlot,
         monthSlot,
         price: turf.price,

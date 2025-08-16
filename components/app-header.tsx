@@ -44,7 +44,7 @@ export default function AppHeader() {
           : "bg-transparent"
       }`}
     >
-      <div className="container max-w-7xl mx-auto py-4 flex items-center justify-between">
+      <div className="container max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2">
           <div className="w-12 h-12  rounded-lg flex items-center justify-center shadow-sm">
@@ -57,7 +57,7 @@ export default function AppHeader() {
               width={64}
               height={64}
             />
-            <span className="text-primary-foreground font-bold text-lg">T</span>
+            {/* <span className="text-primary-foreground font-bold text-lg">T</span> */}
           </div>
           <span className="text-xl font-bold text-foreground">TurfBuddie</span>
         </Link>

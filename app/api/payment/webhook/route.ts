@@ -1,5 +1,4 @@
 import crypto from "crypto";
-
 import { adminDb } from "@/lib/firebase/admin";
 import { DocumentData, FieldValue } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
@@ -10,33 +9,26 @@ async function getBookingDetailsFromOrderId(
 ): Promise<DocumentData | undefined> {
   const orderRef = adminDb.collection("pendingOrders").doc(orderId);
   const orderDoc = await orderRef.get();
-
-  if (!orderDoc) {
-    console.error(`Webhook Error: No data found for orderId ${orderId}`);
+  if (!orderDoc.exists) {
+    console.log(
+      `Webhook: No pending order found for orderId ${orderId}. It might have been processed already.`
+    );
     return;
   }
   return orderDoc.data();
 }
 
 export async function POST(request: NextRequest) {
-  console.log("Razorpay Webhook request recceived");
   const receivedSignature = request.headers.get("x-razorpay-signature");
-
   const body = await request.text();
 
-  if (!receivedSignature) {
-    return NextResponse.json(
-      { error: "Unauthorised Request" },
-      { status: 401 }
-    );
+  if (!process.env.RAZORPAY_WEBHOOK_SECRET) {
+    throw new Error("RAZORPAY_WEBHOOK_SECRET is not defined");
   }
 
-  if (!process.env.RAZORPAY_WEBHOOK_SECRET_KEY) {
-    throw new Error("SECRET_KEY is not defined");
-  }
-
+  // 1. Verify Webhook Signature
   const expectedSignature = crypto
-    .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET!)
+    .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET)
     .update(body)
     .digest("hex");
 
@@ -52,23 +44,31 @@ export async function POST(request: NextRequest) {
       const paymentEntity = event.payload.payment.entity;
       const paymentId = paymentEntity.id;
       const orderId = paymentEntity.order_id;
+      const paymentDate = new Date(paymentEntity.created_at * 1000);
 
       const bookingData = await getBookingDetailsFromOrderId(orderId);
-
       if (!bookingData) {
-        return NextResponse.json({ verified: true });
+        return NextResponse.json({
+          status: "acknowledged",
+          message: "Order already processed or not found.",
+        });
       }
 
       const turfDocRef = adminDb.collection("Turfs").doc(bookingData.turfId);
+      const pendingOrderRef = adminDb.collection("pendingOrders").doc(orderId);
+
+      // 2. Check if booking already exists
       const turfDoc = await turfDocRef.get();
       if (turfDoc.exists) {
         const timeSlots = turfDoc.data()?.timeSlots || [];
         const alreadyExist = timeSlots.some(
           (slot: Booking) => slot.transactionId == paymentId
         );
-
         if (alreadyExist) {
-          console.log("Webhook already exists. No action needed");
+          console.log(
+            "Webhook: Booking already exists. Cleaning up pending order."
+          );
+          await pendingOrderRef.delete().catch(() => {});
           return NextResponse.json({
             verified: true,
             turfId: bookingData.turfId,
@@ -76,36 +76,42 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const commision = bookingData.commision || bookingData.price * 0.094;
-      const payout =
-        bookingData.payout || bookingData.price - bookingData.commision;
+      // 3. Prepare the final booking object
+      const commission = bookingData.commision || bookingData.price * 0.094;
+      const payout = bookingData.payout || bookingData.price - commission;
 
       const newBookingSlot = {
         daySlot: bookingData.daySlot,
         monthSlot: bookingData.monthSlot,
+        timeSlot: bookingData.timeSlot,
         userUid: bookingData.userUid,
-        transactionId: bookingData.transactionId,
-        status: "confirmed",
         price: bookingData.price,
-        bookingDate: new Date(paymentEntity.created_at * 1000),
-        commision: commision,
-        payout: payout,
+        transactionId: paymentId,
+        status: "confirmed",
+        bookingDate: paymentDate, // Use accurate date from payload
+        commission: Math.round(commission * 1000) / 1000,
+        commision: Math.round(commission * 1000) / 1000, // Typo for consistency
+        payout: Math.round(payout * 1000) / 1000,
         paid: "Not Paid to Owner",
       };
 
-      await turfDocRef.update({
+      // 4. BEST PRACTICE: Use a batched write for an atomic operation
+      const batch = adminDb.batch();
+      batch.update(turfDocRef, {
         timeSlots: FieldValue.arrayUnion(newBookingSlot),
       });
+      batch.delete(pendingOrderRef);
+      await batch.commit();
 
-      adminDb.collection("pendingOrders").doc(orderId).delete();
-
-      return NextResponse.json({ veriried: true, turfId: bookingData.turfId });
+      console.log(`Webhook successfully processed order ${orderId}`);
+      return NextResponse.json({ verified: true, turfId: bookingData.turfId });
     }
-  } catch (error) {
-    console.error("Error in processing webhhook:" + error);
 
+    return NextResponse.json({ status: "event_received" });
+  } catch (error) {
+    console.error("Error processing webhook:", error);
     return NextResponse.json(
-      { error: "Webhook handled failed" },
+      { error: "Webhook handler failed" },
       { status: 500 }
     );
   }

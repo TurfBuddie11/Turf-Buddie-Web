@@ -11,7 +11,7 @@ import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
 type BookingWithTurf = Booking &
-  Pick<Turf, "name" | "image" | "address" | "price" | "rating">;
+  Pick<Turf, "name" | "imageurl" | "address" | "price" | "rating">;
 
 export default function BookingPage() {
   const [bookings, setBookings] = useState<BookingWithTurf[]>([]);
@@ -37,7 +37,7 @@ export default function BookingPage() {
               userBookings.push({
                 ...slot,
                 name: turf.name,
-                image: turf.image,
+                imageurl: turf.imageurl,
                 address: turf.address,
                 rating: turf.rating,
               });
@@ -75,29 +75,12 @@ export default function BookingPage() {
           </h1>
         </motion.div>
       </div>
-      {/* <div className="mt-12">
-        <h1 className="font-bold text-xl">My Bookings</h1>
-      </div>
-      <div className="flex items-center justify-center">
-        {bookings.length === 0 ? (
-          <p>No bookings found.</p>
-        ) : (
-          bookings.map((booking, index) => (
-            <div key={index}>
-              <h3>{booking.turfName}</h3>
-              <p>Date: {booking.createdAt?.toString()}</p>
-              <p>Time: {booking.timeSlot}</p>
-              <p>Status: {booking.status}</p>
-            </div>
-          ))
-        )}
-      </div> */}
 
       <motion.div className="max-w-7xl mx-auto">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-6">
           {bookings.map((t, i) => (
             <motion.div
-              key={t.id}
+              key={i}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{
@@ -110,10 +93,10 @@ export default function BookingPage() {
                 className="glass-card overflow-hidden bg-gradient-to-br from-gray-950 via-black to-gray-900"
               >
                 <div key={t.id} className="relative h-44 w-full">
-                  {t.image && (
+                  {t.imageurl && (
                     <Image
-                      src={t.image}
-                      alt={`Image of ${t.image}`}
+                      src={t.imageurl}
+                      alt={`Image of ${t.imageurl}`}
                       fill
                       className="object-cover"
                     />
@@ -122,9 +105,7 @@ export default function BookingPage() {
                 <CardContent key={t.id} className="p-4 space-y-2">
                   <div key={t.id} className="flex justify-between">
                     <div key={t.id}>
-                      <h3 className="text-lg font-semibold">
-                        {t.name} - {t.image}
-                      </h3>
+                      <h3 className="text-lg font-semibold">{t.name}</h3>
                       <p className="text-sm text-muted-foreground">
                         {t.address.length > 50
                           ? `${t.address.slice(0, 50)}...`

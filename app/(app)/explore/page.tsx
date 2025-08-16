@@ -26,15 +26,12 @@ import {
   DocumentData,
   getDocs,
   QuerySnapshot,
-  Timestamp,
   GeoPoint,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import type { Turf } from "@/lib/types/booking";
 
-// Types
-
-// Helper for INR formatting
+// Helper for INR formatting from 1000 => ₹1000.00
 const formatINR = (v: number) =>
   new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -77,24 +74,24 @@ export default function ExplorePage() {
         const turfList: Turf[] = snapshot.docs.map((doc) => {
           const data = doc.data();
           const locationData = data.location as GeoPoint | undefined;
-          const createdAtData = data.createdAt as Timestamp | undefined;
+          // const createdAtData = data.createdAt as Timestamp | undefined;
 
           return {
             id: doc.id,
             name: data.name || "",
             address: data.address || "",
-            image: data.imageurl || "",
+            imageurl: data.imageurl || "",
             rating: data.rating || 0,
             price: data.price || 0,
             timeSlots: data.timeSlots || [],
-            amenities: data.amenities || [],
-            description: data.description || "",
+            // amenities: data.amenities || [],
+            // description: data.description || "",
             location: locationData
               ? { lat: locationData.latitude, lng: locationData.longitude }
               : { lat: 0, lng: 0 },
-            ownerId: data.ownerId || "",
+            // ownerId: data.ownerId || "",
             // FIX: Use a static date for fallback to prevent hydration mismatch
-            createdAt: createdAtData ? createdAtData.toDate() : new Date(0),
+            // createdAt: createdAtData ? createdAtData.toDate() : new Date(0),
           };
         });
         setTurfs(turfList);
@@ -107,6 +104,7 @@ export default function ExplorePage() {
     fetchTurfs();
   }, []);
 
+  // Used for getiing location
   useEffect(() => {
     // This effect runs only on the client after the component has mounted
     if (hasMounted && navigator.geolocation) {
@@ -276,9 +274,9 @@ export default function ExplorePage() {
                   >
                     <Card className="glass-card overflow-hidden bg-gradient-to-br from-gray-950 via-black to-gray-900">
                       <div className="relative h-44 w-full">
-                        {t.image && (
+                        {t.imageurl && (
                           <Image
-                            src={t.image}
+                            src={t.imageurl}
                             alt={`Image of ${t.name}`}
                             fill
                             className="object-cover"

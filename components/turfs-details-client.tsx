@@ -37,8 +37,8 @@ export default function TurfDetailsClient({
   }, []);
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+    <div className="max-w-7xl mx-auto p-4 md:p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mt-6">
         {/* Image Section */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -47,7 +47,7 @@ export default function TurfDetailsClient({
           className="relative h-[60vh] md:h-[90vh] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10"
         >
           <Image
-            src={turf.image}
+            src={turf.imageurl}
             alt={turf.name}
             fill
             priority
