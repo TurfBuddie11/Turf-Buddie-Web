@@ -108,7 +108,7 @@ export default function AppHeader() {
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-3 pl-4 border-l border-slate-800 focus:outline-none">
                     <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-black font-bold text-sm">
-                      {profile.fullname.split(" ")[0].charAt(0).toUpperCase()}
+                      {(profile.fullname ?? "").charAt(0).toUpperCase()}
                     </div>
                     <span className="text-sm text-white font-medium">
                       {profile.fullname}
