@@ -75,21 +75,20 @@ export default function BookingPage() {
           </h1>
         </motion.div>
       </div>
+      {bookings.length === 0 && (
+        <div className=" container flex min-h-screen flex-col items-center justify-center text-center px-4">
+          <div className="text-5xl mb-4">📭</div>
+          <h2 className="text-2xl font-bold text-gray-300">No Bookings Yet</h2>
+          <p className="text-gray-400 mt-2 max-w-md">
+            Looks like you haven’t booked a turf yet. Explore available slots
+            and make your first booking to get started!
+          </p>
+        </div>
+      )}
 
       <motion.div className="max-w-7xl mx-auto">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-6">
-          {bookings.length === 0 ? (
-            <div className=" container flex min-h-screen flex-col items-center justify-center text-center px-4">
-              <div className="text-5xl mb-4">📭</div>
-              <h2 className="text-2xl font-bold text-gray-300">
-                No Bookings Yet
-              </h2>
-              <p className="text-gray-400 mt-2 max-w-md">
-                Looks like you haven’t booked a turf yet. Explore available
-                slots and make your first booking to get started!
-              </p>
-            </div>
-          ) : (
+          {bookings.length !== 0 &&
             bookings.map((t, i) => (
               <motion.div
                 key={i}
@@ -157,8 +156,7 @@ export default function BookingPage() {
                   </CardContent>
                 </Card>
               </motion.div>
-            ))
-          )}
+            ))}
         </div>
       </motion.div>
     </div>

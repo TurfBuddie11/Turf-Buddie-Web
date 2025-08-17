@@ -56,7 +56,7 @@ export default function ExplorePage() {
   // Filter states
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("all");
-  const [price, setPrice] = useState<[number, number]>([400, 1000]);
+  const [price, setPrice] = useState<[number, number]>([400, 10000]);
   const [minRating, setMinRating] = useState(0);
 
   useEffect(() => {
@@ -279,6 +279,7 @@ export default function ExplorePage() {
                             src={t.imageurl}
                             alt={`Image of ${t.name}`}
                             fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-cover"
                           />
                         )}
