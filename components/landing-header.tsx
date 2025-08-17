@@ -14,8 +14,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Image from "next/image";
 
-export default function Header2() {
+export default function LandingPageHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, profile } = useAuth();
@@ -27,9 +28,20 @@ export default function Header2() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  //Prevent body scroll when mobile menu is open for better UX
+  useEffect(() => {
+    document.body.style.overflow = isMobileMenuOpen ? "hidden" : "auto";
+
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [isMobileMenuOpen]);
+
   const primaryLinks = [
-    { name: "Explore", href: "/explore" },
+    { name: "Download", href: "#download" },
     { name: "Tournaments", href: "/tournaments" },
+    { name: "About", href: "/about" },
+    { name: "Privacy", href: "#privacy" },
   ];
 
   return (
@@ -42,11 +54,19 @@ export default function Header2() {
           : "bg-transparent"
       }`}
     >
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <div className="container max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-hero rounded-lg flex items-center justify-center shadow-sm">
-            <span className="text-primary-foreground font-bold text-lg">T</span>
+          <div className="w-10 h-10 bg-white  rounded-full flex items-center justify-center shadow-sm">
+            {/* <div className="w-8 h-8 bg-gradient-hero rounded-lg flex items-center justify-center shadow-sm"> */}
+            {/* <span className="text-primary-foreground font-bold text-lg">T</span> */}
+            <Image
+              src="/logo.png"
+              alt="TurfBuddie"
+              title="TurfBiddie"
+              width={56}
+              height={56}
+            />
           </div>
           <span className="text-xl font-bold text-foreground">TurfBuddie</span>
         </Link>
@@ -88,7 +108,7 @@ export default function Header2() {
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-3 pl-4 border-l border-slate-800 focus:outline-none">
                     <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-black font-bold text-sm">
-                      {profile.fullname?.charAt(0).toUpperCase()}
+                      {profile.fullname.split(" ")[0].charAt(0).toUpperCase()}
                     </div>
                     <span className="text-sm text-white font-medium">
                       {profile.fullname}
@@ -96,7 +116,7 @@ export default function Header2() {
                   </button>
                 </DropdownMenuTrigger>
 
-                <DropdownMenuContent className="bg-slate-900 border-slate-800">
+                <DropdownMenuContent className="bg-slate-900 border-slate-800 fixed">
                   <DropdownMenuLabel className="text-slate-300">
                     My Account
                   </DropdownMenuLabel>
@@ -123,7 +143,13 @@ export default function Header2() {
 
           <Button
             className="bg-green-500 hover:bg-green-600"
-            onClick={() => router.push("/explore")}
+            onClick={() => {
+              if (user) {
+                router.push("/explore");
+              } else {
+                router.push("/login");
+              }
+            }}
           >
             Book Now
           </Button>
@@ -205,7 +231,13 @@ export default function Header2() {
 
           <Button
             className="bg-green-500 hover:bg-green-600"
-            onClick={() => setIsMobileMenuOpen(false)}
+            onClick={() => {
+              if (user) {
+                router.push("/explore");
+              } else {
+                router.push("/login");
+              }
+            }}
           >
             Book Now
           </Button>

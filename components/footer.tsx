@@ -1,17 +1,13 @@
 "use client";
 
-import {
-  Facebook,
-  Instagram,
-  Twitter,
-  Mail,
-  Phone,
-  MapPin,
-} from "lucide-react";
+import { Instagram, Mail, Phone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const Footer = () => {
+  const router = useRouter();
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -40,27 +36,32 @@ const Footer = () => {
               Nagpur and Vidarbha.
             </p>
             <div className="flex space-x-3">
-              <Button
+              {/* <Button
                 size="sm"
                 variant="outline"
                 className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
               >
                 <Facebook className="w-4 h-4" />
-              </Button>
+              </Button> */}
               <Button
                 size="sm"
                 variant="outline"
                 className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
               >
-                <Instagram className="w-4 h-4" />
+                <Link
+                  href="https://www.instagram.com/turfbuddie?igsh=MWRqajY5cGp1Zzc2MQ=="
+                  target="_blank"
+                >
+                  <Instagram className="w-4 h-4" />
+                </Link>
               </Button>
-              <Button
+              {/* <Button
                 size="sm"
                 variant="outline"
                 className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
               >
                 <Twitter className="w-4 h-4" />
-              </Button>
+              </Button> */}
             </div>
           </div>
 
@@ -77,13 +78,13 @@ const Footer = () => {
                 Download App
               </button>
               <button
-                onClick={() => scrollToSection("tournaments")}
+                onClick={() => router.push("tournaments")}
                 className="block text-muted-foreground hover:text-primary transition-colors"
               >
                 Tournaments
               </button>
               <button
-                onClick={() => scrollToSection("about")}
+                onClick={() => router.push("/about")}
                 className="block text-muted-foreground hover:text-primary transition-colors"
               >
                 About Us

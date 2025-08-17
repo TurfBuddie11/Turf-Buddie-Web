@@ -1,31 +1,100 @@
 import {
   createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
+  GoogleAuthProvider,
   sendEmailVerification,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
   UserCredential,
 } from "firebase/auth";
 import { auth, db } from "./config";
 import { FirebaseError } from "firebase/app";
-import { doc, setDoc, getDoc, Timestamp, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  Timestamp,
+  updateDoc,
+  DocumentSnapshot,
+} from "firebase/firestore";
+import { UserProfile } from "../types/user";
 
-export interface UserProfile {
-  fullname: string;
-  gender: string;
-  dob: string; // store as DD/MM/YYYY
-  mobile: string;
-  city: string;
-  pincode: string;
-  state: string;
-  email: string;
-  createdAt: Timestamp;
-  emailVerified: boolean;
-}
+const provider = new GoogleAuthProvider();
+
+export const signInWithGoogle = async (): Promise<UserCredential> => {
+  try {
+    const userCredentials = await signInWithPopup(auth, provider);
+    const user = userCredentials.user;
+
+    // Check if email is already used with another provider
+    const signInMethods = await fetchSignInMethodsForEmail(
+      auth,
+      user.email || ""
+    );
+    if (signInMethods.includes("password")) {
+      throw new Error(
+        "This email is already registered with Email/Password. Please sign in using that method."
+      );
+    }
+
+    const isNewUser =
+      user.metadata.creationTime === user.metadata.lastSignInTime;
+
+    if (isNewUser) {
+      console.log("New User");
+      const userRef = doc(db, "users", user.uid);
+      await setDoc(
+        userRef,
+        {
+          uid: user.uid,
+          fullname: user.displayName,
+          gender: null,
+          dob: null,
+          mobile: user.phoneNumber,
+          city: null,
+          pincode: null,
+          state: null,
+          emailVerified: true,
+        },
+        {
+          merge: true,
+        }
+      );
+    }
+
+    return userCredentials;
+  } catch (error) {
+    if (error instanceof FirebaseError) {
+      if (error.code === "auth/account-exists-with-different-credential") {
+        throw new Error(
+          "An account already exists with the same email address but different sign-in credentials"
+        );
+      }
+      if (error.code === "auth/user-not-found") {
+        throw new Error("User not found");
+      }
+      if (error.code === "auth/network-request-failed") {
+        throw new Error("Network Error");
+      }
+      if (error.code === "auth/popup-closed-by-user") {
+        throw new Error("Google Sign in cancelled by user");
+      }
+      if (error.code === "auth/popup-blocked") {
+        throw new Error("Sign In Blocked Enable JavaScript in Settings");
+      }
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Google Sign in failed. Please try again");
+  }
+};
 
 /**
  * Register a new user
  */
-export const register = async (
+export const registerWithEmail = async (
   email: string,
   password: string,
   profile: Omit<UserProfile, "email" | "createdAt" | "emailVerified">
@@ -139,10 +208,10 @@ export const logout = async () => {
  */
 export const getUserProfile = async (
   uid: string
-): Promise<UserProfile | null> => {
+): Promise<DocumentSnapshot> => {
   try {
     const docSnap = await getDoc(doc(db, "users", uid));
-    return docSnap.exists() ? (docSnap.data() as UserProfile) : null;
+    return docSnap;
   } catch (error: unknown) {
     if (error instanceof FirebaseError) {
       throw new Error(error.message || "Error fetching user profile.");
@@ -150,5 +219,18 @@ export const getUserProfile = async (
     throw new Error(
       "An unexpected error occurred while fetching user profile."
     );
+  }
+};
+
+export const updateUserProfile = async (
+  userId: string,
+  data: Omit<UserProfile, "createdAt" | "emailVerified">
+) => {
+  try {
+    const userRef = doc(db, "users", userId);
+    await setDoc(userRef, data, { merge: true });
+  } catch (error) {
+    console.error(error);
+    throw new Error("Profile Setup Failed");
   }
 };

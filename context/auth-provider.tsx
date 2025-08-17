@@ -1,9 +1,10 @@
 "use client";
 
-import { getUserProfile, UserProfile } from "@/lib/firebase/auth";
+import { getUserProfile } from "@/lib/firebase/auth";
 import { auth } from "@/lib/firebase/config";
 import { onAuthStateChanged, User } from "firebase/auth";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { UserProfile } from "@/lib/types/user";
 
 interface AuthContextType {
   user: User | null;
@@ -35,7 +36,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(user);
 
       if (user) {
-        const userProfile = await getUserProfile(user.uid);
+        const userProfileSnap = await getUserProfile(user.uid);
+        const userProfile = userProfileSnap
+          ? (userProfileSnap.data() as UserProfile)
+          : null;
         setProfile(userProfile);
       } else {
         setProfile(null);

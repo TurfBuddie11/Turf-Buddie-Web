@@ -33,17 +33,17 @@ async function fetchTurf(id: string): Promise<Turf | null> {
     id,
     name: data.name || "",
     address: data.address || "",
-    image: data.imageurl || "",
+    imageurl: data.imageurl || "",
     rating: data.rating || 0,
     price: data.price || 0,
     timeSlots: formatTimeSlots(data.timeSlots || []),
-    amenities: data.amenities || [],
-    description: data.description || "",
+    // amenities: data.amenities || [],
+    // description: data.description || "",
     location: data.location
       ? { lat: data.location.latitude, lng: data.location.longitude }
       : { lat: 0, lng: 0 },
-    ownerId: data.ownerId || "",
-    createdAt: data.createdAt ? data.createdAt.toDate() : new Date(0),
+    // ownerId: data.ownerId || "",
+    // createdAt: data.createdAt ? data.createdAt.toDate() : new Date(0),
   };
 }
 
@@ -64,7 +64,7 @@ export default async function TurfDetailsPage({
     .slice(0, 10);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white pt-8">
       <TurfDetailsClient turf={turf} localDate={localDate} />
     </div>
   );

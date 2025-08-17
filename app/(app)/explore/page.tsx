@@ -26,42 +26,12 @@ import {
   DocumentData,
   getDocs,
   QuerySnapshot,
-  Timestamp,
   GeoPoint,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
-import Header2 from "@/components/header2";
+import type { Turf } from "@/lib/types/booking";
 
-// Types
-type TimeSlot = {
-  bookingDate: Timestamp;
-  commision: number;
-  daySlot: string;
-  monthSlot: string;
-  paid: string;
-  payout: number;
-  status: string | "confirmed" | "pending";
-  timeSlot: string;
-  transactionId: string;
-  userUid: string;
-};
-
-type Turf = {
-  id: string;
-  name: string;
-  address: string;
-  image: string;
-  rating: number;
-  price: number;
-  timeSlots: TimeSlot[];
-  amenities: string[]; // e.g. ["Parking", "Lights"]
-  description: string;
-  location: { lat: number; lng: number }; // normalized GeoPoint
-  ownerId: string;
-  createdAt: Date;
-};
-
-// Helper for INR formatting
+// Helper for INR formatting from 1000 => ₹1000.00
 const formatINR = (v: number) =>
   new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -86,7 +56,7 @@ export default function ExplorePage() {
   // Filter states
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("all");
-  const [price, setPrice] = useState<[number, number]>([400, 1000]);
+  const [price, setPrice] = useState<[number, number]>([400, 10000]);
   const [minRating, setMinRating] = useState(0);
 
   useEffect(() => {
@@ -104,24 +74,24 @@ export default function ExplorePage() {
         const turfList: Turf[] = snapshot.docs.map((doc) => {
           const data = doc.data();
           const locationData = data.location as GeoPoint | undefined;
-          const createdAtData = data.createdAt as Timestamp | undefined;
+          // const createdAtData = data.createdAt as Timestamp | undefined;
 
           return {
             id: doc.id,
             name: data.name || "",
             address: data.address || "",
-            image: data.imageurl || "",
+            imageurl: data.imageurl || "",
             rating: data.rating || 0,
             price: data.price || 0,
             timeSlots: data.timeSlots || [],
-            amenities: data.amenities || [],
-            description: data.description || "",
+            // amenities: data.amenities || [],
+            // description: data.description || "",
             location: locationData
               ? { lat: locationData.latitude, lng: locationData.longitude }
               : { lat: 0, lng: 0 },
-            ownerId: data.ownerId || "",
+            // ownerId: data.ownerId || "",
             // FIX: Use a static date for fallback to prevent hydration mismatch
-            createdAt: createdAtData ? createdAtData.toDate() : new Date(0),
+            // createdAt: createdAtData ? createdAtData.toDate() : new Date(0),
           };
         });
         setTurfs(turfList);
@@ -134,6 +104,7 @@ export default function ExplorePage() {
     fetchTurfs();
   }, []);
 
+  // Used for getiing location
   useEffect(() => {
     // This effect runs only on the client after the component has mounted
     if (hasMounted && navigator.geolocation) {
@@ -170,19 +141,16 @@ export default function ExplorePage() {
   }, [turfs, search, location, price, minRating]);
 
   // Render a loading state on the server and on initial client render
-  if (!hasMounted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white flex items-center justify-center">
-        <div>Loading...</div>
-      </div>
-    );
-  }
+  // if (!hasMounted) {
+  //   return (
+  //     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white flex items-center justify-center">
+  //       <div>Loading...</div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <>
-      <div>
-        <Header2 />
-      </div>
       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 py-10 px-4">
         <div className="max-w-7xl mx-auto space-y-8">
           <motion.div
@@ -190,7 +158,7 @@ export default function ExplorePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: shouldReduceMotion ? 0 : 0.5 }}
           >
-            <h1 className="text-4xl font-bold tracking-tight mt-6">
+            <h1 className="text-4xl font-bold tracking-tight mt-10">
               Find your turf 🏟️
             </h1>
             <p className="text-muted-foreground mt-2">
@@ -199,6 +167,7 @@ export default function ExplorePage() {
           </motion.div>
 
           {/* Render filters and results only after initial data load */}
+
           {isLoading ? (
             <div className="text-center text-muted-foreground py-16">
               Loading turfs...
@@ -305,11 +274,12 @@ export default function ExplorePage() {
                   >
                     <Card className="glass-card overflow-hidden bg-gradient-to-br from-gray-950 via-black to-gray-900">
                       <div className="relative h-44 w-full">
-                        {t.image && (
+                        {t.imageurl && (
                           <Image
-                            src={t.image}
+                            src={t.imageurl}
                             alt={`Image of ${t.name}`}
                             fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-cover"
                           />
                         )}
