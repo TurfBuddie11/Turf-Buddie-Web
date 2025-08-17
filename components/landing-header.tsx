@@ -108,10 +108,10 @@ export default function LandingPageHeader() {
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-3 pl-4 border-l border-slate-800 focus:outline-none">
                     <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-black font-bold text-sm">
-                      {(profile.fullname ?? "").charAt(0).toUpperCase()}
+                      {(profile.name ?? "").charAt(0).toUpperCase()}
                     </div>
                     <span className="text-sm text-white font-medium">
-                      {profile.fullname}
+                      {profile.name}
                     </span>
                   </button>
                 </DropdownMenuTrigger>
@@ -212,7 +212,7 @@ export default function LandingPageHeader() {
                   className="text-slate-300 hover:text-white"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {profile.fullname}
+                  {profile.name}
                 </Link>
                 <button
                   className="text-red-400 hover:text-red-300 text-left"
