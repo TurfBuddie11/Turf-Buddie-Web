@@ -11,7 +11,7 @@ const tournaments = [
     id: 1,
     title: "Nagpur Premier Cricket League",
     image: "/tournament-cricket.jpg",
-    date: "Dec 15-22, 2024",
+    date: "Dec 15-22, 2025",
     location: "VCA Stadium Turf",
     participants: "32 Teams",
     prize: "₹50,000",
