@@ -67,7 +67,7 @@ export const initiatePayment = (
 ): Promise<PaymentSuccessPayload> => {
   return new Promise((resolve, reject) => {
     // ... (the inside of this function remains the same) ...
-    const key = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+    const key = process.env.RAZORPAY_KEY_ID;
     if (!key) {
       return reject(new Error("Razorpay key is missing"));
     }
