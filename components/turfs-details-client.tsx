@@ -15,6 +15,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { format } from "date-fns";
 
 interface TurfDetailsClientProps {
   turf: Turf;
@@ -115,9 +116,7 @@ export default function TurfDetailsClient({
               {/* Booking Flow */}
               <BookingFlow
                 turf={turf}
-                selectedDate={
-                  date ? date.toISOString().split("T")[0] : localDate
-                }
+                selectedDate={date ? format(date, "yyyy-MM-dd") : localDate}
                 onBookingComplete={(booking) =>
                   console.log("Booking complete:", booking)
                 }

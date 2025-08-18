@@ -62,7 +62,7 @@ const signupSchema = z
     email: z.string().email("Enter a valid email"),
     password: z.string().optional(),
     confirmPassword: z.string().optional(),
-    fullname: z.string().min(3, "Full name is required"),
+    name: z.string().min(3, "Full name is required"),
     gender: z.enum(genderOptions, { error: "Please select a gender" }),
     dob: z
       .date({ error: "Please select your date of birth" })
@@ -119,7 +119,7 @@ const steps = [
   {
     id: "Step 2",
     title: "Personal Details",
-    fields: ["fullname", "gender", "dob"],
+    fields: ["name", "gender", "dob"],
   },
   {
     id: "Step 3",
@@ -145,7 +145,7 @@ export default function SignUpForm() {
   const form = useForm<SignUpFormData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
-      fullname: "",
+      name: "",
       gender: undefined,
       dob: undefined,
       mobile: "",
@@ -172,7 +172,7 @@ export default function SignUpForm() {
         // This logic now runs ONLY after auth is resolved and a user is present.
         setShowForm(true);
         setCurrentStep(1);
-        setValue("fullname", user.displayName || "");
+        setValue("name", user.displayName || "");
         setValue("email", user.email || "");
       } else {
         // This is now a correct redirect for genuinely unauthenticated users.
@@ -247,7 +247,7 @@ export default function SignUpForm() {
     setLoading(true);
     try {
       const userData = {
-        fullname: data.fullname,
+        name: data.name,
         gender: data.gender,
         dob: format(data.dob, "dd/MM/yyyy"),
         mobile: data.mobile,
@@ -491,7 +491,7 @@ export default function SignUpForm() {
                             >
                               <FormField
                                 control={form.control}
-                                name="fullname"
+                                name="name"
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormLabel>Full Name</FormLabel>

@@ -144,7 +144,7 @@ export function BookingFlow({
         currency: "INR",
         orderId,
         userDetails: {
-          name: profile.fullname,
+          name: profile.name,
           email: profile.email,
           contact: profile.mobile,
         },

@@ -1,7 +1,7 @@
 import { Timestamp } from "firebase/firestore";
 
 export interface UserProfile {
-  fullname: string;
+  name: string;
   gender: string;
   dob: string; // store as DD/MM/YYYY
   mobile: string;

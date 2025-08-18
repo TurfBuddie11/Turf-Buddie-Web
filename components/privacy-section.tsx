@@ -165,7 +165,7 @@ const PrivacySection = () => {
             <div className="pt-6 border-t border-border">
               <p className="text-muted-foreground text-sm leading-relaxed">
                 <strong className="text-foreground">Last updated:</strong>{" "}
-                December 2024. We review and update our privacy policy regularly
+                December 2025. We review and update our privacy policy regularly
                 to ensure it reflects our current practices and complies with
                 applicable laws. For questions about this policy, contact us at
                 privacy@turfbuddie.com

@@ -48,7 +48,7 @@ export const signInWithGoogle = async (): Promise<UserCredential> => {
         userRef,
         {
           uid: user.uid,
-          fullname: user.displayName,
+          name: user.displayName,
           gender: null,
           dob: null,
           mobile: user.phoneNumber,
