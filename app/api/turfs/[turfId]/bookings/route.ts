@@ -41,10 +41,10 @@ function parseBookingDate(booking: BookingSlot): Date | null {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { turfId: string } }
+  context: { params: { turfId: string } }
 ) {
   try {
-    const { turfId } = params;
+    const { turfId } = context.params;
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date");
 
