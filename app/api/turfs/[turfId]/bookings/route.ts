@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase/admin";
+import { Timestamp } from "firebase-admin/firestore"; // from admin SDK
+import { adminDb } from "@/lib/firebase/admin"; // your admin firestore instance
 
 type BookingSlot = {
-  bookingDate?: FirebaseFirestore.Timestamp | string;
+  bookingDate?: Timestamp | string;
   daySlot?: string;
   monthSlot?: string;
   timeSlot?: string;
@@ -18,27 +19,22 @@ type BookingSlot = {
 
 function parseBookingDate(booking: BookingSlot): Date | null {
   try {
-    // Case 1: Firestore Timestamp
-    if (
-      booking.bookingDate instanceof Object &&
-      "toDate" in booking.bookingDate
-    ) {
-      return (booking.bookingDate as FirebaseFirestore.Timestamp).toDate();
+    if (booking.bookingDate instanceof Timestamp) {
+      return booking.bookingDate.toDate();
     }
 
-    // Case 2: bookingDate string
     if (typeof booking.bookingDate === "string") {
       return new Date(booking.bookingDate);
     }
 
-    // Case 3: legacy daySlot + monthSlot
     if (booking.daySlot && booking.monthSlot) {
       const currentYear = new Date().getFullYear();
       const combinedDate = `${booking.monthSlot} ${currentYear}`;
       return new Date(combinedDate);
     }
   } catch (err) {
-    console.warn("Failed to parse booking date:", booking, err);
+    console.log(err);
+    console.warn("Failed to parse booking date:", booking);
   }
   return null;
 }
@@ -59,7 +55,6 @@ export async function GET(
       );
     }
 
-    // Normalize date to IST start/end of day
     const targetDate = new Date(date);
     const IST_OFFSET = 5.5 * 60 * 60 * 1000;
     const selectedDate = new Date(targetDate.getTime() + IST_OFFSET);
@@ -67,7 +62,6 @@ export async function GET(
     const endOfDay = new Date(selectedDate);
     endOfDay.setHours(23, 59, 59, 999);
 
-    // ✅ Admin SDK query
     const turfRef = adminDb.collection("Turfs").doc(turfId);
     const turfSnapshot = await turfRef.get();
 
