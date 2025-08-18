@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Timestamp } from "firebase-admin/firestore"; // from admin SDK
-import { adminDb } from "@/lib/firebase/admin"; // your admin firestore instance
+import { Timestamp } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase/admin";
 
 type BookingSlot = {
   bookingDate?: Timestamp | string;
@@ -22,30 +22,27 @@ function parseBookingDate(booking: BookingSlot): Date | null {
     if (booking.bookingDate instanceof Timestamp) {
       return booking.bookingDate.toDate();
     }
-
     if (typeof booking.bookingDate === "string") {
       return new Date(booking.bookingDate);
     }
-
     if (booking.daySlot && booking.monthSlot) {
       const currentYear = new Date().getFullYear();
       const combinedDate = `${booking.monthSlot} ${currentYear}`;
       return new Date(combinedDate);
     }
   } catch (err) {
-    console.log(err);
-    console.warn("Failed to parse booking date:", booking);
+    console.warn("Failed to parse booking date:", booking, err);
   }
   return null;
 }
 
-export async function GET(
-  request: NextRequest,
-  context: { params: { turfId: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
-    const { turfId } = context.params;
-    const { searchParams } = new URL(request.url);
+    // ✅ Extract turfId from the pathname
+    const pathnameParts = request.nextUrl.pathname.split("/");
+    const turfId = pathnameParts[pathnameParts.indexOf("turfs") + 1];
+
+    const { searchParams } = request.nextUrl;
     const date = searchParams.get("date");
 
     if (!turfId || !date) {
