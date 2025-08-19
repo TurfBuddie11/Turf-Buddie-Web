@@ -38,10 +38,10 @@ export const signInWithGoogle = async (): Promise<UserCredential> => {
       );
     }
 
-    const isNewUser =
-      user.metadata.creationTime === user.metadata.lastSignInTime;
+    const userRef = doc(db, "users", user.uid);
+    const profileSnap = await getDoc(userRef);
 
-    if (isNewUser) {
+    if (!profileSnap.exists()) {
       console.log("New User");
       const userRef = doc(db, "users", user.uid);
       await setDoc(
@@ -51,7 +51,7 @@ export const signInWithGoogle = async (): Promise<UserCredential> => {
           name: user.displayName,
           gender: null,
           dob: null,
-          mobile: user.phoneNumber,
+          mobile: null,
           city: null,
           pincode: null,
           state: null,

@@ -67,11 +67,9 @@ export default function LoginPage() {
       const profileSnap = await getUserProfile(googleUser.uid);
 
       if (profileSnap.exists() && profileSnap.data().mobile) {
-        // Profile is COMPLETE
         toast.success(`Welcome back, ${googleUser.displayName}!`);
         router.push("/explore");
       } else {
-        // Profile is INCOMPLETE, redirect to finish signup
         toast.info("Welcome! Let's complete your profile.");
         router.push("/signup?flow=completeProfile");
       }
