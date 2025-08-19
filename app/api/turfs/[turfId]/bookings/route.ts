@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { doc, getDoc, Timestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
+import { Timestamp } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase/admin";
 
 type BookingSlot = {
   bookingDate?: Timestamp | string;
@@ -19,36 +19,30 @@ type BookingSlot = {
 
 function parseBookingDate(booking: BookingSlot): Date | null {
   try {
-    // Case 1: bookingDate is Firestore Timestamp
     if (booking.bookingDate instanceof Timestamp) {
       return booking.bookingDate.toDate();
     }
-
-    // Case 2: bookingDate is string or daySlot + monthSlot format
     if (typeof booking.bookingDate === "string") {
       return new Date(booking.bookingDate);
     }
-
     if (booking.daySlot && booking.monthSlot) {
-      // Example: daySlot = "Monday", monthSlot = "21 Jul"
       const currentYear = new Date().getFullYear();
       const combinedDate = `${booking.monthSlot} ${currentYear}`;
       return new Date(combinedDate);
     }
   } catch (err) {
-    console.log(err);
-    console.warn("Failed to parse booking date:", booking);
+    console.warn("Failed to parse booking date:", booking, err);
   }
   return null;
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ turfId: string }> }
-) {
+export async function GET(request: NextRequest) {
   try {
-    const { turfId } = await params;
-    const { searchParams } = new URL(request.url);
+    // ✅ Extract turfId from the pathname
+    const pathnameParts = request.nextUrl.pathname.split("/");
+    const turfId = pathnameParts[pathnameParts.indexOf("turfs") + 1];
+
+    const { searchParams } = request.nextUrl;
     const date = searchParams.get("date");
 
     if (!turfId || !date) {
@@ -58,42 +52,36 @@ export async function GET(
       );
     }
 
-    // Normalize date to IST start/end of day
     const targetDate = new Date(date);
-    const IST_OFFSET = 5.5 * 60 * 60 * 1000; // 5h30m in ms
+    const IST_OFFSET = 5.5 * 60 * 60 * 1000;
     const selectedDate = new Date(targetDate.getTime() + IST_OFFSET);
     selectedDate.setHours(0, 0, 0, 0);
     const endOfDay = new Date(selectedDate);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const turfRef = doc(db, "Turfs", turfId);
-    const turfSnapshot = await getDoc(turfRef);
+    const turfRef = adminDb.collection("Turfs").doc(turfId);
+    const turfSnapshot = await turfRef.get();
 
-    if (!turfSnapshot.exists()) {
+    if (!turfSnapshot.exists) {
       return NextResponse.json(
         { error: `Turf with ID '${turfId}' not found.` },
         { status: 404 }
       );
     }
 
-    const turfData = turfSnapshot.data();
+    const turfData = turfSnapshot.data() || {};
     const allBookingsInDoc = turfData.timeSlots || [];
 
     const dailyBookings = allBookingsInDoc.filter((booking: BookingSlot) => {
       const parsedDate = parseBookingDate(booking);
       if (!parsedDate) return false;
 
-      // Apply IST offset for comparison
       const bookingIST = new Date(parsedDate.getTime() + IST_OFFSET);
 
       const isToday = bookingIST >= selectedDate && bookingIST <= endOfDay;
       const isBlockingStatus =
         booking.status &&
-        [
-          "confirmed",
-          "pending",
-          "booked_offline",
-        ].includes(booking.status);
+        ["confirmed", "pending", "booked_offline"].includes(booking.status);
 
       return isToday && isBlockingStatus;
     });
@@ -104,7 +92,7 @@ export async function GET(
 
     return NextResponse.json({
       bookedSlots,
-      bookings: dailyBookings, // full data for UI if needed
+      bookings: dailyBookings,
     });
   } catch (error) {
     console.error("Error in bookings API:", error);
