@@ -1,9 +1,10 @@
 import HeroSection from "@/components/hero-section";
 import Header from "@/components/landing-header";
-import TournamentSection from "@/components/tournament-section";
+// import TournamentSection from "@/components/tournament-section";
 import DownloadSection from "@/components/download-section";
 import PrivacySection from "@/components/privacy-section";
 import Footer from "@/components/footer";
+import TurfListSection from "@/components/turf-section";
 
 export default function TurfBuddieLanding() {
   return (
@@ -13,7 +14,8 @@ export default function TurfBuddieLanding() {
       {/* Hero Section */}
       <HeroSection />
       {/*Tournament*/}
-      <TournamentSection />
+      {/* <TournamentSection /> */}
+      <TurfListSection />
       {/* App Download Section */}
       <DownloadSection />
       {/* Privacy Section */}

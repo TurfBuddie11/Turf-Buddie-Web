@@ -308,9 +308,6 @@ export default function ExplorePage() {
                               / hour
                             </span>
                           </div>
-                          <div className="text-muted-foreground">
-                            {t.timeSlots.length} slots
-                          </div>
                         </div>
                         <Link
                           href={`/turfs/${t.id}`}
