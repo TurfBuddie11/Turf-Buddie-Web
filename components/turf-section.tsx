@@ -135,9 +135,6 @@ const TurfListSection = () => {
                     <span className="font-medium">{formatINR(turf.price)}</span>{" "}
                     <span className="text-muted-foreground">/ hour</span>
                   </div>
-                  <div className="text-muted-foreground">
-                    {turf.timeSlots.length} slots
-                  </div>
                 </div>
                 <Link href={`/turfs/${turf.id}`} className="w-full pt-2 block">
                   <Button className="w-full" variant="secondary">
