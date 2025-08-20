@@ -71,6 +71,7 @@ export function BookingFlow({
     setSelectedSlot(null);
     const fetchBookedSlots = async () => {
       setIsFetchingSlots(true);
+      console.log(typeof selectedDate);
       try {
         const response = await fetch(
           `/api/turfs/${turf.id}/bookings?date=${selectedDate}`
