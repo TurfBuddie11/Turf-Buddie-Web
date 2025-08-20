@@ -15,7 +15,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { addMonths, format, startOfDay } from "date-fns";
 
 interface TurfDetailsClientProps {
   turf: Turf;
@@ -31,6 +31,8 @@ export default function TurfDetailsClient({
     localDate ? new Date(localDate) : undefined
   );
   const [open, setOpen] = useState(false);
+  const today = startOfDay(new Date());
+  const oneMonthLater = addMonths(today, 1);
 
   // Prevent hydration mismatches
   useEffect(() => {
@@ -104,6 +106,11 @@ export default function TurfDetailsClient({
                       mode="single"
                       selected={date}
                       captionLayout="dropdown"
+                      defaultMonth={today}
+                      disabled={{
+                        before: today,
+                        after: oneMonthLater,
+                      }}
                       onSelect={(newDate) => {
                         setDate(newDate || undefined);
                         setOpen(false);
