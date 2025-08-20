@@ -68,11 +68,7 @@ const DownloadSection = () => {
 
             {/* Download Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button
-                size="lg"
-                className="glow-button flex items-center gap-3"
-                asChild
-              >
+              <Button size="lg" className="glow-button flex items-center gap-3">
                 <Download className="w-5 h-5" />
                 Download for Android
               </Button>
