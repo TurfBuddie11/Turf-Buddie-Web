@@ -45,10 +45,9 @@ export function BookingFlow({
   selectedDate,
   onBookingComplete,
 }: BookingFlowProps) {
-  const [selectedSlot, setSelectedSlot] = useState<Omit<
-    TimeSlot,
-    "price" | "isAvailable"
-  > | null>(null);
+  const [selectedSlots, setSelectedSlots] = useState<
+    Omit<TimeSlot, "price" | "isAvailable">[]
+  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [bookedSlots, setBookedSlots] = useState<Set<string>>(new Set());
   const [isFetchingSlots, setIsFetchingSlots] = useState(true);
@@ -66,12 +65,16 @@ export function BookingFlow({
     [dateObj]
   );
 
+  const totalPrice = useMemo(
+    () => turf.price * selectedSlots.length,
+    [selectedSlots, turf.price]
+  );
+
   // Fetch Booked Slots
   useEffect(() => {
-    setSelectedSlot(null);
+    setSelectedSlots([]); // Reset selection when date changes
     const fetchBookedSlots = async () => {
       setIsFetchingSlots(true);
-      console.log(typeof selectedDate);
       try {
         const response = await fetch(
           `/api/turfs/${turf.id}/bookings?date=${selectedDate}`
@@ -105,18 +108,41 @@ export function BookingFlow({
     ).length;
   }, [bookedSlots]);
 
+  const handleSlotToggle = useCallback(
+    (slot: Omit<TimeSlot, "price" | "isAvailable">) => {
+      setSelectedSlots((prevSelected) => {
+        const isAlreadySelected = prevSelected.some((s) => s.id === slot.id);
+        if (isAlreadySelected) {
+          // If already selected, remove it
+          return prevSelected.filter((s) => s.id !== slot.id);
+        } else {
+          // If not selected, add it and sort for a clean display
+          return [...prevSelected, slot].sort((a, b) =>
+            a.startTime.localeCompare(b.startTime)
+          );
+        }
+      });
+    },
+    []
+  );
+
   const handleBooking = useCallback(async () => {
-    if (!selectedSlot || !user || !profile) {
-      toast.info("Please select a slot and ensure you are logged in.");
+    if (selectedSlots.length === 0 || !user || !profile) {
+      toast.info(
+        "Please select at least one slot and ensure you are logged in."
+      );
       return;
     }
 
     setIsLoading(true);
     try {
-      // 1. Prepare ONLY the essential booking info for the server
+      const timeSlotLabels = selectedSlots.map((slot) =>
+        getSlotLabel(slot.startTime, slot.endTime)
+      );
+
       const initialBookingData = {
         turfId: turf.id,
-        timeSlot: getSlotLabel(selectedSlot.startTime, selectedSlot.endTime),
+        timeSlots: timeSlotLabels, // Array of time slots
         daySlot: dateObj.toLocaleDateString("en-US", { weekday: "long" }),
         monthSlot: dateObj.toLocaleDateString("en-US", {
           day: "numeric",
@@ -127,19 +153,17 @@ export function BookingFlow({
         paid: "Not Paid to Owner" as const,
       };
 
-      // 2. Create the order AND the pending document on the server
       const orderResponse = await fetch("/api/payment/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: turf.price,
-          bookingDetails: initialBookingData, // Send initial details to be stored securely
+          amount: totalPrice, // Use calculated total price
+          bookingDetails: initialBookingData,
         }),
       });
       if (!orderResponse.ok) throw new Error("Failed to create payment order.");
       const { orderId, amount } = await orderResponse.json();
 
-      // 3. Initiate payment on the frontend (no longer passes bookingDetails)
       const { paymentId, signature } = await initiatePayment({
         amount: amount.toString(),
         currency: "INR",
@@ -151,20 +175,18 @@ export function BookingFlow({
         },
       });
 
-      // 4. Verify payment with only the secure identifiers
       const { booking } = await verifyPayment(paymentId, orderId, signature);
 
       toast.success("Booking Confirmed!", {
-        description: "Your turf has been booked successfully.",
+        description: `Your booking for ${timeSlotLabels.length} slots is successful.`,
       });
 
-      // Update local state as before
-      setBookedSlots((prev) =>
-        new Set(prev).add(
-          getSlotLabel(selectedSlot.startTime, selectedSlot.endTime)
-        )
-      );
-      setSelectedSlot(null);
+      setBookedSlots((prev) => {
+        const newBooked = new Set(prev);
+        timeSlotLabels.forEach((label) => newBooked.add(label));
+        return newBooked;
+      });
+      setSelectedSlots([]); // Reset selection array
 
       if (booking) {
         onBookingComplete(booking);
@@ -178,17 +200,18 @@ export function BookingFlow({
       setIsLoading(false);
     }
   }, [
-    selectedSlot,
+    selectedSlots,
     user,
     profile,
     turf.id,
-    turf.price,
     dateObj,
     onBookingComplete,
+    totalPrice,
   ]);
+
   return (
     <div className="space-y-6">
-      {/* Turf Info */}
+      {/* Turf Info Card (no changes needed) */}
       <Card className="bg-slate-900/70 border-slate-800 backdrop-blur">
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
@@ -216,7 +239,7 @@ export function BookingFlow({
       <Card className="bg-slate-900/70 border-slate-800 backdrop-blur">
         <CardHeader>
           <CardTitle className="text-white flex items-center">
-            <Calendar className="w-5 h-5 mr-2" /> Select a Time Slot
+            <Calendar className="w-5 h-5 mr-2" /> Select Time Slot(s)
           </CardTitle>
           <p className="text-sm text-slate-300 pt-1">{displayDate}</p>
         </CardHeader>
@@ -232,12 +255,14 @@ export function BookingFlow({
                   const isBooked = bookedSlots.has(
                     getSlotLabel(slot.startTime, slot.endTime)
                   );
-                  const isSelected = selectedSlot?.id === slot.id;
+                  const isSelected = selectedSlots.some(
+                    (s) => s.id === slot.id
+                  );
                   return (
                     <button
                       key={slot.id}
                       disabled={isBooked}
-                      onClick={() => setSelectedSlot(slot)}
+                      onClick={() => handleSlotToggle(slot)}
                       className={cn(
                         "p-3 rounded-lg border text-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
                         isBooked
@@ -272,22 +297,32 @@ export function BookingFlow({
       </Card>
 
       {/* Booking Summary */}
-      {selectedSlot && (
+      {selectedSlots.length > 0 && (
         <Card className="bg-slate-900/70 border-slate-800 backdrop-blur sticky bottom-6">
           <CardHeader>
             <CardTitle className="text-white">Booking Summary</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-1 text-slate-300 text-sm mb-3">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Time Slot</span>
-                <span className="font-medium">
-                  {getSlotLabel(selectedSlot.startTime, selectedSlot.endTime)}
-                </span>
+            <div className="space-y-2 text-slate-300 text-sm mb-4">
+              <div className="flex justify-between items-start">
+                <span className="text-slate-400 pt-1">Selected Slots</span>
+                <div className="flex flex-wrap gap-1 justify-end max-w-[70%]">
+                  {selectedSlots.map((slot) => (
+                    <Badge
+                      key={slot.id}
+                      variant="secondary"
+                      className="bg-slate-700 text-slate-200"
+                    >
+                      {getSlotLabel(slot.startTime, slot.endTime)}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center border-t border-slate-700 pt-2 mt-2">
                 <span className="text-slate-400">Total Amount</span>
-                <span className="font-semibold text-white">₹{turf.price}</span>
+                <span className="font-semibold text-white text-lg">
+                  ₹{totalPrice}
+                </span>
               </div>
             </div>
             <Button
@@ -295,7 +330,7 @@ export function BookingFlow({
               className="w-full bg-green-500 hover:bg-green-600 text-black font-semibold"
               disabled={isLoading || !user}
             >
-              {isLoading ? "Processing..." : `Pay ₹${turf.price} & Book Now`}
+              {isLoading ? "Processing..." : `Pay ₹${totalPrice} & Book Now`}
             </Button>
             {!user && (
               <p className="text-center text-slate-400 text-xs mt-2">
