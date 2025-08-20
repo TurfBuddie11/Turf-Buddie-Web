@@ -12,19 +12,12 @@ type BookingSlot = {
   status?: string;
   transactionId?: string;
   commission?: number;
-  commision?: number; // typo retained for legacy compatibility
   payout?: number;
   paid?: string;
 };
 
 function parseBookingDate(booking: BookingSlot): Date | null {
   try {
-    if (booking.bookingDate instanceof Timestamp) {
-      return booking.bookingDate.toDate();
-    }
-    if (typeof booking.bookingDate === "string") {
-      return new Date(booking.bookingDate);
-    }
     if (booking.daySlot && booking.monthSlot) {
       const currentYear = new Date().getFullYear();
       const combinedDate = `${booking.monthSlot} ${currentYear}`;
@@ -38,7 +31,6 @@ function parseBookingDate(booking: BookingSlot): Date | null {
 
 export async function GET(request: NextRequest) {
   try {
-    // ✅ Extract turfId from the pathname
     const pathnameParts = request.nextUrl.pathname.split("/");
     const turfId = pathnameParts[pathnameParts.indexOf("turfs") + 1];
 
