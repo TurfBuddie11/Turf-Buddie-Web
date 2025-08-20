@@ -5,6 +5,8 @@ import { auth } from "@/lib/firebase/config";
 import { onAuthStateChanged, User } from "firebase/auth";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { UserProfile } from "@/lib/types/user";
+import { usePathname, useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 interface AuthContextType {
   user: User | null;
@@ -31,25 +33,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const router = useRouter();
+  const pathname = usePathname();
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-
       if (user) {
         const userProfileSnap = await getUserProfile(user.uid);
-        const userProfile = userProfileSnap
-          ? (userProfileSnap.data() as UserProfile)
-          : null;
-        setProfile(userProfile);
+        const userProfile = userProfileSnap?.data() as UserProfile | null;
+
+        if (userProfileSnap?.exists() && userProfile?.mobile) {
+          setUser(user);
+          setProfile(userProfile);
+          if (pathname === "/login" || pathname === "/signup") {
+            router.push("/explore");
+          }
+        } else {
+          setUser(user);
+          setProfile(null);
+          if (pathname !== "/signup") {
+            router.push("/signup?flow=completeProfile");
+          }
+        }
       } else {
+        setUser(null);
         setProfile(null);
       }
 
       setLoading(false);
     });
 
-    return unsubscribe;
-  }, []);
+    return () => unsubscribe();
+  }, [pathname, router]);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-black">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <AuthContext.Provider value={{ user, profile, loading }}>
       {children}
