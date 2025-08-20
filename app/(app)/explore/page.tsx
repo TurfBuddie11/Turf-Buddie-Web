@@ -90,7 +90,6 @@ export default function ExplorePage() {
               ? { lat: locationData.latitude, lng: locationData.longitude }
               : { lat: 0, lng: 0 },
             // ownerId: data.ownerId || "",
-            // FIX: Use a static date for fallback to prevent hydration mismatch
             // createdAt: createdAtData ? createdAtData.toDate() : new Date(0),
           };
         });
@@ -222,7 +221,7 @@ export default function ExplorePage() {
                           <Slider
                             value={price}
                             min={400}
-                            max={1000}
+                            max={10000}
                             step={50}
                             onValueChange={(v: number[]) =>
                               setPrice([v[0], v[1]])
