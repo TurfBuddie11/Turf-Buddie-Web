@@ -38,8 +38,6 @@ export async function POST(request: NextRequest) {
 
       const serverBookingData = await getBookingDetailsFromOrderId(orderId);
       if (!serverBookingData) {
-        // If no pending order is found, it was likely processed already.
-        // Acknowledge the event to prevent Razorpay from resending.
         return NextResponse.json({
           status: "acknowledged",
           message: "Order already processed or not found.",
@@ -73,9 +71,6 @@ export async function POST(request: NextRequest) {
           );
 
           if (isConflict) {
-            // If a conflict is found, we won't book, but we still need to
-            // delete the pending order to prevent reprocessing.
-            // The user will need to be contacted manually about the payment.
             console.warn(
               `Webhook: Conflict detected for Order ID ${orderId}. Deleting pending order without booking.`
             );
@@ -83,8 +78,7 @@ export async function POST(request: NextRequest) {
             return; // Abort the booking part of the transaction
           }
 
-          // --- No conflict: Proceed with booking ---
-          const totalAmount = serverBookingData.amount; // Correctly use 'amount'
+          const totalAmount = serverBookingData.amount;
           const pricePerSlot = totalAmount / requestedSlots.length;
           const commissionPerSlot = pricePerSlot * 0.094;
           const payoutPerSlot = pricePerSlot - commissionPerSlot;
@@ -117,8 +111,6 @@ export async function POST(request: NextRequest) {
           `Webhook: Transaction failed for Order ID ${orderId}:`,
           error
         );
-        // Don't re-throw, as we want to acknowledge the event to Razorpay
-        // to prevent retries on a failed transaction. Manual check will be needed.
       }
     }
 

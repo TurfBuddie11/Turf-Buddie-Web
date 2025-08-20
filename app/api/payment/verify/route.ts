@@ -1,5 +1,3 @@
-// app/api/payment/verify/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { adminDb } from "@/lib/firebase/admin";
@@ -78,7 +76,6 @@ export async function POST(request: NextRequest) {
           throw new Error("SLOT_ALREADY_BOOKED");
         }
 
-        // --- No conflict found, proceed to create the booking objects ---
         const totalAmount = serverBookingData.amount;
         const pricePerSlot = totalAmount / requestedSlots.length;
         const commissionPerSlot = pricePerSlot * 0.094; // 9.4% commission
@@ -120,12 +117,8 @@ export async function POST(request: NextRequest) {
         bookings: newBookings,
       });
     } catch (error) {
-      // Catch errors from the transaction
       if (error instanceof Error) {
         if (error.message === "SLOT_ALREADY_BOOKED") {
-          // REFUND LOGIC REMOVED AS REQUESTED
-
-          // Clean up the now-failed pending order
           await pendingOrderRef.delete();
 
           return NextResponse.json(
@@ -133,11 +126,10 @@ export async function POST(request: NextRequest) {
               error:
                 "One or more selected time slots are no longer available. Please contact support regarding your payment.",
             },
-            { status: 409 } // 409 Conflict
+            { status: 409 }
           );
         }
       }
-      // Re-throw any other transaction errors (e.g., network issues, turf not found)
       throw error;
     }
   } catch (error) {
