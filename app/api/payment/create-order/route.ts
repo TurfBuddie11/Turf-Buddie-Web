@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const pendingOrderRef = adminDb.collection("pendingOrders").doc(order.id);
     await pendingOrderRef.set({
       ...bookingDetails,
-      price: amount,
+      amount: amount,
     });
 
     return NextResponse.json({
