@@ -15,6 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
+import { Avatar } from "@/components/ui/avatar";
+import { AvatarFallback } from "@radix-ui/react-avatar";
 
 export default function LandingPageHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -107,9 +109,11 @@ export default function LandingPageHeader() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-3 pl-4 border-l border-slate-800 focus:outline-none">
-                    <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-black font-bold text-sm">
-                      {(profile.name ?? "").charAt(0).toUpperCase()}
-                    </div>
+                    <Avatar>
+                      <AvatarFallback className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-black font-bold text-sm">
+                        {(profile.name ?? "").charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                     <span className="text-sm text-white font-medium">
                       {profile.name}
                     </span>

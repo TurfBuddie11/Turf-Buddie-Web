@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function AppHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -107,9 +108,11 @@ export default function AppHeader() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-3 pl-4 border-l border-slate-800 focus:outline-none">
-                    <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-black font-bold text-sm">
-                      {(profile.name ?? "").charAt(0).toUpperCase()}
-                    </div>
+                    <Avatar>
+                      <AvatarFallback className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-black font-bold text-sm">
+                        {(profile.name ?? "").charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                     <span className="text-sm text-white font-medium">
                       {profile.name}
                     </span>
@@ -121,11 +124,11 @@ export default function AppHeader() {
                     My Account
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {/* <DropdownMenuItem asChild>
+                  <DropdownMenuItem asChild>
                     <Link href="/profile" className="text-slate-300">
                       View Profile
                     </Link>
-                  </DropdownMenuItem> */}
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     className="text-red-400 hover:text-red-300 cursor-pointer"
                     onClick={async () => {
