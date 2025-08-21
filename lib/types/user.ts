@@ -5,6 +5,7 @@ export interface UserProfile {
   gender: string;
   dob: string; // store as DD/MM/YYYY
   mobile: string;
+  area: string;
   city: string;
   pincode: string;
   state: string;
