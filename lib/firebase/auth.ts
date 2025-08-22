@@ -3,6 +3,7 @@ import {
   fetchSignInMethodsForEmail,
   GoogleAuthProvider,
   sendEmailVerification,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -232,5 +233,14 @@ export const updateUserProfile = async (
   } catch (error) {
     console.error(error);
     throw new Error("Profile Setup Failed");
+  }
+};
+
+export const sendResetPasswordEmail = async (email: string) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    console.log("Password reset email sent successfully");
+  } catch (error) {
+    console.log(error);
   }
 };

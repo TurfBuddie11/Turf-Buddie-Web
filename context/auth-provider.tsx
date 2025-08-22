@@ -39,20 +39,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userProfileSnap = await getUserProfile(user.uid);
-        const userProfile = userProfileSnap?.data() as UserProfile | null;
-
-        if (userProfileSnap?.exists() && userProfile?.mobile) {
-          setUser(user);
-          setProfile(userProfile);
-          if (pathname === "/login" || pathname === "/signup") {
-            router.push("/explore");
-          }
-        } else {
+        if (!user.emailVerified) {
           setUser(user);
           setProfile(null);
-          if (pathname !== "/signup") {
-            router.push("/signup?flow=completeProfile");
+          if (pathname !== "/login") {
+            router.push("/login");
+          }
+        } else {
+          const userProfileSnap = await getUserProfile(user.uid);
+          const userProfile = userProfileSnap?.data() as UserProfile | null;
+
+          if (userProfileSnap?.exists() && userProfile?.mobile) {
+            setUser(user);
+            setProfile(userProfile);
+
+            if (["/login", "/signup"].includes(pathname)) {
+              router.push("/explore");
+            }
+          } else {
+            setUser(user);
+            setProfile(null);
+            if (pathname !== "/signup") {
+              router.push("/signup?flow=completeProfile");
+            }
           }
         }
       } else {

@@ -68,9 +68,15 @@ const DownloadSection = () => {
 
             {/* Download Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="glow-button flex items-center gap-3">
-                <Download className="w-5 h-5" />
-                Download for Android
+              <Button
+                size="lg"
+                className="glow-button flex items-center gap-3"
+                asChild
+              >
+                <a href="/turfbuddie.apk" download>
+                  <Download className="w-5 h-5" />
+                  Download for Android
+                </a>
               </Button>
               {/* Uncomment for iOS */}
               {/* <Button size="lg" variant="outline" className="flex items-center gap-3 border-primary text-primary hover:bg-primary hover:text-primary-foreground">

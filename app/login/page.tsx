@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { Loader2, LogIn } from "lucide-react";
+import { Eye, EyeOff, Loader2, LogIn } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,12 @@ import {
   FormMessage,
   FormLabel,
 } from "@/components/ui/form";
-import { login, signInWithGoogle, getUserProfile } from "@/lib/firebase/auth"; // Import new functions
+import {
+  login,
+  signInWithGoogle,
+  getUserProfile,
+  sendResetPasswordEmail, // Import the new function
+} from "@/lib/firebase/auth";
 import { User, sendEmailVerification } from "firebase/auth";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -45,10 +50,13 @@ export default function LoginPage() {
   const shouldReduceMotion = useReducedMotion();
   const router = useRouter();
 
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showVerifyPopup, setShowVerifyPopup] = useState<boolean>(false);
+  const [showResetPopup, setShowResetPopup] = useState<boolean>(false); // State for reset dialog
+  const [isResetting, setIsResetting] = useState<boolean>(false); // Loading state for reset
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const [unverifiedUser, setUnverifiedUser] = useState<User | null>(null);
-  const [isGoogleLoading, setIsGoogleLoading] = useState<boolean>(false); // Separate loading state for Google
+  const [isGoogleLoading, setIsGoogleLoading] = useState<boolean>(false);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -58,7 +66,6 @@ export default function LoginPage() {
 
   const { isSubmitting } = form.formState;
 
-  // --- NEW: Google Sign-In Handler with Profile Check ---
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
@@ -81,7 +88,6 @@ export default function LoginPage() {
     }
   };
 
-  // --- Email/Password login logic (unchanged) ---
   const onEmailSubmit = async (values: LoginFormData) => {
     try {
       const { email, password } = values;
@@ -109,7 +115,6 @@ export default function LoginPage() {
     }
   };
 
-  // --- Resend verification logic (unchanged) ---
   const handleResendVerification = async () => {
     if (!unverifiedUser) return;
     try {
@@ -118,6 +123,33 @@ export default function LoginPage() {
     } catch (error) {
       toast.error("Failed to send verification email.");
       console.error(error);
+    }
+  };
+
+  const handlePasswordReset = async (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const email = formData.get("email") as string;
+
+    if (!email) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      await sendResetPasswordEmail(email);
+      toast.success("Password reset link sent. Please check your inbox.");
+      setShowResetPopup(false);
+    } catch (error) {
+      toast.error(
+        "Failed to send reset email. Please check the address and try again."
+      );
+      console.error(error);
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -132,7 +164,7 @@ export default function LoginPage() {
           transition={{ duration: 0.6 }}
           className="w-full max-w-4xl grid md:grid-cols-2 gap-8"
         >
-          {/* Left - Marketing Content (unchanged) */}
+          {/* Left - Marketing Content */}
           <motion.div
             initial={shouldReduceMotion ? false : { opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
@@ -165,7 +197,6 @@ export default function LoginPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* --- NEW: Google Sign-In Button --- */}
                 <Button
                   variant="outline"
                   className="w-full h-11 text-base"
@@ -188,7 +219,6 @@ export default function LoginPage() {
                   <Separator className="flex-grow shrink-0 basis-0" />
                 </div>
 
-                {/* --- Existing Email/Password Form --- */}
                 <Form {...form}>
                   <form
                     onSubmit={form.handleSubmit(onEmailSubmit)}
@@ -219,16 +249,45 @@ export default function LoginPage() {
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="password"
-                              placeholder="Enter your password"
-                              autoComplete="current-password"
+                          {/* --- NEW: Label with Forgot Password Link --- */}
+                          <div className="flex justify-between items-center">
+                            <FormLabel>Password</FormLabel>
+                            <Button
+                              type="button"
+                              variant="link"
+                              className="p-0 h-auto text-xs text-primary/80 hover:text-primary"
+                              onClick={() => setShowResetPopup(true)}
                               disabled={isLoading}
-                              {...field}
-                            />
-                          </FormControl>
+                            >
+                              Forgot Password?
+                            </Button>
+                          </div>
+                          <div className="relative">
+                            <FormControl>
+                              <Input
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Enter your password"
+                                autoComplete="current-password"
+                                disabled={isLoading}
+                                {...field}
+                              />
+                            </FormControl>
+                            {/* --- NEW: Password Visibility Toggle --- */}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute top-0 right-0 h-full px-3 text-muted-foreground hover:text-primary"
+                              onClick={() => setShowPassword(!showPassword)}
+                              disabled={isLoading}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -260,6 +319,47 @@ export default function LoginPage() {
         </motion.div>
       </div>
 
+      {/* --- NEW: Password Reset Dialog --- */}
+      <Dialog open={showResetPopup} onOpenChange={setShowResetPopup}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset Your Password</DialogTitle>
+            <DialogDescription>
+              Enter your email address below. If an account exists, we&apos;ll
+              send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handlePasswordReset}>
+            <div className="grid gap-4 py-4">
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                required
+                autoComplete="email"
+                disabled={isResetting}
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setShowResetPopup(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isResetting}>
+                {isResetting && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                )}
+                Send Reset Link
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Email Verification Dialog (unchanged) */}
       <Dialog open={showVerifyPopup} onOpenChange={setShowVerifyPopup}>
         <DialogContent className="sm:max-w-md">
@@ -271,7 +371,7 @@ export default function LoginPage() {
               verify your account to proceed.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex justify-between">
+          <DialogFooter className="flex justify-between w-full">
             <Button
               variant="secondary"
               onClick={() => setShowVerifyPopup(false)}
