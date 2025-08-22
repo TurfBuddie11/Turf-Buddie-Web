@@ -121,8 +121,8 @@ export default function ProfilePage() {
         {/* LEFT SIDEBAR PROFILE CARD */}
         <Card className="p-6 h-fit">
           <div className="flex flex-col items-center text-center">
-            <Avatar className="h-24 w-24 mb-4">
-              <AvatarFallback className="text-2xl">
+            <Avatar className="h-24 w-24 mb-4 ">
+              <AvatarFallback className="text-2xl text-black font-bold bg-primary">
                 {userData?.name?.charAt(0).toUpperCase() || "U"}
               </AvatarFallback>
             </Avatar>
