@@ -1,35 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { format, parse } from "date-fns";
 import { useAuth } from "@/context/auth-provider";
 import { UserProfile } from "@/lib/types/user";
-import { updateUserProfile } from "@/lib/firebase/auth";
-import { toast } from "sonner";
 
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
+
 import { Separator } from "@/components/ui/separator";
-import { Calendar as CalendarIcon, Phone, User, MapPin } from "lucide-react";
-import { CustomCalendar } from "@/components/custom-calendar";
+import {
+  Calendar as CalendarIcon,
+  Phone,
+  User,
+  MapPin,
+  Edit,
+  Coins,
+  Gift,
+  HelpCircle,
+  NotepadText,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { Timestamp } from "firebase/firestore";
 
 interface EditableUserProfile {
   name: string;
-  gender: string;
+  gender?: string;
   email: string;
-  mobile: string;
+  mobile?: string;
   dob: Date | null;
-  area: string;
-  city: string;
-  state: string;
-  pincode: string;
+  area?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  referralCode?: string;
+  uid: string;
+  createdAt: Timestamp | null;
+  emailVerified: boolean;
 }
 
 /**
@@ -48,81 +57,59 @@ const toInitialState = (profile: UserProfile | null): EditableUserProfile => {
       city: "",
       state: "",
       pincode: "",
+      referralCode: "",
+      createdAt: null,
+      emailVerified: false,
+      uid: "",
     };
   }
   return {
     ...profile,
     dob: profile.dob ? parse(profile.dob, "dd/MM/yyyy", new Date()) : null,
+    uid: profile.uid,
   };
 };
 
 export default function ProfilePage() {
   const { user, profile } = useAuth();
+  const router = useRouter();
 
   const [userData, setUserData] = useState<EditableUserProfile>(
-    toInitialState(profile)
+    toInitialState(profile),
   );
-  const [editing, setEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0);
 
-  // Effect to reset the form state if the profile from context changes.
   useEffect(() => {
     if (profile) {
       setUserData(toInitialState(profile));
     }
-  }, [profile]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setUserData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleCancel = () => {
-    setUserData(toInitialState(profile)); // Revert any changes
-    setEditing(false);
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) {
-      toast.error("You must be logged in to update your profile.");
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      // Prepare data for Firestore: convert Date object back to "dd/MM/yyyy" string.
-      const dataToSave = {
-        name: userData.name,
-        gender: userData.gender,
-        mobile: userData.mobile,
-        dob: userData.dob ? format(userData.dob, "dd/MM/yyyy") : "", // Ensure dob is always a string
-        area: userData.area,
-        city: userData.city,
-        pincode: userData.pincode,
-        state: userData.state,
-        email: userData.email, // Include non-editable fields if the type requires them
+    if (user) {
+      const fetchLoyaltyPoints = async () => {
+        try {
+          const idToken = await user.getIdToken();
+          const response = await fetch("/api/loyalty/points", {
+            headers: { Authorization: `Bearer ${idToken}` },
+          });
+          if (!response.ok) throw new Error("Failed to fetch loyalty points.");
+          const data = await response.json();
+          setLoyaltyPoints(data.balance);
+        } catch (error) {
+          console.error("Error fetching loyalty points:", error);
+          setLoyaltyPoints(0);
+        }
       };
-
-      await updateUserProfile(user.uid, dataToSave);
-      toast.success("Profile updated successfully! 🎉"); // ✨ 2. Use sonner's toast
-      setEditing(false);
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast.error("Failed to update profile. Please try again.");
-    } finally {
-      setIsSaving(false);
+      fetchLoyaltyPoints();
     }
-  };
+  }, [profile, user]);
 
   return (
-    <div className="container bg-gradient-to-br from-gray-950 via-black to-gray-900 py-10 px-4 p-6 pt-24">
-      <div className="max-w-7xl mx-auto   grid gap-6 lg:grid-cols-[320px_1fr]">
+    <div className="container min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 py-10 px-4 p-6 pt-24">
+      <div className="max-w-7xl mx-auto grid gap-6 lg:grid-cols-[320px_1fr]">
         {/* LEFT SIDEBAR PROFILE CARD */}
-        <Card className="p-6 h-fit">
+        <Card className="p-6 h-auto">
           <div className="flex flex-col items-center text-center">
             <Avatar className="h-24 w-24 mb-4 ">
-              <AvatarFallback className="text-2xl text-black font-bold bg-primary">
+              <AvatarFallback className="text-4xl text-black font-bold bg-primary">
                 {userData?.name?.charAt(0).toUpperCase() || "U"}
               </AvatarFallback>
             </Avatar>
@@ -154,147 +141,70 @@ export default function ProfilePage() {
               </span>
             </div>
           </div>
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle>Coins Collected</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DotLottieReact
+                className="w-24 h-24 mx-auto mb-2"
+                src="/assets/Coins.lottie"
+                autoplay
+              />
+              <div className="text-3xl font-bold text-center">
+                {loyaltyPoints}
+              </div>
+            </CardContent>
+          </Card>
         </Card>
 
-        {/* RIGHT MAIN FORM */}
-        <Card>
+        <Card className="px-4 h-auto py-8">
           <CardHeader>
-            <CardTitle>Profile</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Manage your personal and address details
-            </p>
+            <CardTitle className="text-xl">Settings</CardTitle>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSave} className="space-y-8">
-              {/* PERSONAL INFO */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Personal Info</h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="text-sm font-medium">Full Name</label>
-                    <Input
-                      name="name"
-                      disabled={!editing}
-                      value={userData.name}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Gender</label>
-                    <Input
-                      name="gender"
-                      disabled={!editing}
-                      value={userData.gender}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Email</label>
-                    <Input disabled value={userData.email} />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Mobile</label>
-                    <Input
-                      name="mobile"
-                      disabled={!editing}
-                      value={userData.mobile}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Date of Birth</label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          disabled={!editing}
-                          className="w-full justify-start text-left font-normal"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {userData?.dob
-                            ? format(userData.dob, "PPP")
-                            : "Pick a date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent>
-                        <CustomCalendar
-                          selected={userData.dob ?? undefined}
-                          onSelect={(date) =>
-                            setUserData({ ...userData, dob: date ?? null })
-                          }
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-              </div>
-              <Separator />
-
-              {/* ADDRESS INFO */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Address Info</h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="text-sm font-medium">Area</label>
-                    <Input
-                      name="area"
-                      disabled={!editing}
-                      value={userData.area}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">City</label>
-                    <Input
-                      name="city"
-                      disabled={!editing}
-                      value={userData.city}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">State</label>
-                    <Input
-                      name="state"
-                      disabled={!editing}
-                      value={userData.state}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Pincode</label>
-                    <Input
-                      name="pincode"
-                      disabled={!editing}
-                      value={userData.pincode}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* ACTION BUTTONS */}
-              <div className="flex justify-end space-x-4">
-                {editing ? (
-                  <>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleCancel}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={isSaving}>
-                      {isSaving ? "Saving..." : "Save"}
-                    </Button>
-                  </>
-                ) : (
-                  <Button type="button" onClick={() => setEditing(true)}>
-                    Edit Profile
-                  </Button>
-                )}
-              </div>
-            </form>
+          <CardContent className="space-y-6">
+            <div className="w-full grid gap-4 place-items-stretch">
+              <Button
+                variant="outline"
+                className="justify-start"
+                onClick={() => router.push("/profile/edit")}
+              >
+                <Edit className="w-8 h-8" />
+                Edit Your Profile
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start"
+                onClick={() => router.push("/profile/coin_history")}
+              >
+                <Coins className="w-8 h-8" />
+                Check Coins History
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start"
+                onClick={() => router.push("/profile/refer_and_earn")}
+              >
+                <Gift className="w-8 h-8" />
+                Refer and Earn
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start"
+                onClick={() => router.push("/profile/help_and_support")}
+              >
+                <HelpCircle />
+                Help and Support
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start"
+                onClick={() => router.push("/profile/faqs")}
+              >
+                <NotepadText />
+                FAQs
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

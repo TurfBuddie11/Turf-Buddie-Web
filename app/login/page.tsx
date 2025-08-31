@@ -71,6 +71,16 @@ export default function LoginPage() {
     try {
       const result = await signInWithGoogle();
       const googleUser = result.user;
+      const idToken = await googleUser.getIdToken();
+
+      await fetch("/api/auth/session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ idToken }),
+      });
+
       const profileSnap = await getUserProfile(googleUser.uid);
 
       if (profileSnap.exists() && profileSnap.data().mobile) {
@@ -102,6 +112,16 @@ export default function LoginPage() {
         return;
       }
 
+      const idToken = await loggedInUser.getIdToken();
+
+      await fetch("/api/auth/session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ idToken }),
+      });
+
       toast.success("Logged in successfully!");
       router.push("/explore");
     } catch (e) {
@@ -127,7 +147,7 @@ export default function LoginPage() {
   };
 
   const handlePasswordReset = async (
-    event: React.FormEvent<HTMLFormElement>
+    event: React.FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -145,7 +165,7 @@ export default function LoginPage() {
       setShowResetPopup(false);
     } catch (error) {
       toast.error(
-        "Failed to send reset email. Please check the address and try again."
+        "Failed to send reset email. Please check the address and try again.",
       );
       console.error(error);
     } finally {

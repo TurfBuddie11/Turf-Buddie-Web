@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/auth-provider";
 import { initiatePayment, verifyPayment } from "@/lib/razorpay/payment";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // --- MASTER LIST OF ALL POSSIBLE TIME SLOTS ---
 const ALL_POSSIBLE_SLOTS: Omit<TimeSlot, "price" | "isAvailable">[] =
@@ -52,6 +53,28 @@ export function BookingFlow({
   const [bookedSlots, setBookedSlots] = useState<Set<string>>(new Set());
   const [isFetchingSlots, setIsFetchingSlots] = useState(true);
   const { user, profile } = useAuth();
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+  const [redeemPoints, setRedeemPoints] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const fetchLoyaltyPoints = async () => {
+        try {
+          const idToken = await user.getIdToken();
+          const response = await fetch("/api/loyalty/points", {
+            headers: { Authorization: `Bearer ${idToken}` },
+          });
+          if (!response.ok) throw new Error("Failed to fetch loyalty points.");
+          const data = await response.json();
+          setLoyaltyPoints(data.balance);
+        } catch (error) {
+          console.error("Error fetching loyalty points:", error);
+          setLoyaltyPoints(0);
+        }
+      };
+      fetchLoyaltyPoints();
+    }
+  }, [user]);
 
   const dateObj = useMemo(() => new Date(selectedDate), [selectedDate]);
   const displayDate = useMemo(
@@ -62,12 +85,24 @@ export function BookingFlow({
         month: "long",
         day: "numeric",
       }),
-    [dateObj]
+    [dateObj],
   );
 
-  const totalPrice = useMemo(
+  const basePrice = useMemo(
     () => turf.price * selectedSlots.length,
-    [selectedSlots, turf.price]
+    [selectedSlots, turf.price],
+  );
+
+  const discount = useMemo(() => {
+    if (redeemPoints) {
+      return Math.floor(loyaltyPoints / 2);
+    }
+    return 0;
+  }, [redeemPoints, loyaltyPoints]);
+
+  const totalPrice = useMemo(
+    () => Math.max(0, basePrice - discount),
+    [basePrice, discount],
   );
 
   // Fetch Booked Slots
@@ -77,7 +112,7 @@ export function BookingFlow({
       setIsFetchingSlots(true);
       try {
         const response = await fetch(
-          `/api/turfs/${turf.id}/bookings?date=${selectedDate}`
+          `/api/turfs/${turf.id}/bookings?date=${selectedDate}`,
         );
         if (!response.ok) {
           const errorData = await response.json();
@@ -86,7 +121,7 @@ export function BookingFlow({
         const data = await response.json();
 
         const normalized = new Set<string>(
-          (data.bookedSlots || []).map((slot: string) => slot.trim())
+          (data.bookedSlots || []).map((slot: string) => slot.trim()),
         );
         setBookedSlots(normalized);
       } catch (error) {
@@ -104,7 +139,7 @@ export function BookingFlow({
 
   const availableSlotsCount = useMemo(() => {
     return ALL_POSSIBLE_SLOTS.filter(
-      (slot) => !bookedSlots.has(getSlotLabel(slot.startTime, slot.endTime))
+      (slot) => !bookedSlots.has(getSlotLabel(slot.startTime, slot.endTime)),
     ).length;
   }, [bookedSlots]);
 
@@ -118,18 +153,18 @@ export function BookingFlow({
         } else {
           // If not selected, add it and sort for a clean display
           return [...prevSelected, slot].sort((a, b) =>
-            a.startTime.localeCompare(b.startTime)
+            a.startTime.localeCompare(b.startTime),
           );
         }
       });
     },
-    []
+    [],
   );
 
   const handleBooking = useCallback(async () => {
     if (selectedSlots.length === 0 || !user || !profile) {
       toast.info(
-        "Please select at least one slot and ensure you are logged in."
+        "Please select at least one slot and ensure you are logged in.",
       );
       return;
     }
@@ -137,7 +172,7 @@ export function BookingFlow({
     setIsLoading(true);
     try {
       const timeSlotLabels = selectedSlots.map((slot) =>
-        getSlotLabel(slot.startTime, slot.endTime)
+        getSlotLabel(slot.startTime, slot.endTime),
       );
 
       const initialBookingData = {
@@ -171,11 +206,34 @@ export function BookingFlow({
         userDetails: {
           name: profile.name,
           email: profile.email,
-          contact: profile.mobile,
+          contact: profile.mobile || "",
         },
       });
 
       const { booking } = await verifyPayment(paymentId, orderId, signature);
+
+      // Add loyalty points
+      const idToken = await user.getIdToken();
+      await fetch("/api/loyalty/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ slots: selectedSlots.length }),
+      });
+
+      // Redeem loyalty points if selected
+      if (redeemPoints) {
+        await fetch("/api/loyalty/redeem", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ pointsToRedeem: loyaltyPoints }),
+        });
+      }
 
       toast.success("Booking Confirmed!", {
         description: `Your booking for ${timeSlotLabels.length} slots is successful.`,
@@ -207,6 +265,8 @@ export function BookingFlow({
     dateObj,
     onBookingComplete,
     totalPrice,
+    redeemPoints,
+    loyaltyPoints,
   ]);
 
   return (
@@ -253,10 +313,10 @@ export function BookingFlow({
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {ALL_POSSIBLE_SLOTS.map((slot) => {
                   const isBooked = bookedSlots.has(
-                    getSlotLabel(slot.startTime, slot.endTime)
+                    getSlotLabel(slot.startTime, slot.endTime),
                   );
                   const isSelected = selectedSlots.some(
-                    (s) => s.id === slot.id
+                    (s) => s.id === slot.id,
                   );
                   return (
                     <button
@@ -270,7 +330,7 @@ export function BookingFlow({
                           : "bg-slate-800/80 border-slate-700 hover:border-green-400 hover:bg-green-500/10",
                         isSelected &&
                           !isBooked &&
-                          "bg-green-500/20 border-green-400 ring-2 ring-green-400"
+                          "bg-green-500/20 border-green-400 ring-2 ring-green-400",
                       )}
                     >
                       <p className="font-semibold text-white">
@@ -317,6 +377,18 @@ export function BookingFlow({
                     </Badge>
                   ))}
                 </div>
+              </div>
+              <div className="flex items-center space-x-2 mt-2">
+                <Checkbox
+                  id="redeem"
+                  onCheckedChange={() => setRedeemPoints(!redeemPoints)}
+                />
+                <label
+                  htmlFor="redeem"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Redeem {loyaltyPoints} points for a ₹{discount} discount
+                </label>
               </div>
               <div className="flex justify-between items-center border-t border-slate-700 pt-2 mt-2">
                 <span className="text-slate-400">Total Amount</span>

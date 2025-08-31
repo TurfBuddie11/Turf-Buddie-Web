@@ -13,28 +13,29 @@ const razorpay = new Razorpay({
 export async function POST(request: NextRequest) {
   try {
     const { paymentId, orderId, signature } = await request.json();
+
     if (!paymentId || !orderId || !signature) {
       return NextResponse.json(
         { error: "Missing required payment identifiers." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // 1. Verify the payment signature
-    const body = orderId + "|" + paymentId;
+    // 1. Verify Razorpay signature
+    const body = `${orderId}|${paymentId}`;
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
-      .update(body.toString())
+      .update(body)
       .digest("hex");
 
     if (expectedSignature !== signature) {
       return NextResponse.json(
         { verified: false, error: "Invalid payment signature." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // 2. Fetch the pending order data from Firestore
+    // 2. Fetch pending order from Firestore
     const pendingOrderRef = adminDb.collection("pendingOrders").doc(orderId);
     const pendingOrderDoc = await pendingOrderRef.get();
 
@@ -44,91 +45,76 @@ export async function POST(request: NextRequest) {
         message: "Booking already processed or no pending order found.",
       });
     }
+
     const serverBookingData = pendingOrderDoc.data()!;
     const turfDocRef = adminDb
       .collection("Turfs")
       .doc(serverBookingData.turfId);
     const paymentDetails = await razorpay.payments.fetch(paymentId);
 
-    // 3. Run a Firestore transaction to check for conflicts and book atomically
+    // 3. Run Firestore transaction to confirm booking
     try {
       const newBookings = await adminDb.runTransaction(async (transaction) => {
         const turfDoc = await transaction.get(turfDocRef);
-        if (!turfDoc.exists) {
-          throw new Error("Turf document not found.");
-        }
+        if (!turfDoc.exists) throw new Error("Turf document not found.");
 
         const existingBookings: Booking[] = turfDoc.data()?.timeSlots || [];
         const requestedSlots: string[] = serverBookingData.timeSlots;
 
-        // Check if any of the requested slots for the given date are already booked
-        const isConflict = requestedSlots.some((requestedSlotLabel) =>
+        const isConflict = requestedSlots.some((slotLabel) =>
           existingBookings.some(
-            (existingBooking) =>
-              existingBooking.timeSlot === requestedSlotLabel &&
-              existingBooking.monthSlot === serverBookingData.monthSlot &&
-              existingBooking.daySlot === serverBookingData.daySlot
-          )
+            (existing) =>
+              existing.timeSlot === slotLabel &&
+              existing.monthSlot === serverBookingData.monthSlot &&
+              existing.daySlot === serverBookingData.daySlot,
+          ),
         );
 
-        if (isConflict) {
-          // If a slot is already taken, throw a specific error to abort the transaction.
-          throw new Error("SLOT_ALREADY_BOOKED");
-        }
+        if (isConflict) throw new Error("SLOT_ALREADY_BOOKED");
 
         const totalAmount = serverBookingData.amount;
         const pricePerSlot = totalAmount / requestedSlots.length;
-        const commissionPerSlot = pricePerSlot * 0.094; // 9.4% commission
-        const payoutPerSlot = pricePerSlot - commissionPerSlot;
+        const commission = pricePerSlot * 0.094;
+        const payout = pricePerSlot - commission;
 
-        const newBookingSlots: Booking[] = requestedSlots.map(
-          (slotLabel: string) => ({
-            // Properties from the original pending order
-            turfId: serverBookingData.turfId,
-            daySlot: serverBookingData.daySlot,
-            monthSlot: serverBookingData.monthSlot,
-            userUid: serverBookingData.userUid,
-            paid: serverBookingData.paid,
+        const newBookingSlots: Booking[] = requestedSlots.map((slotLabel) => ({
+          turfId: serverBookingData.turfId,
+          daySlot: serverBookingData.daySlot,
+          monthSlot: serverBookingData.monthSlot,
+          userUid: serverBookingData.userUid,
+          paid: serverBookingData.paid,
+          timeSlot: slotLabel,
+          price: Math.round(pricePerSlot * 100) / 100,
+          transactionId: paymentId,
+          status: "confirmed",
+          bookingDate: new Date(paymentDetails.created_at * 1000),
+          commission: Math.round(commission * 100) / 100,
+          payout: Math.round(payout * 100) / 100,
+        }));
 
-            // Properties unique to this specific, confirmed slot booking
-            timeSlot: slotLabel,
-            price: Math.round(pricePerSlot * 100) / 100,
-            transactionId: paymentId,
-            status: "confirmed" as const,
-            bookingDate: new Date(paymentDetails.created_at * 1000),
-            commission: Math.round(commissionPerSlot * 100) / 100,
-            payout: Math.round(payoutPerSlot * 100) / 100,
-          })
-        );
-
-        // Perform writes within the transaction for atomicity
         transaction.update(turfDocRef, {
           timeSlots: FieldValue.arrayUnion(...newBookingSlots),
         });
         transaction.delete(pendingOrderRef);
 
-        return newBookingSlots; // Return the created bookings on success
+        return newBookingSlots;
       });
 
-      // If the transaction completes successfully:
       return NextResponse.json({
         verified: true,
         booking: newBookings[0],
         bookings: newBookings,
       });
     } catch (error) {
-      if (error instanceof Error) {
-        if (error.message === "SLOT_ALREADY_BOOKED") {
-          await pendingOrderRef.delete();
-
-          return NextResponse.json(
-            {
-              error:
-                "One or more selected time slots are no longer available. Please contact support regarding your payment.",
-            },
-            { status: 409 }
-          );
-        }
+      if (error instanceof Error && error.message === "SLOT_ALREADY_BOOKED") {
+        await pendingOrderRef.delete();
+        return NextResponse.json(
+          {
+            error:
+              "One or more selected time slots are no longer available. Please contact support regarding your payment.",
+          },
+          { status: 409 },
+        );
       }
       throw error;
     }
@@ -138,7 +124,7 @@ export async function POST(request: NextRequest) {
       error instanceof Error ? error.message : "An unknown error occurred.";
     return NextResponse.json(
       { error: "Verification failed.", details: errorMessage },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
