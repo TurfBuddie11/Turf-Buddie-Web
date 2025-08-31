@@ -23,13 +23,12 @@ export async function GET() {
     const historySnapshot = await historyRef.get();
 
     if (historySnapshot.empty) {
-      return NextResponse.json([]); // Return an empty array if no history
+      return NextResponse.json([]);
     }
 
     const history = historySnapshot.docs.map((doc) => doc.data());
     return NextResponse.json(history);
   } catch (error) {
-    // REFACTORED: Consistent and specific error response
     console.error("Error fetching loyalty history:", error);
     const message =
       error instanceof Error

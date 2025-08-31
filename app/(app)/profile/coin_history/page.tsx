@@ -32,7 +32,7 @@ const CoinHistoryPage = () => {
     };
 
     fetchHistory();
-  }, []);
+  }, [user]);
 
   return (
     <div className="container min-h-screen pt-10">

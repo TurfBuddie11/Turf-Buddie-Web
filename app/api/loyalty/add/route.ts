@@ -52,7 +52,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ status: "success", pointsAdded: pointsToAdd });
   } catch (error) {
-    // REFACTORED: Consistent and specific error response
     console.error("Error adding loyalty points:", error);
     const message =
       error instanceof Error

@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { Timestamp } from "firebase/firestore";
 
 interface EditableUserProfile {
@@ -143,14 +142,9 @@ export default function ProfilePage() {
           </div>
           <Card className="mt-4">
             <CardHeader>
-              <CardTitle>Coins Collected</CardTitle>
+              <CardTitle>Loyalty Points Collected</CardTitle>
             </CardHeader>
             <CardContent>
-              <DotLottieReact
-                className="w-24 h-24 mx-auto mb-2"
-                src="/assets/Coins.lottie"
-                autoplay
-              />
               <div className="text-3xl font-bold text-center">
                 {loyaltyPoints}
               </div>
