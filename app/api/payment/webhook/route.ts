@@ -1,12 +1,12 @@
 import crypto from "crypto";
 import { adminDb } from "@/lib/firebase/admin";
-import { DocumentData, FieldValue } from "firebase-admin/firestore";
+import { DocumentData } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
-import { Booking } from "@/lib/types/booking";
+import { processBookingTransaction } from "@/lib/booking-service";
 
 // Helper to fetch pending order details
 async function getBookingDetailsFromOrderId(
-  orderId: string
+  orderId: string,
 ): Promise<DocumentData | undefined> {
   const orderRef = adminDb.collection("pendingOrders").doc(orderId);
   const orderDoc = await orderRef.get();
@@ -44,73 +44,24 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      const turfDocRef = adminDb
-        .collection("Turfs")
-        .doc(serverBookingData.turfId);
-      const pendingOrderRef = adminDb.collection("pendingOrders").doc(orderId);
+      // 3. Process the booking using the shared service
+      const { success, error: bookingError } = await processBookingTransaction(
+        orderId,
+        paymentId,
+        serverBookingData,
+      );
 
-      // 3. Use a Firestore transaction for atomic booking
-      try {
-        await adminDb.runTransaction(async (transaction) => {
-          const turfDoc = await transaction.get(turfDocRef);
-          if (!turfDoc.exists) {
-            throw new Error("Turf document not found.");
-          }
-
-          const existingBookings: Booking[] = turfDoc.data()?.timeSlots || [];
-          const requestedSlots: string[] = serverBookingData.timeSlots;
-
-          // Check for booking conflicts
-          const isConflict = requestedSlots.some((requestedSlotLabel) =>
-            existingBookings.some(
-              (existingBooking) =>
-                existingBooking.timeSlot === requestedSlotLabel &&
-                existingBooking.monthSlot === serverBookingData.monthSlot &&
-                existingBooking.daySlot === serverBookingData.daySlot
-            )
+      if (!success) {
+        if (bookingError === "SLOT_ALREADY_BOOKED") {
+          console.warn(
+            `Webhook: Conflict detected for Order ID ${orderId}. Pending order deleted.`,
           );
-
-          if (isConflict) {
-            console.warn(
-              `Webhook: Conflict detected for Order ID ${orderId}. Deleting pending order without booking.`
-            );
-            transaction.delete(pendingOrderRef);
-            return; // Abort the booking part of the transaction
-          }
-
-          const totalAmount = serverBookingData.amount;
-          const pricePerSlot = totalAmount / requestedSlots.length;
-          const commissionPerSlot = pricePerSlot * 0.094;
-          const payoutPerSlot = pricePerSlot - commissionPerSlot;
-
-          const newBookingSlots: Booking[] = requestedSlots.map(
-            (slotLabel: string) => ({
-              turfId: serverBookingData.turfId,
-              daySlot: serverBookingData.daySlot,
-              monthSlot: serverBookingData.monthSlot,
-              userUid: serverBookingData.userUid,
-              paid: serverBookingData.paid,
-              timeSlot: slotLabel,
-              price: Math.round(pricePerSlot * 100) / 100,
-              transactionId: paymentId,
-              status: "confirmed" as const,
-              bookingDate: new Date(paymentEntity.created_at * 1000),
-              commission: Math.round(commissionPerSlot * 100) / 100,
-              payout: Math.round(payoutPerSlot * 100) / 100,
-            })
+        } else {
+          console.error(
+            `Webhook: Booking transaction failed for Order ID ${orderId}:`,
+            bookingError,
           );
-
-          // Atomically update the turf document and delete the pending order
-          transaction.update(turfDocRef, {
-            timeSlots: FieldValue.arrayUnion(...newBookingSlots),
-          });
-          transaction.delete(pendingOrderRef);
-        });
-      } catch (error) {
-        console.error(
-          `Webhook: Transaction failed for Order ID ${orderId}:`,
-          error
-        );
+        }
       }
     }
 
@@ -120,7 +71,7 @@ export async function POST(request: NextRequest) {
     console.error("Error processing webhook:", error);
     return NextResponse.json(
       { error: "Webhook handler failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

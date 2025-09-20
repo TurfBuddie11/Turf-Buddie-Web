@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { motion, easeInOut } from "framer-motion";
 import { ArrowLeft, ChevronDownIcon } from "lucide-react";
@@ -22,31 +22,35 @@ interface TurfDetailsClientProps {
   localDate: string;
 }
 
+const IMAGE_ANIMATION = {
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.35, ease: easeInOut },
+};
+
+const BOOKING_ANIMATION = {
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.35, ease: easeInOut },
+};
+
 export default function TurfDetailsClient({
   turf,
   localDate,
 }: TurfDetailsClientProps) {
-  const [isClient, setIsClient] = useState(false);
   const [date, setDate] = useState<Date | undefined>(
-    localDate ? new Date(localDate) : undefined
+    localDate ? new Date(localDate) : undefined,
   );
   const [open, setOpen] = useState(false);
   const today = startOfDay(new Date());
   const oneMonthLater = addMonths(today, 1);
-
-  // Prevent hydration mismatches
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mt-6">
         {/* Image Section */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: easeInOut }}
+          {...IMAGE_ANIMATION}
           className="relative h-[60vh] md:h-[90vh] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10"
         >
           <Image
@@ -75,78 +79,57 @@ export default function TurfDetailsClient({
 
         {/* Booking Section */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: easeInOut }}
+          {...BOOKING_ANIMATION}
           className="md:sticky md:top-6 max-h-[90vh] overflow-auto hide-scrollbar bg-gray-900/60 backdrop-blur-sm rounded-2xl shadow-xl ring-1 ring-white/10 p-6 space-y-6"
         >
-          {isClient ? (
-            <>
-              {/* Embedded Calendar22 */}
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="date" className="px-1 text-white">
-                  Select Date
-                </Label>
-                <Popover open={open} onOpenChange={setOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      id="date"
-                      className="w-48 justify-between font-normal"
-                    >
-                      {date ? date.toLocaleDateString() : "Select date"}
-                      <ChevronDownIcon />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-auto overflow-hidden p-0"
-                    align="start"
+          <>
+            {/* Embedded Calendar22 */}
+            <div className="flex flex-col gap-3">
+              <Label htmlFor="date" className="px-1 text-white">
+                Select Date
+              </Label>
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    id="date"
+                    className="w-48 justify-between font-normal"
                   >
-                    <Calendar
-                      mode="single"
-                      selected={date}
-                      captionLayout="dropdown"
-                      defaultMonth={today}
-                      disabled={{
-                        before: today,
-                        after: oneMonthLater,
-                      }}
-                      onSelect={(newDate) => {
-                        setDate(newDate || undefined);
-                        setOpen(false);
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Booking Flow */}
-              <BookingFlow
-                turf={turf}
-                selectedDate={date ? format(date, "yyyy-MM-dd") : localDate}
-                onBookingComplete={(booking) =>
-                  console.log("Booking complete:", booking)
-                }
-              />
-            </>
-          ) : (
-            /* Skeleton Loader */
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <div className="text-sm text-white font-medium">
-                  Select Date
-                </div>
-                <div className="w-full h-10 bg-slate-800/50 border border-slate-700 rounded-md animate-pulse" />
-                <div className="text-xs text-slate-400">
-                  Loading date selector...
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="h-32 bg-slate-800/50 border border-slate-700 rounded-lg animate-pulse" />
-                <div className="h-64 bg-slate-800/50 border border-slate-700 rounded-lg animate-pulse" />
-              </div>
+                    {date ? date.toLocaleDateString() : "Select date"}
+                    <ChevronDownIcon />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-auto overflow-hidden p-0"
+                  align="start"
+                >
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    captionLayout="dropdown"
+                    defaultMonth={today}
+                    disabled={{
+                      before: today,
+                      after: oneMonthLater,
+                    }}
+                    onSelect={(newDate) => {
+                      setDate(newDate || undefined);
+                      setOpen(false);
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-          )}
+
+            {/* Booking Flow */}
+            <BookingFlow
+              turf={turf}
+              selectedDate={date ? format(date, "yyyy-MM-dd") : localDate}
+              onBookingComplete={(booking) =>
+                console.log("Booking complete:", booking)
+              }
+            />
+          </>
         </motion.div>
       </div>
     </div>

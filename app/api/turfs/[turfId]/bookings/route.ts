@@ -16,12 +16,16 @@ type BookingSlot = {
   paid?: string;
 };
 
-function parseBookingDate(booking: BookingSlot): Date | null {
+function parseBookingDate(booking: BookingSlot, year: number): Date | null {
   try {
     if (booking.daySlot && booking.monthSlot) {
-      const currentYear = new Date().getFullYear();
-      const combinedDate = `${booking.monthSlot} ${currentYear}`;
-      return new Date(combinedDate);
+      const monthIndex = new Date(
+        Date.parse(booking.monthSlot + " 1, 2000"),
+      ).getMonth(); // Parse month name to index
+      const day = parseInt(booking.daySlot, 10);
+      if (!isNaN(monthIndex) && !isNaN(day)) {
+        return new Date(year, monthIndex, day);
+      }
     }
   } catch (err) {
     console.warn("Failed to parse booking date:", booking, err);
@@ -35,21 +39,19 @@ export async function GET(request: NextRequest) {
     const turfId = pathnameParts[pathnameParts.indexOf("turfs") + 1];
 
     const { searchParams } = request.nextUrl;
-    const date = searchParams.get("date");
+    const dateParam = searchParams.get("date");
 
-    if (!turfId || !date) {
+    if (!turfId || !dateParam) {
       return NextResponse.json(
         { error: "Missing turfId or date parameter" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const targetDate = new Date(date);
-    const IST_OFFSET = 5.5 * 60 * 60 * 1000;
-    const selectedDate = new Date(targetDate.getTime() + IST_OFFSET);
-    selectedDate.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(selectedDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    const targetDate = new Date(dateParam);
+    const targetYear = targetDate.getFullYear();
+    const targetMonth = targetDate.getMonth();
+    const targetDay = targetDate.getDate();
 
     const turfRef = adminDb.collection("Turfs").doc(turfId);
     const turfSnapshot = await turfRef.get();
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
     if (!turfSnapshot.exists) {
       return NextResponse.json(
         { error: `Turf with ID '${turfId}' not found.` },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -65,17 +67,19 @@ export async function GET(request: NextRequest) {
     const allBookingsInDoc = turfData.timeSlots || [];
 
     const dailyBookings = allBookingsInDoc.filter((booking: BookingSlot) => {
-      const parsedDate = parseBookingDate(booking);
+      const parsedDate = parseBookingDate(booking, targetYear);
       if (!parsedDate) return false;
 
-      const bookingIST = new Date(parsedDate.getTime() + IST_OFFSET);
+      const isSameDay =
+        parsedDate.getFullYear() === targetYear &&
+        parsedDate.getMonth() === targetMonth &&
+        parsedDate.getDate() === targetDay;
 
-      const isToday = bookingIST >= selectedDate && bookingIST <= endOfDay;
       const isBlockingStatus =
         booking.status &&
         ["confirmed", "pending", "booked_offline"].includes(booking.status);
 
-      return isToday && isBlockingStatus;
+      return isSameDay && isBlockingStatus;
     });
 
     const bookedSlots = dailyBookings
@@ -90,7 +94,7 @@ export async function GET(request: NextRequest) {
     console.error("Error in bookings API:", error);
     return NextResponse.json(
       { error: "Failed to fetch bookings due to a server error." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

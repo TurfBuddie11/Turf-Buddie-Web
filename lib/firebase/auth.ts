@@ -7,9 +7,9 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
+  User,
   UserCredential,
 } from "firebase/auth";
-import { auth, db } from "./config";
 import { FirebaseError } from "firebase/app";
 import {
   doc,
@@ -18,229 +18,244 @@ import {
   Timestamp,
   updateDoc,
   DocumentSnapshot,
+  writeBatch,
+  collection,
 } from "firebase/firestore";
+import { auth, db } from "./config";
 import { UserProfile } from "../types/user";
+import { nanoid } from "nanoid";
 
-const provider = new GoogleAuthProvider();
+// --- Private Helper Functions ---
 
-export const signInWithGoogle = async (): Promise<UserCredential> => {
-  try {
-    const userCredentials = await signInWithPopup(auth, provider);
-    const user = userCredentials.user;
+/**
+ * Creates a user profile document in Firestore if one doesn't already exist.
+ * This is called after a new user signs up.
+ * @param user - The Firebase Auth user object.
+ * @param profileData - Partial profile data to initialize the document with.
+ * @returns The user's profile data.
+ */
+const createUserProfile = async (
+  user: User,
+  profileData: Partial<UserProfile>,
+): Promise<UserProfile> => {
+  const userRef = doc(db, "users", user.uid);
+  const profileSnap = await getDoc(userRef);
 
-    // Check if email is already used with another provider
-    const signInMethods = await fetchSignInMethodsForEmail(
-      auth,
-      user.email || ""
-    );
-    if (signInMethods.includes("password")) {
-      throw new Error(
-        "This email is already registered with Email/Password. Please sign in using that method."
-      );
+  if (!profileSnap.exists()) {
+    const email = user.email ?? profileData.email;
+    if (!email) {
+      throw new Error("Email is required to create a user profile.");
     }
 
-    const userRef = doc(db, "users", user.uid);
-    const profileSnap = await getDoc(userRef);
-
-    if (!profileSnap.exists()) {
-      console.log("New User");
-      const userRef = doc(db, "users", user.uid);
-      await setDoc(
-        userRef,
-        {
-          uid: user.uid,
-          name: user.displayName,
-          gender: null,
-          dob: null,
-          mobile: null,
-          city: null,
-          pincode: null,
-          state: null,
-          emailVerified: true,
-        },
-        {
-          merge: true,
-        }
-      );
+    const name = user.displayName ?? profileData.name;
+    if (!name) {
+      throw new Error("Name is required to create a user profile.");
     }
 
-    return userCredentials;
-  } catch (error) {
-    if (error instanceof FirebaseError) {
-      if (error.code === "auth/account-exists-with-different-credential") {
-        throw new Error(
-          "An account already exists with the same email address but different sign-in credentials"
-        );
-      }
-      if (error.code === "auth/user-not-found") {
-        throw new Error("User not found");
-      }
-      if (error.code === "auth/network-request-failed") {
-        throw new Error("Network Error");
-      }
-      if (error.code === "auth/popup-closed-by-user") {
-        throw new Error("Google Sign in cancelled by user");
-      }
-      if (error.code === "auth/popup-blocked") {
-        throw new Error("Sign In Blocked Enable JavaScript in Settings");
-      }
-    }
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Google Sign in failed. Please try again");
+    // Generate a referral code for the new user
+    const referralCode = nanoid(8).toUpperCase();
+
+    // This object is now type-safe because the UserProfile interface allows optional fields.
+    const newUserProfile: UserProfile = {
+      ...profileData,
+      uid: user.uid,
+      email,
+      name,
+      createdAt: Timestamp.now(),
+      emailVerified: user.emailVerified,
+      referralCode, // Add the generated referral code
+    };
+
+    await setDoc(userRef, newUserProfile);
+    await createLoyaltyAccount(user.uid);
+
+    return newUserProfile;
   }
+
+  return profileSnap.data() as UserProfile;
 };
 
 /**
- * Register a new user
+ * Creates a loyalty account with a welcome bonus for a new user.
+ * @param userId - The UID of the user.
  */
+const createLoyaltyAccount = async (userId: string) => {
+  const batch = writeBatch(db);
+  const loyaltyPointsRef = doc(db, "loyalty_points", userId);
+  const loyaltyHistoryRef = doc(collection(db, "loyalty_history"));
+
+  batch.set(loyaltyPointsRef, { balance: 50 });
+  batch.set(loyaltyHistoryRef, {
+    userId,
+    amount: 50,
+    type: "credit",
+    reason: "Welcome bonus",
+    timestamp: Timestamp.now(),
+  });
+
+  await batch.commit();
+};
+
+// --- Public Auth & Profile Functions ---
+
+const googleProvider = new GoogleAuthProvider();
+
+export const signInWithGoogle = async (): Promise<UserCredential> => {
+  try {
+    const userCredentials = await signInWithPopup(auth, googleProvider);
+    const user = userCredentials.user;
+
+    // Check if the email is already registered with a different provider (e.g., email/password)
+    const signInMethods = await fetchSignInMethodsForEmail(auth, user.email!);
+    if (
+      signInMethods.length > 0 &&
+      !signInMethods.includes(GoogleAuthProvider.PROVIDER_ID)
+    ) {
+      throw new Error(
+        "This email is already registered. Please sign in using your original method.",
+      );
+    }
+
+    await createUserProfile(user, {
+      name: user.displayName ?? undefined,
+      email: user.email ?? undefined,
+    });
+    return userCredentials;
+  } catch (error) {
+    if (error instanceof FirebaseError) {
+      switch (error.code) {
+        case "auth/account-exists-with-different-credential":
+          throw new Error(
+            "An account with this email already exists. Please sign in with your password to link your Google account.",
+          );
+        case "auth/popup-closed-by-user":
+          throw new Error("Google Sign-In was cancelled.");
+        case "auth/network-request-failed":
+          throw new Error("Network error. Please check your connection.");
+        default:
+          throw new Error(error.message || "Google Sign-In failed.");
+      }
+    }
+    if (error instanceof Error) throw error;
+    throw new Error("An unexpected error occurred during Google Sign-In.");
+  }
+};
+
 export const registerWithEmail = async (
   email: string,
   password: string,
-  profile: Omit<UserProfile, "email" | "createdAt" | "emailVerified">
+  profile: Omit<
+    UserProfile,
+    "uid" | "email" | "createdAt" | "emailVerified" | "referralCode"
+  >,
 ) => {
   try {
     const { user } = await createUserWithEmailAndPassword(
       auth,
       email,
-      password
+      password,
     );
-
     await sendEmailVerification(user);
 
-    const userProfile: UserProfile = {
-      ...profile,
-      email,
-      createdAt: Timestamp.now(),
-      emailVerified: false,
-    };
-
-    await setDoc(doc(db, "users", user.uid), userProfile);
-
+    const userProfile = await createUserProfile(user, profile);
     return { user, profile: userProfile };
-  } catch (error: unknown) {
+  } catch (error) {
     if (error instanceof FirebaseError) {
-      if (error.code === "auth/email-already-in-use") {
-        throw new Error("This email is already registered.");
+      switch (error.code) {
+        case "auth/email-already-in-use":
+          throw new Error("This email is already registered.");
+        case "auth/weak-password":
+          throw new Error("Password must be at least 6 characters.");
+        case "auth/invalid-email":
+          throw new Error("Invalid email address.");
+        default:
+          throw new Error(error.message || "Registration failed.");
       }
-      if (error.code === "auth/weak-password") {
-        throw new Error("Password must be at least 6 characters.");
-      }
-      if (error.code === "auth/invalid-email") {
-        throw new Error("Invalid email address.");
-      }
-      throw new Error(error.message || "Registration failed.");
     }
+    if (error instanceof Error) throw error;
     throw new Error("An unexpected error occurred during registration.");
   }
 };
 
-/**
- * Login existing user
- */
-
 export const login = async (
   email: string,
-  password: string
+  password: string,
 ): Promise<UserCredential> => {
   try {
     const userCredentials = await signInWithEmailAndPassword(
       auth,
       email,
-      password
+      password,
     );
-
     const user = userCredentials.user;
-
     const userRef = doc(db, "users", user.uid);
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
-      throw new Error("User not found.");
-    }
-
-    const data = userSnap.data();
-
-    if (user.emailVerified && !data.emailVerified) {
+      // This case is unlikely if auth succeeded, but it's good for data integrity.
+      await createUserProfile(user, {});
+    } else if (user.emailVerified && !userSnap.data()?.emailVerified) {
       await updateDoc(userRef, { emailVerified: true });
     }
 
     return userCredentials;
-  } catch (error: unknown) {
+  } catch (error) {
     if (error instanceof FirebaseError) {
       switch (error.code) {
         case "auth/user-not-found":
-          throw new Error("No account found with this email.");
-        case "auth/wrong-password":
-          throw new Error("Incorrect password.");
+        case "auth/invalid-credential":
+          throw new Error("Invalid email or password.");
         case "auth/too-many-requests":
-          throw new Error("Too many failed attempts. Try again later.");
+          throw new Error(
+            "Access to this account has been temporarily disabled due to many failed login attempts.",
+          );
         default:
           throw new Error(error.message || "Login failed.");
       }
     }
-
-    if (error instanceof Error) {
-      throw error;
-    }
-
-    console.error("Unexpected login error:", error);
-    throw new Error("Something went wrong while logging in. Please try again.");
+    if (error instanceof Error) throw error;
+    throw new Error("An unexpected error occurred during login.");
   }
 };
 
-/**
- * Logout the current user
- */
 export const logout = async () => {
   try {
     await signOut(auth);
-  } catch (error: unknown) {
-    if (error instanceof FirebaseError) {
-      throw new Error(error.message || "Logout failed.");
-    }
+  } catch (error) {
+    console.error("Logout Error:", error);
     throw new Error("An unexpected error occurred during logout.");
   }
 };
 
-/**
- * Get user profile from Firestore
- */
 export const getUserProfile = async (
-  uid: string
+  uid: string,
 ): Promise<DocumentSnapshot> => {
   try {
-    const docSnap = await getDoc(doc(db, "users", uid));
-    return docSnap;
-  } catch (error: unknown) {
-    if (error instanceof FirebaseError) {
-      throw new Error(error.message || "Error fetching user profile.");
-    }
-    throw new Error(
-      "An unexpected error occurred while fetching user profile."
-    );
+    return await getDoc(doc(db, "users", uid));
+  } catch (error) {
+    console.error("Get User Profile Error:", error);
+    throw new Error("Error fetching user profile.");
   }
 };
 
 export const updateUserProfile = async (
   userId: string,
-  data: Omit<UserProfile, "createdAt" | "emailVerified">
+  data: Partial<UserProfile>,
 ) => {
   try {
     const userRef = doc(db, "users", userId);
-    await setDoc(userRef, data, { merge: true });
+    await updateDoc(userRef, data);
   } catch (error) {
-    console.error(error);
-    throw new Error("Profile Setup Failed");
+    console.error("Update User Profile Error:", error);
+    throw new Error("Failed to update profile.");
   }
 };
 
 export const sendResetPasswordEmail = async (email: string) => {
   try {
     await sendPasswordResetEmail(auth, email);
-    console.log("Password reset email sent successfully");
   } catch (error) {
-    console.log(error);
+    console.error("Send Reset Password Email Error:", error);
+    throw new Error("Failed to send password reset email.");
   }
 };

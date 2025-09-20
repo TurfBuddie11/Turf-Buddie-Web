@@ -68,7 +68,7 @@ const signupSchema = z
       .date({ error: "Please select your date of birth" })
       .refine(
         (date) => date <= subYears(new Date(), 13),
-        "You must be at least 13 years old"
+        "You must be at least 13 years old",
       ),
     mobile: z
       .string()
@@ -77,6 +77,7 @@ const signupSchema = z
     area: z.string().min(1, "Please select your area"),
     city: z.string().min(1, "City is required"),
     state: z.string().min(1, "State is required"),
+    referralCode: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.password || data.confirmPassword) {
@@ -107,7 +108,7 @@ type PincodeResponse = [
   {
     Status: string;
     PostOffice: { Name: string; District: string; State: string }[];
-  }
+  },
 ];
 
 const steps = [
@@ -124,7 +125,7 @@ const steps = [
   {
     id: "Step 3",
     title: "Location & Contact",
-    fields: ["pincode", "area", "mobile", "city", "state"],
+    fields: ["pincode", "area", "mobile", "city", "state", "referralCode"],
   },
 ];
 
@@ -156,6 +157,7 @@ export default function SignUpForm() {
       email: "",
       password: "",
       confirmPassword: "",
+      referralCode: "",
     },
     mode: "onTouched",
   });
@@ -224,7 +226,7 @@ export default function SignUpForm() {
       }
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Google Sign-In failed."
+        error instanceof Error ? error.message : "Google Sign-In failed.",
       );
     } finally {
       setLoading(false);
@@ -256,6 +258,7 @@ export default function SignUpForm() {
         city: data.city,
         state: data.state,
         email: data.email,
+        referralCode: data.referralCode,
       };
       console.log(userData);
 
@@ -263,7 +266,7 @@ export default function SignUpForm() {
         const res = await updateUserProfile(user.uid, userData);
         console.log(res);
         toast.success(
-          "Profile updated! You’re all set to explore TurfBuddies."
+          "Profile updated! You’re all set to explore TurfBuddies.",
         );
         router.push("/explore");
       } else {
@@ -276,7 +279,7 @@ export default function SignUpForm() {
       }
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "An error occurred."
+        error instanceof Error ? error.message : "An error occurred.",
       );
     } finally {
       setLoading(false);
@@ -648,6 +651,24 @@ export default function SignUpForm() {
                                   )}
                                 />
                               )}
+                              <FormField
+                                control={form.control}
+                                name="referralCode"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>
+                                      Referral Code (Optional)
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="Enter referral code"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
                               <div className="flex gap-5">
                                 <FormField
                                   control={form.control}

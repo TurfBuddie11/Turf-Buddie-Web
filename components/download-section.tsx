@@ -73,7 +73,11 @@ const DownloadSection = () => {
                 className="glow-button flex items-center gap-3"
                 asChild
               >
-                <a href="/turfbuddie.apk" download>
+                <a
+                  href="https://github.com/TurfBuddie11/Turf-Buddie-Android/releases/download/v1.0.21/turf-buddie-v1.0.21.apk
+"
+                  download
+                >
                   <Download className="w-5 h-5" />
                   Download for Android
                 </a>
