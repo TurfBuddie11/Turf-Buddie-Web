@@ -16,7 +16,8 @@ export const metadata: Metadata = {
   description:
     "Book football, cricket and badminton turfs with TurfBuddies. Join Tournamnets, track live scores & enjoy seamless booking with secure payments.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/favicon.svg",
+    shortcut: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
   keywords: [
