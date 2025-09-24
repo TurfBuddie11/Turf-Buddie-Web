@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "./globals.css";
 import { AuthProvider } from "@/context/auth-provider";
 import { Toaster } from "@/components/ui/sonner";
 import Script from "next/script";
 import Head from "next/head";
+import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -15,11 +15,28 @@ export const metadata: Metadata = {
     "TurfBuddie | A Premium Turf Booking Platform for Vidharbha and Nagpur",
   description:
     "Book football, cricket and badminton turfs with TurfBuddies. Join Tournamnets, track live scores & enjoy seamless booking with secure payments.",
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
-  },
+  icons: [
+    {
+      rel: "icon",
+      url: "/favicon.svg",
+      type: "image/svg+xml",
+    },
+    {
+      rel: "apple-touch-icon",
+      url: "/apple-touch-icon.png",
+      type: "image/svg+xml",
+    },
+    {
+      rel: "alternate icon",
+      url: "/favicon.ico",
+      type: "image/vnd.microsoft.icon",
+    },
+    {
+      rel: "shortcut icon",
+      url: "/favicon.ico",
+      type: "image/x-icon",
+    },
+  ],
   keywords: [
     "turf",
     "turf booking app",
