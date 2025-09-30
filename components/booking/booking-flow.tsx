@@ -4,7 +4,15 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Star, CheckCircle, XCircle } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Star,
+  CheckCircle,
+  XCircle,
+  IndianRupee,
+  Zap,
+} from "lucide-react";
 import { Turf, TimeSlot, Booking } from "@/lib/types/booking";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-provider";
@@ -270,51 +278,55 @@ export function BookingFlow({
   ]);
 
   return (
-    <div className="space-y-6">
-      {/* Turf Info Card (no changes needed) */}
-      <Card className="bg-slate-900/70 border-slate-800 backdrop-blur">
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
+    <div className="space-y-6 pb-20 md:pb-6">
+      {" "}
+      {/* Increased bottom padding for mobile to clear fixed footer */}
+      {/* 1. Turf Info Card: Enhanced for readability */}
+      <Card className="bg-slate-900 border-slate-700 shadow-xl">
+        <CardHeader className="py-4 px-5 sm:px-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <CardTitle className="text-white">{turf.name}</CardTitle>
+              <CardTitle className="text-white text-xl font-extrabold">
+                {turf.name}
+              </CardTitle>
               <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-slate-300">
-                <span className="flex items-center">
-                  <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                  {turf.rating?.toFixed(1) ?? "N/A"}
+                <span className="flex items-center text-yellow-400 font-semibold">
+                  <Star className="w-4 h-4 mr-1 fill-yellow-400" />
+                  {turf.rating?.toFixed(1) ?? "N/A"} Rating
                 </span>
                 <span className="flex items-center">
-                  <MapPin className="w-4 h-4 mr-1" />
+                  <MapPin className="w-4 h-4 mr-1 text-slate-400" />
                   {turf.address}
                 </span>
               </div>
             </div>
-            <Badge className="bg-gradient-to-r from-green-400 to-lime-500 text-black font-semibold shadow-md px-3 py-1.5 shrink-0">
+            <Badge className="bg-gradient-to-r from-green-400 to-lime-500 text-black font-extrabold text-md px-4 py-2 shrink-0 self-start sm:self-auto">
               ₹{turf.price}/hr
             </Badge>
           </div>
         </CardHeader>
       </Card>
-
-      {/* Time Slot Selector */}
-      <Card className="bg-slate-900/70 border-slate-800 backdrop-blur">
+      {/* 2. Time Slot Selector: Responsive Grid */}
+      <Card className="bg-slate-900 border-slate-700 shadow-xl">
         <CardHeader>
-          <CardTitle className="text-white flex items-center">
-            <Calendar className="w-5 h-5 mr-2" /> Select Time Slot(s)
+          <CardTitle className="text-white flex items-center text-lg sm:text-xl">
+            <Calendar className="w-5 h-5 mr-2 text-green-400" /> Select Time
+            Slot(s)
           </CardTitle>
-          <p className="text-sm text-slate-300 pt-1">{displayDate}</p>
+          <p className="text-sm text-slate-400 pt-1">{displayDate}</p>
         </CardHeader>
         <CardContent>
           {isFetchingSlots ? (
             <div className="flex items-center justify-center h-48">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-400" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-4 border-green-400" />
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {/* CHANGE: Responsive grid for slots */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {ALL_POSSIBLE_SLOTS.map((slot) => {
-                  const isBooked = bookedSlots.has(
-                    getSlotLabel(slot.startTime, slot.endTime),
-                  );
+                  const label = getSlotLabel(slot.startTime, slot.endTime);
+                  const isBooked = bookedSlots.has(label);
                   const isSelected = selectedSlots.some(
                     (s) => s.id === slot.id,
                   );
@@ -324,93 +336,110 @@ export function BookingFlow({
                       disabled={isBooked}
                       onClick={() => handleSlotToggle(slot)}
                       className={cn(
-                        "p-3 rounded-lg border text-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
+                        "p-3 rounded-xl border text-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
+                        // Base Style
+                        "bg-slate-800 border-slate-700 hover:border-green-400",
+                        // Booked Style
                         isBooked
-                          ? "bg-slate-800/50 border-slate-700 text-slate-500"
-                          : "bg-slate-800/80 border-slate-700 hover:border-green-400 hover:bg-green-500/10",
+                          ? "bg-slate-900/50 border-slate-800 text-slate-500"
+                          : "text-white",
+                        // Selected Style
                         isSelected &&
                           !isBooked &&
-                          "bg-green-500/20 border-green-400 ring-2 ring-green-400",
+                          "bg-green-500/20 border-green-400 ring-2 ring-green-400 hover:bg-green-500/30",
                       )}
                     >
-                      <p className="font-semibold text-white">
-                        {getSlotLabel(slot.startTime, slot.endTime)}
+                      <p className="font-semibold text-sm sm:text-base">
+                        {label}
                       </p>
-                      <p className="text-xs text-green-300">₹{turf.price}</p>
+                      <p className="text-xs text-green-400">
+                        {isBooked ? "BOOKED" : `₹${turf.price}`}
+                      </p>
                     </button>
                   );
                 })}
               </div>
-              <div className="mt-6 flex flex-wrap gap-4 text-sm border-t border-slate-700 pt-4">
-                <span className="flex items-center gap-2">
+              <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm border-t border-slate-700 pt-4">
+                <span className="flex items-center gap-2 text-slate-300">
                   <CheckCircle className="w-4 h-4 text-green-400" />
-                  {availableSlotsCount} Available
+                  <span className="font-bold">{availableSlotsCount}</span>{" "}
+                  Available
                 </span>
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-2 text-slate-300">
                   <XCircle className="w-4 h-4 text-red-400" />
-                  {ALL_POSSIBLE_SLOTS.length - availableSlotsCount} Booked
+                  <span className="font-bold">
+                    {ALL_POSSIBLE_SLOTS.length - availableSlotsCount}
+                  </span>{" "}
+                  Booked
                 </span>
               </div>
             </>
           )}
         </CardContent>
       </Card>
-
-      {/* Booking Summary */}
+      {/* 3. Booking Summary: Cleaned up for single-column desktop display */}
       {selectedSlots.length > 0 && (
-        <Card className="bg-slate-900/70 border-slate-800 backdrop-blur sticky bottom-6">
-          <CardHeader>
-            <CardTitle className="text-white">Booking Summary</CardTitle>
+        <Card className="bg-slate-900 border-slate-700 shadow-xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white flex items-center text-lg sm:text-xl">
+              <IndianRupee className="w-5 h-5 mr-2 text-yellow-400" /> Price
+              Breakdown
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-slate-300 text-sm mb-4">
-              <div className="flex justify-between items-start">
-                <span className="text-slate-400 pt-1">Selected Slots</span>
-                <div className="flex flex-wrap gap-1 justify-end max-w-[70%]">
-                  {selectedSlots.map((slot) => (
-                    <Badge
-                      key={slot.id}
-                      variant="secondary"
-                      className="bg-slate-700 text-slate-200"
-                    >
-                      {getSlotLabel(slot.startTime, slot.endTime)}
-                    </Badge>
-                  ))}
-                </div>
+          <CardContent className="space-y-4">
+            <div className="border-b border-slate-800 pb-3 space-y-3">
+              {/* Base Price Row */}
+              <div className="flex justify-between items-center text-slate-300 text-base">
+                <span className="text-slate-400">
+                  {selectedSlots.length} Slot(s) @ ₹{turf.price}/hr
+                </span>
+                <span className="font-medium">₹{basePrice}</span>
               </div>
-              <div className="flex items-center space-x-2 mt-2">
+              {/* Loyalty Checkbox Row */}
+              <div className="flex items-center space-x-2 p-3 bg-slate-800 rounded-lg">
                 <Checkbox
                   id="redeem"
+                  checked={redeemPoints}
                   onCheckedChange={() => setRedeemPoints(!redeemPoints)}
+                  className="border-green-400 data-[state=checked]:bg-green-500 data-[state=checked]:text-black"
                 />
                 <label
                   htmlFor="redeem"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="text-sm font-medium leading-none text-slate-300 cursor-pointer"
                 >
-                  Redeem {loyaltyPoints} points for a ₹{discount} discount
+                  Redeem **{loyaltyPoints} points** for -₹{discount} Discount
                 </label>
               </div>
-              <div className="flex justify-between items-center border-t border-slate-700 pt-2 mt-2">
-                <span className="text-slate-400">Total Amount</span>
-                <span className="font-semibold text-white text-lg">
-                  ₹{totalPrice}
-                </span>
-              </div>
             </div>
-            <Button
-              onClick={handleBooking}
-              className="w-full bg-green-500 hover:bg-green-600 text-black font-semibold"
-              disabled={isLoading || !user}
-            >
-              {isLoading ? "Processing..." : `Pay ₹${totalPrice} & Book Now`}
-            </Button>
-            {!user && (
-              <p className="text-center text-slate-400 text-xs mt-2">
-                Please login to continue
-              </p>
-            )}
+
+            {/* Total Row */}
+            <div className="flex justify-between items-center">
+              <span className="text-white text-lg font-bold flex items-center">
+                <Zap className="w-5 h-5 mr-2 text-green-400" /> Final Total
+              </span>
+              <span className="font-extrabold text-green-400 text-xl">
+                ₹{totalPrice}
+              </span>
+            </div>
           </CardContent>
         </Card>
+      )}
+      {/* 4. Fixed Booking Button Footer: Essential for Mobile UX */}
+      {selectedSlots.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-slate-900/90 backdrop-blur-md border-t border-slate-700 p-4 md:static md:bg-transparent md:backdrop-blur-none md:border-none md:p-0 md:mt-6">
+          <Button
+            onClick={handleBooking}
+            className="w-full h-12 bg-green-500 hover:bg-green-600 text-black text-md font-extrabold shadow-xl"
+            disabled={isLoading || !user}
+          >
+            {isLoading ? "Processing..." : `Pay ₹${totalPrice} & Book Now`}
+          </Button>
+          {!user && (
+            <p className="text-center text-red-400 text-xs mt-2 md:hidden">
+              Please login to continue booking.
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

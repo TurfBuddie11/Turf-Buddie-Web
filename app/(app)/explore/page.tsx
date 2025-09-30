@@ -56,7 +56,7 @@ export default function ExplorePage() {
   // Filter states
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("all");
-  const [price, setPrice] = useState<[number, number]>([400, 10000]);
+  const [price, setPrice] = useState<[number, number]>([400, 5000]);
   const [minRating, setMinRating] = useState(0);
 
   useEffect(() => {
@@ -67,9 +67,8 @@ export default function ExplorePage() {
       setIsLoading(true);
       try {
         const turfCollection = collection(db, "Turfs");
-        const snapshot: QuerySnapshot<DocumentData> = await getDocs(
-          turfCollection
-        );
+        const snapshot: QuerySnapshot<DocumentData> =
+          await getDocs(turfCollection);
 
         const turfList: Turf[] = snapshot.docs.map((doc) => {
           const data = doc.data();
@@ -110,14 +109,14 @@ export default function ExplorePage() {
       navigator.geolocation.getCurrentPosition(
         showCity,
         handleGeolocationError,
-        { enableHighAccuracy: true }
+        { enableHighAccuracy: true },
       );
     }
   }, [hasMounted]);
 
   const cities = useMemo(() => {
     const unique = Array.from(
-      new Set(turfs.map((t) => extractCity(t.address)))
+      new Set(turfs.map((t) => extractCity(t.address))),
     );
     return ["all", ...unique];
   }, [turfs]);
@@ -221,7 +220,7 @@ export default function ExplorePage() {
                           <Slider
                             value={price}
                             min={400}
-                            max={10000}
+                            max={5000}
                             step={50}
                             onValueChange={(v: number[]) =>
                               setPrice([v[0], v[1]])
