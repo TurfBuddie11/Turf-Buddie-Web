@@ -79,6 +79,7 @@ export default function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ idToken }),
+        credentials: "include",
       });
 
       const profileSnap = await getUserProfile(googleUser.uid);

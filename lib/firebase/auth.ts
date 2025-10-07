@@ -84,7 +84,7 @@ const createLoyaltyAccount = async (userId: string) => {
   const loyaltyPointsRef = doc(db, "loyalty_points", userId);
   const loyaltyHistoryRef = doc(collection(db, "loyalty_history"));
 
-  batch.set(loyaltyPointsRef, { balance: 50 });
+  batch.set(loyaltyPointsRef, { balance: 25 });
   batch.set(loyaltyHistoryRef, {
     userId,
     amount: 50,

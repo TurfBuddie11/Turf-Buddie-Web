@@ -46,12 +46,12 @@ export default function AppHeader() {
 
   return (
     <header
-      className={`fixed top-0 w-full z-50 transition-colors duration-300 ${
+      className={`fixed top-0 w-full z-50 h-16 transition-colors duration-300 ${
         isScrolled
           ? "bg-slate-900/95 backdrop-blur-sm border-b border-slate-800"
           : isMobileMenuOpen
-          ? "bg-gradient-to-r from-gray-900 via-black to-gray-900"
-          : "bg-transparent"
+            ? "bg-gradient-to-r from-gray-900 via-black to-gray-900"
+            : "bg-transparent"
       }`}
     >
       <div className="container max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">

@@ -149,7 +149,7 @@ export async function POST(request: Request) {
       );
       transaction.set(
         refereeLoyaltyRef,
-        { balance: FieldValue.increment(50) },
+        { balance: FieldValue.increment(25) },
         { merge: true },
       );
 

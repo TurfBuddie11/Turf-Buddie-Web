@@ -9,20 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 import { Separator } from "@/components/ui/separator";
-import {
-  Calendar as CalendarIcon,
-  Phone,
-  User,
-  MapPin,
-  Edit,
-  Coins,
-  Gift,
-  HelpCircle,
-  NotepadText,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { Calendar as CalendarIcon, Phone, User, MapPin } from "lucide-react";
 import { Timestamp } from "firebase/firestore";
+import ProfileActions from "@/components/profile-actions";
 
 interface EditableUserProfile {
   name: string;
@@ -71,7 +60,6 @@ const toInitialState = (profile: UserProfile | null): EditableUserProfile => {
 
 export default function ProfilePage() {
   const { user, profile } = useAuth();
-  const router = useRouter();
 
   const [userData, setUserData] = useState<EditableUserProfile>(
     toInitialState(profile),
@@ -157,48 +145,7 @@ export default function ProfilePage() {
             <CardTitle className="text-xl">Settings</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="w-full grid gap-4 place-items-stretch">
-              <Button
-                variant="outline"
-                className="justify-start"
-                onClick={() => router.push("/profile/edit")}
-              >
-                <Edit className="w-8 h-8" />
-                Edit Your Profile
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start"
-                onClick={() => router.push("/profile/coin_history")}
-              >
-                <Coins className="w-8 h-8" />
-                Check Coins History
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start"
-                onClick={() => router.push("/profile/refer_and_earn")}
-              >
-                <Gift className="w-8 h-8" />
-                Refer and Earn
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start"
-                onClick={() => router.push("/profile/help_and_support")}
-              >
-                <HelpCircle />
-                Help and Support
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start"
-                onClick={() => router.push("/profile/faqs")}
-              >
-                <NotepadText />
-                FAQs
-              </Button>
-            </div>
+            <ProfileActions />
           </CardContent>
         </Card>
       </div>
