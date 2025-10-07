@@ -27,6 +27,8 @@ export async function POST(request: Request) {
       path: "/",
     });
 
+    console.log("Session cookie created successfully");
+
     return NextResponse.json({ status: "success" });
   } catch (error) {
     console.error("Error creating session cookie:", error);

@@ -9,10 +9,6 @@
     "lint": "next lint",
     "prepare": "husky"
   },
-  "engines": {
-    "node": "20.x",
-    "npm": "10.x"
-  },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
     "@radix-ui/react-accordion": "^1.2.12",
@@ -35,7 +31,7 @@
     "firebase-admin": "^13.5.0",
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.542.0",
-    "next": "^15.5.2",
+    "next": "^15.5.4",
     "next-themes": "^0.4.6",
     "razorpay": "^2.9.6",
     "react": "^19.1.1",

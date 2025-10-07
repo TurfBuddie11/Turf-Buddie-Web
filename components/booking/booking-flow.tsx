@@ -407,7 +407,8 @@ export function BookingFlow({
                   htmlFor="redeem"
                   className="text-sm font-medium leading-none text-slate-300 cursor-pointer"
                 >
-                  Redeem **{loyaltyPoints} points** for -₹{discount} Discount
+                  Redeem <b>{loyaltyPoints}</b> points for -₹
+                  {discount} Discount
                 </label>
               </div>
             </div>
@@ -426,20 +427,59 @@ export function BookingFlow({
       )}
       {/* 4. Fixed Booking Button Footer: Essential for Mobile UX */}
       {selectedSlots.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-slate-900/90 backdrop-blur-md border-t border-slate-700 p-4 md:static md:bg-transparent md:backdrop-blur-none md:border-none md:p-0 md:mt-6">
-          <Button
-            onClick={handleBooking}
-            className="w-full h-12 bg-green-500 hover:bg-green-600 text-black text-md font-extrabold shadow-xl"
-            disabled={isLoading || !user}
-          >
-            {isLoading ? "Processing..." : `Pay ₹${totalPrice} & Book Now`}
-          </Button>
-          {!user && (
-            <p className="text-center text-red-400 text-xs mt-2 md:hidden">
-              Please login to continue booking.
-            </p>
-          )}
-        </div>
+        <Card className="bg-slate-900/70 border-slate-800  bottom-6 border-1">
+          <CardHeader>
+            <CardTitle className="text-white">Booking Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 text-slate-300 text-sm mb-4">
+              <div className="flex justify-between items-start">
+                <span className="text-slate-400 pt-1">Selected Slots</span>
+                <div className="flex flex-wrap gap-1 justify-end max-w-[70%]">
+                  {selectedSlots.map((slot) => (
+                    <Badge
+                      key={slot.id}
+                      variant="secondary"
+                      className="bg-slate-700 text-slate-200"
+                    >
+                      {getSlotLabel(slot.startTime, slot.endTime)}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 mt-2">
+                <Checkbox
+                  id="redeem"
+                  onCheckedChange={() => setRedeemPoints(!redeemPoints)}
+                />
+                <label
+                  htmlFor="redeem"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Redeem {loyaltyPoints} points for a ₹{discount} discount
+                </label>
+              </div>
+              <div className="flex justify-between items-center border-t border-slate-700 pt-2 mt-2">
+                <span className="text-slate-400">Total Amount</span>
+                <span className="font-semibold text-white text-lg">
+                  ₹{totalPrice}
+                </span>
+              </div>
+            </div>
+            <Button
+              onClick={handleBooking}
+              className="w-full bg-green-500 hover:bg-green-600 text-black font-semibold"
+              disabled={isLoading || !user}
+            >
+              {isLoading ? "Processing..." : `Pay ₹${totalPrice} & Book Now`}
+            </Button>
+            {!user && (
+              <p className="text-center text-slate-400 text-xs mt-2">
+                Please login to continue
+              </p>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

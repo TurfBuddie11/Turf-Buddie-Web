@@ -165,7 +165,7 @@ const ReferAndEarnPage = () => {
                   {referralsHistory.map((referral, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between bg-gray-800 rounded-lg p-4"
+                      className="flex items-center justify-between bg-gray-900 rounded-lg p-4"
                     >
                       <p>Referred user: {referral.refereeName}</p>
                       <p className="text-green-500">Completed</p>

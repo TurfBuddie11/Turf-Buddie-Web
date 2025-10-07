@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const pointsToAdd = slots * 30;
+    const pointsToAdd = slots * 25;
     const loyaltyPointsRef = adminDb.collection("loyalty_points").doc(userId);
     const loyaltyHistoryRef = adminDb.collection("loyalty_history").doc();
 
