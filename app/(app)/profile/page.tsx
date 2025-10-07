@@ -9,19 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 import { Separator } from "@/components/ui/separator";
-import {
-  Calendar as CalendarIcon,
-  Phone,
-  User,
-  MapPin,
-  Edit,
-  Coins,
-  Gift,
-  HelpCircle,
-  NotepadText,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { Calendar as CalendarIcon, Phone, User, MapPin } from "lucide-react";
 import { Timestamp } from "firebase/firestore";
 import ProfileActions from "@/components/profile-actions";
 
@@ -72,7 +60,6 @@ const toInitialState = (profile: UserProfile | null): EditableUserProfile => {
 
 export default function ProfilePage() {
   const { user, profile } = useAuth();
-  const router = useRouter();
 
   const [userData, setUserData] = useState<EditableUserProfile>(
     toInitialState(profile),
