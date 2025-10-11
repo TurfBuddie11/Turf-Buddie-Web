@@ -141,7 +141,7 @@ export default function ExplorePage() {
   // Render a loading state on the server and on initial client render
   // if (!hasMounted) {
   //   return (
-  //     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white flex items-center justify-center">
+  //     <div className="min-h-screen   flex items-center justify-center">
   //       <div>Loading...</div>
   //     </div>
   //   );
@@ -149,14 +149,14 @@ export default function ExplorePage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 py-10 px-4">
+      <div className="min-h-screen  py-10 px-4">
         <div className="max-w-7xl mx-auto space-y-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: shouldReduceMotion ? 0 : 0.5 }}
           >
-            <h1 className="text-4xl font-bold tracking-tight mt-10">
+            <h1 className="text-4xl font-bold tracking-tight">
               Find your turf 🏟️
             </h1>
             <p className="text-muted-foreground mt-2">
@@ -172,7 +172,7 @@ export default function ExplorePage() {
             </div>
           ) : (
             <>
-              <Card className="glass-card bg-gradient-to-br from-gray-950 via-black to-gray-900">
+              <Card className="glass-card ">
                 <CardHeader>
                   <CardTitle>Filters</CardTitle>
                 </CardHeader>
@@ -270,7 +270,7 @@ export default function ExplorePage() {
                       duration: shouldReduceMotion ? 0 : 0.4,
                     }}
                   >
-                    <Card className="glass-card overflow-hidden bg-gradient-to-br from-gray-950 via-black to-gray-900">
+                    <Card className="glass-card overflow-hidden ">
                       <div className="relative h-44 w-full">
                         {t.imageurl && (
                           <Image

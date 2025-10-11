@@ -4,14 +4,11 @@ import { Shield, Lock, Eye, Database, UserCheck, Bell } from "lucide-react";
 const PrivacySection = () => {
   return (
     <section id="privacy" className="section-padding">
-      <div className="container max-w-7xl mx-auto px-4">
+      <div className="container max-w-7xl mx-auto px-4 mt-6">
         {/* Heading */}
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
-            Privacy{" "}
-            <span className="bg-gradient-hero bg-clip-text text-transparent">
-              Policy
-            </span>
+            Privacy <span className=" bg-clip-text">Policy</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Your privacy is our priority. We&apos;re committed to protecting
@@ -23,8 +20,8 @@ const PrivacySection = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           <Card className="glass-card p-6 hover:scale-105 transition-transform">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-gradient-hero rounded-lg flex items-center justify-center">
-                <Shield className="w-6 h-6 text-primary-foreground" />
+              <div className="w-12 h-12  rounded-lg flex items-center justify-center">
+                <Shield className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-semibold text-card-foreground">
                 Data Protection
@@ -38,8 +35,8 @@ const PrivacySection = () => {
 
           <Card className="glass-card p-6 hover:scale-105 transition-transform">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-gradient-hero rounded-lg flex items-center justify-center">
-                <Lock className="w-6 h-6 text-primary-foreground" />
+              <div className="w-12 h-12  rounded-lg flex items-center justify-center">
+                <Lock className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-semibold text-card-foreground">
                 Secure Storage
@@ -53,8 +50,8 @@ const PrivacySection = () => {
 
           <Card className="glass-card p-6 hover:scale-105 transition-transform">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-gradient-hero rounded-lg flex items-center justify-center">
-                <Eye className="w-6 h-6 text-primary-foreground" />
+              <div className="w-12 h-12  rounded-lg flex items-center justify-center">
+                <Eye className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-semibold text-card-foreground">
                 Transparency
@@ -68,8 +65,8 @@ const PrivacySection = () => {
 
           <Card className="glass-card p-6 hover:scale-105 transition-transform">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-gradient-hero rounded-lg flex items-center justify-center">
-                <Database className="w-6 h-6 text-primary-foreground" />
+              <div className="w-12 h-12  rounded-lg flex items-center justify-center">
+                <Database className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-semibold text-card-foreground">
                 Minimal Collection
@@ -83,8 +80,8 @@ const PrivacySection = () => {
 
           <Card className="glass-card p-6 hover:scale-105 transition-transform">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-gradient-hero rounded-lg flex items-center justify-center">
-                <UserCheck className="w-6 h-6 text-primary-foreground" />
+              <div className="w-12 h-12  rounded-lg flex items-center justify-center">
+                <UserCheck className="w-6 h-6 " />
               </div>
               <h3 className="text-lg font-semibold text-card-foreground">
                 User Control
@@ -98,8 +95,8 @@ const PrivacySection = () => {
 
           <Card className="glass-card p-6 hover:scale-105 transition-transform">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-gradient-hero rounded-lg flex items-center justify-center">
-                <Bell className="w-6 h-6 text-primary-foreground" />
+              <div className="w-12 h-12  rounded-lg flex items-center justify-center">
+                <Bell className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-semibold text-card-foreground">
                 Communication

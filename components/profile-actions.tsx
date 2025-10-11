@@ -12,7 +12,7 @@ export default function ProfileActions() {
   const router = useRouter();
 
   const baseItemClasses =
-    "cursor-pointer rounded-lg border p-4 shadow-sm hover:bg-accent transition";
+    "cursor-pointer rounded-lg border p-4 shadow-sm hover:bg-gray-300 dark:hover:bg-slate-800 transition";
 
   return (
     <div className="w-full grid gap-4">
@@ -53,7 +53,7 @@ export default function ProfileActions() {
         </ItemMedia>
         <ItemContent>
           <ItemTitle>Refer and Earn</ItemTitle>
-          <ItemDescription>Invite friends and earn rewards.</ItemDescription>
+          <ItemDescription>Invite friends and earn .</ItemDescription>
         </ItemContent>
       </Item>
 

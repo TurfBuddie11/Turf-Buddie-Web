@@ -26,7 +26,7 @@ export function DateSelector({
     const selectedDate_ = new Date(selectedDate);
     const today_ = new Date();
     const maxDate_ = addDays(today_, 30);
-    
+
     setSelected(selectedDate_);
     setToday(today_);
     setMaxDate(maxDate_);
@@ -37,27 +37,25 @@ export function DateSelector({
   if (!isClient || !selected || !today || !maxDate) {
     return (
       <div className="space-y-3">
-        <label htmlFor="date" className="text-sm text-white font-medium">
+        <label htmlFor="date" className="text-sm  font-medium">
           Select Date
         </label>
         <Button
           variant="outline"
-          className="w-full justify-start text-left font-normal text-white bg-slate-800/50 border-slate-700"
+          className="w-full justify-start text-left font-normal"
           disabled
         >
-          <CalendarIcon className="mr-2 h-4 w-4 text-white/80" />
-          <span className="text-white/50">Loading...</span>
+          <CalendarIcon className="mr-2 h-4 w-4 /80" />
+          <span className="/50">Loading...</span>
         </Button>
-        <p className="text-xs text-slate-400">
-          You can book up to 30 days in advance.
-        </p>
+        <p className="text-xs ">You can book up to 30 days in advance.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <label htmlFor="date" className="text-sm text-white font-medium">
+      <label htmlFor="date" className="text-sm  font-medium">
         Select Date
       </label>
 
@@ -65,28 +63,27 @@ export function DateSelector({
         <PopoverTrigger asChild>
           <Button
             variant="outline"
-            className="w-full justify-start text-left font-normal text-white bg-slate-800/50 border-slate-700 hover:bg-slate-700/50 hover:border-slate-600 transition-colors"
+            className="w-full justify-start text-left font-normal transition-colors"
           >
-            <CalendarIcon className="mr-2 h-4 w-4 text-white/80" />
+            <CalendarIcon className="mr-2 h-4 w-4 /80" />
             {selectedDate ? (
               format(selected, "EEEE, MMMM d, yyyy") // e.g. "Friday, August 9, 2025"
             ) : (
-              <span className="text-white/50">Pick a date</span>
+              <span className="/50">Pick a date</span>
             )}
           </Button>
         </PopoverTrigger>
 
-        <PopoverContent 
-          className="w-auto p-0 bg-slate-900 border-slate-700 shadow-xl" 
-          align="start"
-        >
+        <PopoverContent className="w-auto p-0  shadow-xl" align="start">
           <Calendar
             mode="single"
             selected={selected}
             onSelect={(date) => {
               if (date) {
                 // Convert to YYYY-MM-DD format
-                const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+                const localDate = new Date(
+                  date.getTime() - date.getTimezoneOffset() * 60000,
+                );
                 setSelectedDate(localDate.toISOString().slice(0, 10));
               }
             }}
@@ -96,36 +93,31 @@ export function DateSelector({
               today.setHours(0, 0, 0, 0);
               return date < today || date > maxDate;
             }}
-            className="text-white"
+            className=""
             classNames={{
-              months: "text-white",
-              month: "text-white", 
-              caption: "text-white",
-              caption_label: "text-white",
-              nav: "text-white",
-              nav_button: "text-white hover:bg-slate-700",
-              nav_button_previous: "text-white hover:bg-slate-700",
-              nav_button_next: "text-white hover:bg-slate-700",
-              table: "text-white",
-              head_row: "text-white/70",
-              head_cell: "text-white/70",
-              row: "text-white",
-              cell: "text-white hover:bg-slate-700 rounded-md",
-              day: "text-white hover:bg-slate-700 hover:text-white aria-selected:bg-green-600 aria-selected:text-white",
-              day_today: "bg-slate-700 text-white font-semibold",
-              day_selected: "bg-green-600 text-white hover:bg-green-700",
-              day_disabled: "text-white/30 cursor-not-allowed",
-              day_outside: "text-white/30",
-              day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+              months: "",
+              month: "",
+              caption: "",
+              caption_label: "",
+              table: "",
+              head_row: "/70",
+              head_cell: "/70",
+              row: "",
+              cell: "  rounded-md",
+              day: " hover: aria-selected:bg-green-600 aria-selected:",
+              day_today: "  font-semibold",
+              day_selected: "bg-green-600  hover:bg-green-700",
+              day_disabled: "/30 cursor-not-allowed",
+              day_outside: "/30",
+              day_range_middle:
+                "aria-selected:bg-accent aria-selected:text-accent-foreground",
             }}
             initialFocus
           />
         </PopoverContent>
       </Popover>
 
-      <p className="text-xs text-slate-400">
-        You can book up to 30 days in advance.
-      </p>
+      <p className="text-xs ">You can book up to 30 days in advance.</p>
     </div>
   );
 }

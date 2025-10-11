@@ -19,22 +19,19 @@ const HeroSection = () => {
         }}
       />
       {/* Overlay */}
-      <div className="absolute inset-0 bg-background/70" />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-[4px]" />
 
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 text-center">
         <div className="max-w-4xl mx-auto animate-fade-in">
           {/* Title */}
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 text-foreground">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 text-white">
             Book Your Perfect
-            <span className="bg-gradient-hero bg-clip-text text-transparent">
-              {" "}
-              Turf
-            </span>
+            <span className=" bg-clip-text text-green-700"> Turf</span>
           </h1>
 
           {/* Subtitle */}
-          <p className="text-xl md:text-2xl mb-8 text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xl md:text-2xl mb-8 text-white  max-w-2xl mx-auto">
             Experience seamless turf booking in Nagpur and Vidarbha. Join
             thousands of sports enthusiasts who trust TurfBuddie.
           </p>
@@ -42,7 +39,7 @@ const HeroSection = () => {
           {/* Location Badge */}
           <div className="inline-flex items-center gap-2 rounded-full px-6 py-3 mb-8 glass-card">
             <MapPin className="w-5 h-5 text-primary" />
-            <span className="text-card-foreground font-medium">
+            <span className="text-white font-medium">
               Available in Nagpur & Vidarbha
             </span>
           </div>
@@ -79,21 +76,21 @@ const HeroSection = () => {
                 <Users className="w-6 h-6 text-primary" />
               </div>
               <div className="text-3xl font-bold text-primary">50+</div>
-              <div className="text-muted-foreground">Happy Players</div>
+              <div className="text-white">Happy Players</div>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center mb-2 w-12 h-12 bg-primary/20 rounded-full mx-auto">
                 <MapIcon className="w-6 h-6 text-primary" />
               </div>
               <div className="text-3xl font-bold text-primary">10+</div>
-              <div className="text-muted-foreground">Premium Turfs</div>
+              <div className="text-white">Premium Turfs</div>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center mb-2 w-12 h-12 bg-primary/20 rounded-full mx-auto">
                 <Calendar className="w-6 h-6 text-primary" />
               </div>
               <div className="text-3xl font-bold text-primary">40+</div>
-              <div className="text-muted-foreground">Games Booked</div>
+              <div className="text-white">Games Booked</div>
             </div>
           </div>
         </div>

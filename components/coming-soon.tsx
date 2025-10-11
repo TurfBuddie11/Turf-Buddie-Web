@@ -28,7 +28,7 @@ export default function ComingSoonPage({
 }) {
   return (
     <>
-      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-black  to-gray-900 px-6 py-12">
+      <main className="min-h-screen flex items-center justify-center py-12">
         <motion.section
           initial={shouldReduceMotion ? false : "hidden"}
           animate="visible"

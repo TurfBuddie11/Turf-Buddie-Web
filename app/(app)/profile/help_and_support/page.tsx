@@ -7,7 +7,7 @@ import Link from "next/link";
 
 export default function HelpAndSupportPage() {
   return (
-    <div className="container mx-auto pt-10">
+    <div className="container mx-auto">
       <div className="max-w-7xl mx-auto py-10 px-4">
         <div className="flex items-center mb-4">
           <Link href="/profile" className="mr-4">

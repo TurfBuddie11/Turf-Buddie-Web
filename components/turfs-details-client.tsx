@@ -49,7 +49,7 @@ export default function TurfDetailsClient({
   const router = useRouter();
 
   return (
-    <div className="bg-gradient-to-br from-gray-950 via-black to-gray-900 min-h-screen overflow-hidden">
+    <div className=" min-h-screen overflow-hidden">
       <div className="max-w-7xl mx-auto mt-16">
         {/* 1. Hero Image Section */}
         <motion.div
@@ -64,24 +64,24 @@ export default function TurfDetailsClient({
             className="object-cover"
             sizes="100vw"
           />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/0" />
+          <div className="pointer-events-none absolute inset-0" />
 
           {/* Back Button */}
-          <button
+          <Button
             type="button"
             onClick={() => router.back()}
             aria-label="Go back"
-            className="absolute top-6 left-6 z-10 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-md text-white font-medium hover:bg-white/30 transition"
+            className="absolute top-6 left-6 z-10 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-md  font-medium hover:bg-white/30 transition"
           >
             <ArrowLeft size={20} aria-hidden="true" />
-          </button>
+          </Button>
 
           {/* Turf Name Overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-8">
-            <h1 className="text-2xl  font-extrabold text-white drop-shadow-lg">
+            <h1 className="text-2xl text-white font-extrabold  drop-shadow-lg">
               {turf.name}
             </h1>
-            <p className="text-lg text-white/80 font-medium">{turf.address}</p>
+            <p className="text-lg text-white  font-medium">{turf.address}</p>
           </div>
         </motion.div>
 
@@ -94,16 +94,11 @@ export default function TurfDetailsClient({
           <div className="grid grid-cols-1 gap-8">
             {/* Booking Column (Lg: 1/3 width) */}
             <div className="lg:col-span-1 space-y-6 lg:border-r lg:pr-8 border-gray-100 dark:border-gray-700">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Reserve Your Slot
-              </h2>
+              <h2 className="text-2xl font-bold ">Reserve Your Slot</h2>
 
               {/* Date Picker (Full width for better mobile experience) */}
               <div className="flex flex-col gap-2">
-                <Label
-                  htmlFor="date"
-                  className="font-semibold text-gray-700 dark:text-gray-300"
-                >
+                <Label htmlFor="date" className="font-semibold">
                   Select Date
                 </Label>
                 <Popover open={open} onOpenChange={setOpen}>
@@ -111,7 +106,7 @@ export default function TurfDetailsClient({
                     <Button
                       variant="outline"
                       id="date"
-                      className="w-full justify-between font-normal border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                      className="w-full justify-between font-normal border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark: hover:bg-gray-100 dark:hover:bg-gray-700"
                     >
                       {date ? date.toLocaleDateString() : "Select date"}
                       <ChevronDownIcon size={18} className="text-indigo-600" />

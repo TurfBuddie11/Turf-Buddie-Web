@@ -113,7 +113,7 @@ export default function EditProfile() {
     }
   };
   return (
-    <div className="container min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 pt-10">
+    <div className="container min-h-screen">
       <div className="max-w-7xl mx-auto py-10 px-4">
         <div className="flex items-center mb-4">
           <Link href="/profile" className="mr-4">
