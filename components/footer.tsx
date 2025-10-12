@@ -99,7 +99,7 @@ const Footer = () => {
           </div>
 
           {/* Services */}
-          <div className="space-y-4">
+          {/* <div className="space-y-4">
             <h3 className="text-lg font-semibold text-foreground">Services</h3>
             <div className="space-y-2">
               <div className="text-muted-foreground">Turf Booking</div>
@@ -110,7 +110,7 @@ const Footer = () => {
               <div className="text-muted-foreground">Coaching Services</div>
               <div className="text-muted-foreground">Corporate Events</div>
             </div>
-          </div>
+          </div> */}
 
           {/* Contact */}
           <div className="space-y-4">

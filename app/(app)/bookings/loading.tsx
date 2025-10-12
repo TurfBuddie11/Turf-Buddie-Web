@@ -5,10 +5,9 @@ export default function Loading() {
   return (
     <div className="min-h-screen flex flex-col gap-4 items-center justify-center ">
       {/* Spinner */}
-      <Spinner className="size-8 text-green-700 animate-spin" />
+      <Spinner className="size-8 text-green-600 animate-spin" />
 
       {/* Loading Text */}
-      <span className="text-xl font-bold">Loading Your Bookings...</span>
     </div>
   );
 }

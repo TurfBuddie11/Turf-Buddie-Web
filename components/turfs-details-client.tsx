@@ -50,7 +50,7 @@ export default function TurfDetailsClient({
 
   return (
     <div className=" min-h-screen overflow-hidden">
-      <div className="max-w-7xl mx-auto mt-16">
+      <div className="max-w-7xl mx-auto mt-8">
         {/* 1. Hero Image Section */}
         <motion.div
           {...HERO_ANIMATION}
@@ -64,7 +64,7 @@ export default function TurfDetailsClient({
             className="object-cover"
             sizes="100vw"
           />
-          <div className="pointer-events-none absolute inset-0" />
+          <div className="pointer-events-none absolute dark:bg-black/20 inset-0" />
 
           {/* Back Button */}
           <Button
@@ -89,11 +89,11 @@ export default function TurfDetailsClient({
         <motion.div
           {...BOOKING_CARD_ANIMATION}
           // Negative margin to pull the card up and over the image boundary
-          className=" mt-4 max-w-7xl  bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 p-6 sm:p-8 space-y-8"
+          className=" mt-4 max-w-7xl  bg-card-background rounded-2xl shadow-2xl  p-6 max-sm:p-1 sm:p-8 space-y-8"
         >
           <div className="grid grid-cols-1 gap-8">
             {/* Booking Column (Lg: 1/3 width) */}
-            <div className="lg:col-span-1 space-y-6 lg:border-r lg:pr-8 border-gray-100 dark:border-gray-700">
+            <div className="lg:col-span-1 space-y-6  lg:pr-8 border-gray-100 dark:border-gray-700">
               <h2 className="text-2xl font-bold ">Reserve Your Slot</h2>
 
               {/* Date Picker (Full width for better mobile experience) */}

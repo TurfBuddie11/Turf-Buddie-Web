@@ -64,7 +64,7 @@ export default async function TurfDetailsPage({
     .slice(0, 10);
 
   return (
-    <div className="min-h-screen  overflow-x-hidden   pt-8 px-4">
+    <div className="min-h-screen  overflow-x-hidden px-4">
       <TurfDetailsClient turf={turf} localDate={localDate} />
     </div>
   );

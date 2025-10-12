@@ -20,8 +20,8 @@ export default function ProfileActions() {
         onClick={() => router.push("/profile/edit")}
         className={baseItemClasses}
       >
-        <ItemMedia variant="icon">
-          <Edit className="h-6 w-6" />
+        <ItemMedia variant="icon" className="bg-background">
+          <Edit className="h-6 w-6  text-green-600" />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>Edit Your Profile</ItemTitle>
@@ -35,8 +35,8 @@ export default function ProfileActions() {
         onClick={() => router.push("/profile/coin_history")}
         className={baseItemClasses}
       >
-        <ItemMedia variant="icon">
-          <Coins className="h-6 w-6" />
+        <ItemMedia variant="icon" className="bg-background">
+          <Coins className="h-6 w-6 text-green-600" />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>Check Coins History</ItemTitle>
@@ -48,8 +48,8 @@ export default function ProfileActions() {
         onClick={() => router.push("/profile/refer_and_earn")}
         className={baseItemClasses}
       >
-        <ItemMedia variant="icon">
-          <Gift className="h-6 w-6" />
+        <ItemMedia variant="icon" className="bg-background">
+          <Gift className="h-6 w-6 text-green-600" />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>Refer and Earn</ItemTitle>
@@ -61,8 +61,8 @@ export default function ProfileActions() {
         onClick={() => router.push("/profile/help_and_support")}
         className={baseItemClasses}
       >
-        <ItemMedia variant="icon">
-          <HelpCircle className="h-6 w-6" />
+        <ItemMedia variant="icon" className="bg-background">
+          <HelpCircle className="h-6 w-6 text-green-600" />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>Help and Support</ItemTitle>
@@ -74,8 +74,8 @@ export default function ProfileActions() {
         onClick={() => router.push("/profile/faqs")}
         className={baseItemClasses}
       >
-        <ItemMedia variant="icon">
-          <NotepadText className="h-6 w-6" />
+        <ItemMedia variant="icon" className="bg-background">
+          <NotepadText className="h-6 w-6 text-green-600" />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>FAQs</ItemTitle>

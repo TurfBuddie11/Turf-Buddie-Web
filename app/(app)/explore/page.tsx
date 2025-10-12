@@ -149,7 +149,7 @@ export default function ExplorePage() {
 
   return (
     <>
-      <div className="min-h-screen  py-10 px-4">
+      <div className="min-h-screen  py-8 px-4">
         <div className="max-w-7xl mx-auto space-y-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}

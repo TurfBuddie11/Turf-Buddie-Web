@@ -59,7 +59,7 @@ export default function AppHeader() {
               className="rounded-full"
             />
           </div>
-          <span className="text-xl font-extrabold tracking-tight text-green-700">
+          <span className="text-xl font-extrabold tracking-tight text-green-600">
             TurfBuddie
           </span>
         </Link>
@@ -118,7 +118,7 @@ export default function AppHeader() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleLogout}
-                    className="text-red-500 focus:text-red-500"
+                    className="text-green-500 hover:text-green-400 cursor-pointer"
                   >
                     Logout
                   </DropdownMenuItem>
@@ -188,11 +188,7 @@ export default function AppHeader() {
                   >
                     View Profile ({profile.name})
                   </Link>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleLogout}
-                  >
+                  <Button variant="secondary" size="sm" onClick={handleLogout}>
                     Logout
                   </Button>
                 </>

@@ -106,7 +106,7 @@ export function DateSelector({
               cell: "  rounded-md",
               day: " hover: aria-selected:bg-green-600 aria-selected:",
               day_today: "  font-semibold",
-              day_selected: "bg-green-600  hover:bg-green-700",
+              day_selected: "bg-green-600  hover:bg-green-600",
               day_disabled: "/30 cursor-not-allowed",
               day_outside: "/30",
               day_range_middle:

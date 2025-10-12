@@ -31,6 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui/spinner";
 
 // --- MASTER LIST OF ALL POSSIBLE TIME SLOTS ---
 const ALL_POSSIBLE_SLOTS: Omit<TimeSlot, "price" | "isAvailable">[] =
@@ -338,7 +339,7 @@ export function BookingFlow({
                 </span>
               </div>
             </div>
-            <Badge className="bg-gradient-to-r from-green-400 to-lime-500 font-extrabold text-md px-4 py-2 shrink-0 self-start sm:self-auto">
+            <Badge className="bg-green-600 font-extrabold text-md px-4 py-2 shrink-0 self-start sm:self-auto">
               ₹{turf.price}/hr
             </Badge>
           </div>
@@ -346,10 +347,10 @@ export function BookingFlow({
       </Card>
 
       {/* Time Slot Selector */}
-      <Card className="border-slate-700 shadow-xl">
+      <Card className="shadow-xl">
         <CardHeader>
-          <CardTitle className="flex items-center text-lg sm:text-xl">
-            <Calendar className="w-5 h-5 mr-2 text-green-400" /> Select Time
+          <CardTitle className="flex items-center text-md sm:text-lg">
+            <Calendar className="w-5 h-5 mr-2 text-green-600" /> Select Time
             Slot(s)
           </CardTitle>
           <p className="text-sm pt-1">{displayDate}</p>
@@ -357,7 +358,7 @@ export function BookingFlow({
         <CardContent>
           {isFetchingSlots ? (
             <div className="flex items-center justify-center h-48">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-4 border-green-400" />
+              <Spinner className="animate-spin rounded-full h-8 w-8 text-green-600" />
             </div>
           ) : (
             <>
@@ -379,13 +380,13 @@ export function BookingFlow({
                         isBooked ? "text-black" : "",
                         isSelected &&
                           !isBooked &&
-                          "bg-green-500/20 border-green-400 ring-2 ring-green-400 hover:bg-green-500/30",
+                          "bg-green-500/20 border-green-600 ring-2 ring-green-600 hover:bg-green-500/30",
                       )}
                     >
                       <p className="font-semibold text-sm sm:text-base">
                         {label}
                       </p>
-                      <p className="text-xs text-green-400">
+                      <p className="text-xs text-green-600">
                         {isBooked ? "BOOKED" : `₹${turf.price}`}
                       </p>
                     </button>
@@ -394,7 +395,7 @@ export function BookingFlow({
               </div>
               <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm border-t border-slate-700 pt-4">
                 <span className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <CheckCircle className="w-4 h-4 text-green-600" />
                   <span className="font-bold">{availableSlotsCount}</span>{" "}
                   Available
                 </span>
@@ -416,14 +417,14 @@ export function BookingFlow({
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t md:static md:bg-transparent md:border-t-0 md:p-0">
           <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
             <DialogTrigger asChild>
-              <Button className="w-full bg-green-500 hover:bg-green-600 font-semibold text-lg py-6 md:py-3">
+              <Button className="w-full bg-green-600 hover:bg-green-600 font-semibold text-lg py-6 md:py-3">
                 Proceed to Checkout - ₹{totalPrice}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto  hide-scrollbar">
               <DialogHeader>
                 <DialogTitle className="flex items-center text-xl">
-                  <Zap className="w-5 h-5 mr-2 text-green-400" />
+                  <Zap className="w-5 h-5 mr-2 text-green-600" />
                   Checkout
                 </DialogTitle>
                 <DialogDescription>
@@ -490,18 +491,25 @@ export function BookingFlow({
                         </Label>
                       </div>
 
+                      <Separator />
                       {redeemPoints && (
-                        <div className="flex justify-between text-green-400">
+                        <div className="flex justify-between text-sm font-bold">
                           <span>Loyalty Points Discount</span>
                           <span>-₹{discount}</span>
                         </div>
                       )}
-
-                      <Separator />
+                      <div className="flex justify-between text-sm font-bold">
+                        <span>GST (0%)</span>
+                        <span>₹ 0</span>
+                      </div>
+                      <div className="flex justify-between text-sm font-bold">
+                        <span>Platform Fee</span>
+                        <span>₹{basePrice * 0.015}</span>
+                      </div>
 
                       <div className="flex justify-between text-lg font-bold">
                         <span>Total Amount</span>
-                        <span className="text-green-400">₹{totalPrice}</span>
+                        <span className="text-green-600">₹{totalPrice}</span>
                       </div>
                     </div>
                   </CardContent>

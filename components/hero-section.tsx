@@ -27,7 +27,7 @@ const HeroSection = () => {
           {/* Title */}
           <h1 className="text-5xl md:text-7xl font-bold mb-6 text-white">
             Book Your Perfect
-            <span className=" bg-clip-text text-green-700"> Turf</span>
+            <span className=" bg-clip-text text-green-600"> Turf</span>
           </h1>
 
           {/* Subtitle */}
