@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { ChevronLeft, Copy } from "lucide-react";
 import { useAuth } from "@/context/auth-provider";
 import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
 
 const ReferAndEarnPage = () => {
   const [referralCode, setReferralCode] = useState("");
@@ -101,8 +102,8 @@ const ReferAndEarnPage = () => {
   };
 
   return (
-    <div className="container mx-auto pt-10">
-      <div className="max-w-7xl mx-auto px-4 py-10">
+    <div className="container mx-auto">
+      <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center mb-4">
           <Link href="/profile" className="mr-4">
             <ChevronLeft className="h-6 w-6" />
@@ -111,7 +112,12 @@ const ReferAndEarnPage = () => {
         </div>
 
         {loading ? (
-          <p>Loading...</p>
+          <div className="h-lvh flex flex-col gap-4 items-center justify-center ">
+            {/* Spinner */}
+            <Spinner className="size-8 text-green-600 animate-spin" />
+
+            {/* Loading Text */}
+          </div>
         ) : (
           <>
             <div className="rounded-lg p-4 mb-8">
@@ -165,7 +171,7 @@ const ReferAndEarnPage = () => {
                   {referralsHistory.map((referral, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between bg-gray-900 rounded-lg p-4"
+                      className="flex items-center justify-between rounded-lg p-4 bg-muted-background text-muted-foreground"
                     >
                       <p>Referred user: {referral.refereeName}</p>
                       <p className="text-green-500">Completed</p>

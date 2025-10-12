@@ -11,7 +11,7 @@ const razorpay = new Razorpay({
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies(); // No need to await
+    const cookieStore = await cookies();
     const sessionCookie = cookieStore.get("session")?.value;
 
     if (!sessionCookie) {

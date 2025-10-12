@@ -11,10 +11,7 @@ const AboutSection = () => {
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
               About
-              <span className="bg-gradient-hero bg-clip-text text-transparent">
-                {" "}
-                TurfBuddie
-              </span>
+              <span className=" bg-clip-text"> TurfBuddie</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
               We&apos;re passionate about bringing the sports community together
@@ -28,7 +25,7 @@ const AboutSection = () => {
             <div className="space-y-8">
               <div className="glass-card p-8 rounded-2xl">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 bg-gradient-hero rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12  rounded-lg flex items-center justify-center">
                     <Target className="w-6 h-6 text-primary-foreground" />
                   </div>
                   <h3 className="text-2xl font-bold text-foreground">
@@ -45,7 +42,7 @@ const AboutSection = () => {
 
               <div className="glass-card p-8 rounded-2xl">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 bg-gradient-hero rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12  rounded-lg flex items-center justify-center">
                     <Heart className="w-6 h-6 text-primary-foreground" />
                   </div>
                   <h3 className="text-2xl font-bold text-foreground">
@@ -63,7 +60,7 @@ const AboutSection = () => {
             {/* Values */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <Card className="glass-card p-6 text-center hover:scale-105 transition-transform">
-                <div className="w-16 h-16 bg-gradient-hero rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16  rounded-full flex items-center justify-center mx-auto mb-4">
                   <Zap className="w-8 h-8 text-primary-foreground" />
                 </div>
                 <h4 className="text-lg font-semibold mb-2 text-card-foreground">
@@ -75,7 +72,7 @@ const AboutSection = () => {
               </Card>
 
               <Card className="glass-card p-6 text-center hover:scale-105 transition-transform">
-                <div className="w-16 h-16 bg-gradient-hero rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16  rounded-full flex items-center justify-center mx-auto mb-4">
                   <Shield className="w-8 h-8 text-primary-foreground" />
                 </div>
                 <h4 className="text-lg font-semibold mb-2 text-card-foreground">
@@ -87,7 +84,7 @@ const AboutSection = () => {
               </Card>
 
               <Card className="glass-card p-6 text-center hover:scale-105 transition-transform">
-                <div className="w-16 h-16 bg-gradient-hero rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16  rounded-full flex items-center justify-center mx-auto mb-4">
                   <Users className="w-8 h-8 text-primary-foreground" />
                 </div>
                 <h4 className="text-lg font-semibold mb-2 text-card-foreground">
@@ -99,7 +96,7 @@ const AboutSection = () => {
               </Card>
 
               <Card className="glass-card p-6 text-center hover:scale-105 transition-transform">
-                <div className="w-16 h-16 bg-gradient-hero rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16  rounded-full flex items-center justify-center mx-auto mb-4">
                   <Award className="w-8 h-8 text-primary-foreground" />
                 </div>
                 <h4 className="text-lg font-semibold mb-2 text-card-foreground">

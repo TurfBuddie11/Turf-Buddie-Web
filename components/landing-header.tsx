@@ -50,10 +50,8 @@ export default function LandingPageHeader() {
     <header
       className={`fixed top-0 w-full z-50 transition-colors duration-300 ${
         isScrolled
-          ? "bg-slate-900/95 backdrop-blur-sm border-b border-slate-800"
-          : isMobileMenuOpen
-          ? "bg-gradient-to-r from-gray-900 via-black to-gray-900"
-          : "bg-transparent"
+          ? " backdrop-blur-sm border-b border-slate-800"
+          : isMobileMenuOpen && "bg-transparent"
       }`}
     >
       <div className="container max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -63,11 +61,12 @@ export default function LandingPageHeader() {
             {/* <div className="w-8 h-8 bg-gradient-hero rounded-lg flex items-center justify-center shadow-sm"> */}
             {/* <span className="text-primary-foreground font-bold text-lg">T</span> */}
             <Image
-              src="/logo.png"
+              src="/logo.svg"
               alt="TurfBuddie"
               title="TurfBiddie"
               width={56}
               height={56}
+              className="rounded-full"
             />
           </div>
           <span className="text-xl font-bold text-foreground">TurfBuddie</span>
@@ -79,27 +78,23 @@ export default function LandingPageHeader() {
             <Link
               key={link.name}
               href={link.href}
-              className="text-slate-300 hover:text-white transition-colors"
+              className=" transition-colors"
             >
               {link.name}
             </Link>
           ))}
 
-          <span className="mx-1 h-6 w-px bg-slate-800" />
+          <span className="mx-1 h-6 w-px" />
 
           {/* Auth Section */}
           {!user ? (
             <>
-              <Button
-                asChild
-                variant="ghost"
-                className="text-slate-300 hover:text-white hover:bg-slate-800/50"
-              >
+              <Button asChild variant="ghost">
                 <Link href="/login">Log in</Link>
               </Button>
               <Button
                 asChild
-                className="glow-button text-primary-foreground font-semibold shadow-md"
+                className=" text-primary-foreground font-semibold shadow-md"
               >
                 <Link href="/signup">Sign up</Link>
               </Button>
@@ -110,25 +105,19 @@ export default function LandingPageHeader() {
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-3 pl-4 border-l border-slate-800 focus:outline-none">
                     <Avatar>
-                      <AvatarFallback className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-black font-bold text-sm">
+                      <AvatarFallback className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center font-bold text-sm">
                         {(profile.name ?? "").charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm text-white font-medium">
-                      {profile.name}
-                    </span>
+                    <span className="text-sm  font-medium">{profile.name}</span>
                   </button>
                 </DropdownMenuTrigger>
 
-                <DropdownMenuContent className="bg-slate-900 border-slate-800 fixed">
-                  <DropdownMenuLabel className="text-slate-300">
-                    My Account
-                  </DropdownMenuLabel>
+                <DropdownMenuContent className="fixed">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/profile" className="text-slate-300">
-                      View Profile
-                    </Link>
+                    <Link href="/profile">View Profile</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="text-red-400 hover:text-red-300 cursor-pointer"
@@ -161,7 +150,7 @@ export default function LandingPageHeader() {
 
         {/* Mobile Menu Button */}
         <button
-          className="md:hidden text-slate-300 hover:text-white transition-colors"
+          className="md:hidden  hover: transition-colors"
           onClick={() => setIsMobileMenuOpen((s) => !s)}
           aria-expanded={isMobileMenuOpen}
           aria-controls="mobile-nav"
@@ -181,28 +170,27 @@ export default function LandingPageHeader() {
             <Link
               key={link.name}
               href={link.href}
-              className="text-slate-300 hover:text-white transition-colors"
+              className=" hover: transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               {link.name}
             </Link>
           ))}
 
-          <span className="h-px bg-slate-800" />
+          <span className="h-px " />
 
           {!user ? (
             <>
               <Button
                 asChild
                 variant="ghost"
-                className="text-slate-300 hover:text-white hover:bg-slate-800/50"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <Link href="/login">Log in</Link>
               </Button>
               <Button
                 asChild
-                className="glow-button text-primary-foreground font-semibold shadow-md"
+                className=" text-primary-foreground font-semibold shadow-md"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <Link href="/signup">Sign up</Link>
@@ -213,7 +201,6 @@ export default function LandingPageHeader() {
               <>
                 <Link
                   href="/profile"
-                  className="text-slate-300 hover:text-white"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {profile.name}

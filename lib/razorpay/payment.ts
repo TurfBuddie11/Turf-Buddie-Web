@@ -1,4 +1,5 @@
 import { Booking } from "../types/booking";
+import { platform } from "os";
 
 // Interfaces for a SUCCESSFUL payment
 export interface PaymentSuccessPayload {
@@ -28,7 +29,7 @@ interface RazorpayInstance {
   open(): void;
   on(
     event: "payment.failed",
-    callback: (response: RazorpayErrorResponse) => void
+    callback: (response: RazorpayErrorResponse) => void,
   ): void;
 }
 interface RazorpayOptions {
@@ -49,8 +50,6 @@ declare global {
   }
 }
 
-// --- FIX: This interface is simplified ---
-// 'bookingDetails' is no longer needed here as the server handles it.
 export interface PaymentOptions {
   amount: string;
   currency: string;
@@ -63,7 +62,7 @@ export interface PaymentOptions {
 }
 
 export const initiatePayment = (
-  options: PaymentOptions
+  options: PaymentOptions,
 ): Promise<PaymentSuccessPayload> => {
   return new Promise((resolve, reject) => {
     // ... (the inside of this function remains the same) ...
@@ -116,7 +115,7 @@ export const initiatePayment = (
 export const verifyPayment = async (
   paymentId: string,
   orderId: string,
-  signature: string
+  signature: string,
 ): Promise<{ verified: boolean; booking?: Booking }> => {
   const response = await fetch("/api/payment/verify", {
     method: "POST",

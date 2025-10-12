@@ -54,10 +54,7 @@ const TournamentsSection = () => {
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
             Exciting
-            <span className="bg-gradient-hero bg-clip-text text-transparent">
-              {" "}
-              Tournaments
-            </span>
+            <span className=" bg-clip-text"> Tournaments</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Join competitive tournaments in Nagpur and Vidarbha. Showcase your

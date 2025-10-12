@@ -5,7 +5,13 @@ import { format, parse } from "date-fns";
 import { useAuth } from "@/context/auth-provider";
 import { UserProfile } from "@/lib/types/user";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 import { Separator } from "@/components/ui/separator";
@@ -90,13 +96,13 @@ export default function ProfilePage() {
   }, [profile, user]);
 
   return (
-    <div className="container min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 py-10 px-4 p-6 pt-24">
+    <div className="container min-h-screen py-10 px-4 p-6">
       <div className="max-w-7xl mx-auto grid gap-6 lg:grid-cols-[320px_1fr]">
         {/* LEFT SIDEBAR PROFILE CARD */}
-        <Card className="p-6 h-auto">
+        <Card className="p-4 h-auto">
           <div className="flex flex-col items-center text-center">
             <Avatar className="h-24 w-24 mb-4 ">
-              <AvatarFallback className="text-4xl text-black font-bold bg-primary">
+              <AvatarFallback className="text-4xl font-bold bg-primary text-background">
                 {userData?.name?.charAt(0).toUpperCase() || "U"}
               </AvatarFallback>
             </Avatar>
@@ -128,19 +134,28 @@ export default function ProfilePage() {
               </span>
             </div>
           </div>
-          <Card className="mt-4">
+          <Card>
             <CardHeader>
-              <CardTitle>Loyalty Points Collected</CardTitle>
+              <CardTitle>Loyalty Points</CardTitle>
+              <CardDescription>
+                View your points balance, history, and redeem rewards.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-center">
-                {loyaltyPoints}
+            <CardContent className="space-y-8">
+              {/* Current Points Display */}
+              <div className="rounded-lg bg-secondary/50 p-6 text-center">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Current Balance
+                </p>
+                <p className="text-4xl font-bold tracking-tight">
+                  {loyaltyPoints} PTS
+                </p>
               </div>
             </CardContent>
           </Card>
         </Card>
 
-        <Card className="px-4 h-auto py-8">
+        <Card className="px-4 h-auto py-8 max-sm:px-1">
           <CardHeader>
             <CardTitle className="text-xl">Settings</CardTitle>
           </CardHeader>

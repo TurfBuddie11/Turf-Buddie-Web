@@ -294,7 +294,7 @@ export default function SignUpForm() {
 
   if (authLoading && isCompletionFlow) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900">
+      <div className="min-h-screen flex items-center justify-center ">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
         <p className="ml-4 text-muted-foreground">Verifying your session...</p>
       </div>
@@ -302,7 +302,7 @@ export default function SignUpForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900 px-4 py-24">
+    <div className="min-h-screen flex items-center justify-center  px-4 py-24">
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-12">
         <motion.div
           initial={{ opacity: 0, x: -40 }}

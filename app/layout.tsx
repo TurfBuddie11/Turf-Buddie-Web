@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import Script from "next/script";
 import Head from "next/head";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -18,8 +19,8 @@ export const metadata: Metadata = {
   icons: [
     {
       rel: "icon",
-      url: "/favicon.svg",
-      type: "image/svg+xml",
+      url: "/favicon.ico",
+      type: "image/x-icon",
     },
     {
       rel: "apple-touch-icon",
@@ -64,8 +65,10 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Turfbuddie" />
       </Head>
       <body className={`${inter.className} antialiased`}>
-        <Toaster position="top-center" richColors />
-        <AuthProvider>{children}</AuthProvider>
+        <ThemeProvider defaultTheme="dark" storageKey="turf-theme">
+          <Toaster position="top-center" richColors />
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeProvider>
         <Script
           src="https://checkout.razorpay.com/v1/checkout.js"
           strategy="lazyOnload"

@@ -5,15 +5,12 @@ import Image from "next/image";
 
 const DownloadSection = () => {
   return (
-    <section id="download" className="section-padding bg-muted/20">
-      <div className="container max-w-7xl mx-auto px-4">
+    <section id="download" className="section-padding bg-muted/10">
+      <div className="container max-w-7xl mx-auto px-4 py-10 mt-10">
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
-            Get the TurfBuddie{" "}
-            <span className="bg-gradient-hero bg-clip-text text-transparent">
-              App
-            </span>
+            Get the TurfBuddie <span className=" bg-clip-text">App</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Download our mobile app for the ultimate turf booking experience.
@@ -27,24 +24,22 @@ const DownloadSection = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[
                 {
-                  icon: <Zap className="w-6 h-6 text-primary-foreground" />,
+                  icon: <Zap className="w-6 h-6" />,
                   title: "Instant Booking",
                   desc: "Book your favorite turf in seconds with real-time availability",
                 },
                 {
-                  icon: <Shield className="w-6 h-6 text-primary-foreground" />,
+                  icon: <Shield className="w-6 h-6" />,
                   title: "Secure Payments",
                   desc: "Safe and encrypted payment options for worry-free transactions",
                 },
                 {
-                  icon: <Star className="w-6 h-6 text-primary-foreground" />,
+                  icon: <Star className="w-6 h-6" />,
                   title: "Rate & Review",
                   desc: "Share your experience and help the community choose better",
                 },
                 {
-                  icon: (
-                    <Smartphone className="w-6 h-6 text-primary-foreground" />
-                  ),
+                  icon: <Smartphone className="w-6 h-6" />,
                   title: "Live Updates",
                   desc: "Get real-time notifications about your bookings and tournaments",
                 },
@@ -54,7 +49,7 @@ const DownloadSection = () => {
                   className="glass-card p-6 hover:scale-105 transition-transform"
                 >
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 bg-gradient-hero rounded-lg flex items-center justify-center">
+                    <div className="w-12 h-12  rounded-lg flex items-center justify-center">
                       {icon}
                     </div>
                     <h3 className="text-lg font-semibold text-card-foreground">

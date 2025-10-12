@@ -36,9 +36,8 @@ const TurfListSection = () => {
       setLoading(true);
       try {
         const turfCollection = collection(db, "Turfs");
-        const snapshot: QuerySnapshot<DocumentData> = await getDocs(
-          turfCollection
-        );
+        const snapshot: QuerySnapshot<DocumentData> =
+          await getDocs(turfCollection);
 
         const turfList: Turf[] = snapshot.docs.map((doc) => {
           const data = doc.data();
@@ -80,16 +79,13 @@ const TurfListSection = () => {
   }
 
   return (
-    <section id="turfs" className="section-padding">
+    <section id="turfs" className="section-padding mt-8 mb-4">
       <div className="container max-w-7xl mx-auto px-4">
         {/* Heading */}
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
             Explore
-            <span className="bg-gradient-hero bg-clip-text text-transparent">
-              {" "}
-              Turfs
-            </span>
+            <span className="bg-clip-text"> Turfs</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Book your preferred turfs in your city. Check availability, timings,
@@ -100,10 +96,7 @@ const TurfListSection = () => {
         {/* Turf Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
           {turfs.slice(0, 3).map((turf) => (
-            <Card
-              key={turf.id}
-              className="glass-card overflow-hidden bg-gradient-to-br from-gray-950 via-black to-gray-900"
-            >
+            <Card key={turf.id} className="glass-card overflow-hidden ">
               <div className="relative h-44 w-full">
                 {turf.imageurl && (
                   <Image

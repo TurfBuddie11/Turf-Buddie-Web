@@ -63,7 +63,7 @@ export default function BookingPage() {
     }).format(v);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 py-10 px-4">
+    <div className="min-h-screen px-4">
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -78,8 +78,8 @@ export default function BookingPage() {
       {bookings.length === 0 && (
         <div className=" container flex min-h-screen flex-col items-center justify-center text-center px-4">
           <div className="text-5xl mb-4">📭</div>
-          <h2 className="text-2xl font-bold text-gray-300">No Bookings Yet</h2>
-          <p className="text-gray-400 mt-2 max-w-md">
+          <h2 className="text-2xl font-bold ">No Bookings Yet</h2>
+          <p className=" mt-2 max-w-md">
             Looks like you haven’t booked a turf yet. Explore available slots
             and make your first booking to get started!
           </p>
@@ -99,10 +99,7 @@ export default function BookingPage() {
                   duration: shouldReduceMotion ? 0 : 0.4,
                 }}
               >
-                <Card
-                  key={t.id}
-                  className="glass-card overflow-hidden bg-gradient-to-br from-gray-950 via-black to-gray-900"
-                >
+                <Card key={t.id} className="glass-card overflow-hidden ">
                   <div key={t.id} className="relative h-44 w-full">
                     {t.imageurl && (
                       <Image
