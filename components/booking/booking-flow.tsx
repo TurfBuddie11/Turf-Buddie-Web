@@ -140,8 +140,8 @@ export function BookingFlow({
   }, [redeemPoints, loyaltyPoints]);
 
   const totalPrice = useMemo(
-    () => Math.max(0, Math.round(basePrice * 1.015) - discount),
-    [basePrice, discount],
+    () => Math.max(0, Math.round(basePrice) - discount - turf.price * 0.015),
+    [basePrice, discount, turf.price],
   );
 
   // Fetch Booked Slots
@@ -418,7 +418,7 @@ export function BookingFlow({
           <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
             <DialogTrigger asChild>
               <Button className="w-full bg-green-600 hover:bg-green-600 font-semibold text-lg py-6 md:py-3">
-                Proceed to Checkout - ₹{totalPrice}
+                Proceed to Checkout - ₹{turf.price * selectedSlots.length}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto  hide-scrollbar">
@@ -504,7 +504,7 @@ export function BookingFlow({
                       </div>
                       <div className="flex justify-between text-sm font-bold">
                         <span>Platform Fee</span>
-                        <span>₹{basePrice * 0.015}</span>
+                        <span>₹{turf.price * 0.015}</span>
                       </div>
 
                       <div className="flex justify-between text-lg font-bold">

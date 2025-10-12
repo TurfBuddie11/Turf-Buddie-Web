@@ -1,5 +1,4 @@
 import { Booking } from "../types/booking";
-import { platform } from "os";
 
 // Interfaces for a SUCCESSFUL payment
 export interface PaymentSuccessPayload {
