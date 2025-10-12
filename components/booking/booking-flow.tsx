@@ -140,7 +140,7 @@ export function BookingFlow({
   }, [redeemPoints, loyaltyPoints]);
 
   const totalPrice = useMemo(
-    () => Math.max(0, basePrice - discount),
+    () => Math.max(0, Math.round(basePrice * 1.015) - discount),
     [basePrice, discount],
   );
 
@@ -578,7 +578,7 @@ export function BookingFlow({
                 >
                   {isLoading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      <Spinner className="animate-spin h-4 w-4 mr-2" />
                       Processing Payment...
                     </>
                   ) : (
