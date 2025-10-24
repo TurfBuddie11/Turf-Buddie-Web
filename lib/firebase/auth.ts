@@ -1,3 +1,4 @@
+import { OwnerProfile } from "../types/owner";
 import {
   createUserWithEmailAndPassword,
   fetchSignInMethodsForEmail,
@@ -65,14 +66,48 @@ const createUserProfile = async (
       emailVerified: user.emailVerified,
       referralCode, // Add the generated referral code
     };
-
     await setDoc(userRef, newUserProfile);
+
     await createLoyaltyAccount(user.uid);
 
     return newUserProfile;
   }
 
   return profileSnap.data() as UserProfile;
+};
+const createOwnerProfile = async (
+  user: User,
+  profileData: Partial<OwnerProfile>,
+): Promise<OwnerProfile> => {
+  const ownerRef = doc(db, "owners", user.uid);
+  const profileSnap = await getDoc(ownerRef);
+
+  if (!profileSnap.exists()) {
+    const email = user.email ?? profileData.email;
+    if (!email) {
+      throw new Error("Email is required to create a user profile.");
+    }
+
+    const name = user.displayName ?? profileData.name;
+    if (!name) {
+      throw new Error("Name is required to create a user profile.");
+    }
+
+    // This object is now type-safe because the UserProfile interface allows optional fields.
+    const newOwnerProfile: OwnerProfile = {
+      ...profileData,
+      uid: user.uid,
+      email,
+      name,
+      createdAt: Timestamp.now(),
+      emailVerified: user.emailVerified,
+    };
+    await setDoc(ownerRef, newOwnerProfile);
+
+    return newOwnerProfile;
+  }
+
+  return profileSnap.data() as OwnerProfile;
 };
 
 /**
@@ -157,7 +192,14 @@ export const registerWithEmail = async (
     );
     await sendEmailVerification(user);
 
-    const userProfile = await createUserProfile(user, profile);
+    let userProfile;
+
+    if (profile.role === "user") {
+      userProfile = await createUserProfile(user, profile);
+    }
+    if (profile.role === "owner") {
+      userProfile = await createOwnerProfile(user, profile);
+    }
     return { user, profile: userProfile };
   } catch (error) {
     if (error instanceof FirebaseError) {
@@ -217,6 +259,46 @@ export const login = async (
     throw new Error("An unexpected error occurred during login.");
   }
 };
+export const loginOwner = async (
+  email: string,
+  password: string,
+): Promise<UserCredential> => {
+  try {
+    const userCredentials = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password,
+    );
+    const user = userCredentials.user;
+    const ownerRef = doc(db, "owners", user.uid);
+    const userSnap = await getDoc(ownerRef);
+
+    if (!userSnap.exists()) {
+      // This case is unlikely if auth succeeded, but it's good for data integrity.
+      await createOwnerProfile(user, {});
+    } else if (user.emailVerified && !userSnap.data()?.emailVerified) {
+      await updateDoc(ownerRef, { emailVerified: true });
+    }
+
+    return userCredentials;
+  } catch (error) {
+    if (error instanceof FirebaseError) {
+      switch (error.code) {
+        case "auth/user-not-found":
+        case "auth/invalid-credential":
+          throw new Error("Invalid email or password.");
+        case "auth/too-many-requests":
+          throw new Error(
+            "Access to this account has been temporarily disabled due to many failed login attempts.",
+          );
+        default:
+          throw new Error(error.message || "Login failed.");
+      }
+    }
+    if (error instanceof Error) throw error;
+    throw new Error("An unexpected error occurred during login.");
+  }
+};
 
 export const logout = async () => {
   try {
@@ -237,6 +319,16 @@ export const getUserProfile = async (
     throw new Error("Error fetching user profile.");
   }
 };
+export const getOwnerProfile = async (
+  uid: string,
+): Promise<DocumentSnapshot> => {
+  try {
+    return await getDoc(doc(db, "owners", uid));
+  } catch (error) {
+    console.error("Get User Profile Error:", error);
+    throw new Error("Error fetching user profile.");
+  }
+};
 
 export const updateUserProfile = async (
   userId: string,
@@ -244,6 +336,19 @@ export const updateUserProfile = async (
 ) => {
   try {
     const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, data);
+  } catch (error) {
+    console.error("Update User Profile Error:", error);
+    throw new Error("Failed to update profile.");
+  }
+};
+
+export const updateOwnerProfile = async (
+  userId: string,
+  data: Partial<OwnerProfile>,
+) => {
+  try {
+    const userRef = doc(db, "owners", userId);
     await updateDoc(userRef, data);
   } catch (error) {
     console.error("Update User Profile Error:", error);

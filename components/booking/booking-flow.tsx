@@ -140,7 +140,7 @@ export function BookingFlow({
   }, [redeemPoints, loyaltyPoints]);
 
   const totalPrice = useMemo(
-    () => Math.max(0, Math.round(basePrice) - discount - turf.price * 0.015),
+    () => Math.max(0, Math.round(basePrice) - discount + turf.price * 0.015),
     [basePrice, discount, turf.price],
   );
 

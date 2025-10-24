@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Turf } from "@/lib/types/booking";
 import TurfDetailsClient from "@/components/turfs-details-client";
+import { Metadata } from "next";
 
 async function fetchTurf(id: string): Promise<Turf | null> {
   const { doc, getDoc } = await import("firebase/firestore");
@@ -44,6 +45,43 @@ async function fetchTurf(id: string): Promise<Turf | null> {
       : { lat: 0, lng: 0 },
     // ownerId: data.ownerId || "",
     // createdAt: data.createdAt ? data.createdAt.toDate() : new Date(0),
+  };
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const turf = await fetchTurf(id);
+
+  if (!turf) {
+    return {
+      title: "Turf Not Found | TurfBuddie",
+      description: "The requested turf could not be found.",
+    };
+  }
+
+  return {
+    title: turf.name,
+    description: `Book ${turf.name} located at ${turf.address}. Enjoy seamless booking with secure payments on TurfBuddie.`,
+    openGraph: {
+      title: turf.name,
+      description: `Book ${turf.name} located at ${turf.address}. Enjoy seamless booking with secure payments on TurfBuddie.`,
+      url: `https://turfbuddie.com/turfs/${turf.id}`,
+      siteName: "TurfBuddie",
+      images: [
+        {
+          url: turf.imageurl || "https://turfbuddie.com/logo.png",
+          width: 800,
+          height: 600,
+          alt: turf.name,
+        },
+      ],
+      locale: "en-US",
+      type: "website",
+    },
   };
 }
 
