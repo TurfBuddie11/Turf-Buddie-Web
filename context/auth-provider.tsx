@@ -59,9 +59,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             setUser(user);
             setProfile(null);
-            if (pathname !== "/signup") {
-              router.push("/signup?flow=completeProfile");
-            }
+            // if (pathname !== "/signup") {
+            //   router.push("/signup?flow=completeProfile");
+            // }
           }
         }
       } else {

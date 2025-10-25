@@ -87,12 +87,26 @@ export default function OwnerSignupPage() {
     const data = { ...formData, role: "owner" };
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match");
+      toast.error("Passwords do not match");
       return;
     }
     console.log("Owner signup:", data);
     try {
-      await registerWithEmail(formData.email, formData.password, data);
+      const { user } = await registerWithEmail(
+        formData.email,
+        formData.password,
+        data,
+      );
+      const idToken = await user.getIdToken();
+
+      await fetch("/api/auth/owner-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ idToken }),
+      });
+
       toast.success("Account Created Successfully");
       router.push("/owner/login");
     } catch (error: unknown) {

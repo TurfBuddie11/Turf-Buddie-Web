@@ -17,6 +17,7 @@ import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import { loginOwner } from "@/lib/firebase/auth";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function OwnerLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -34,8 +35,26 @@ export default function OwnerLoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await loginOwner(formData.email, formData.password);
-    router.push("/owner/dashboard");
+    try {
+      const userCredential = await loginOwner(
+        formData.email,
+        formData.password,
+      );
+      const idToken = await userCredential.user.getIdToken();
+
+      await fetch("/api/auth/owner-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ idToken }),
+      });
+
+      router.push("/owner/dashboard");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown Error";
+      toast.error(message);
+    }
   };
 
   return (
