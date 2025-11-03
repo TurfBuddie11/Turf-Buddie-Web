@@ -141,7 +141,7 @@ export default function ExplorePage() {
           const nearbyTurfs = findNearbyTurfs(
             { latitude: userLat, longitude: userLng },
             turfs,
-            10,
+            5,
           );
           console.log("Nearby turfs:", nearbyTurfs);
           setNearbyTurfs(nearbyTurfs);
@@ -310,7 +310,7 @@ export default function ExplorePage() {
               </Card>
               {!isLoading && locationFound && nearbyTurfs.length === 0 && (
                 <div className="text-center text-muted-foreground py-16">
-                  No turfs found within 10 km of your location.
+                  No turfs found within 5 km of your location.
                 </div>
               )}
 
