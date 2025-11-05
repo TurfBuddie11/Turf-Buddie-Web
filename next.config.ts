@@ -30,27 +30,30 @@ const nextConfig: NextConfig = {
       `frame-ancestors 'self'`,
     ].join("; ");
 
-    return [
+    const securityHeaders = [
+      { key: "Content-Security-Policy", value: CSP },
+      { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+      { key: "X-Nonce", value: nonce },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
       {
-        source: "/:path*",
-        headers: [
-          { key: "Content-Security-Policy", value: CSP },
-          { key: "X-Nonce", value: nonce },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
-          {
-            key: "Strict-Transport-Security",
-            value: "max-age=31536000; includeSubDomains; preload",
-          },
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(self)",
-          },
-          { key: "X-XSS-Protection", value: "1; mode=block" },
-          { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
-        ],
+        key: "Strict-Transport-Security",
+        value: "max-age=31536000; includeSubDomains; preload",
       },
+      {
+        key: "Permissions-Policy",
+        value: "camera=(), microphone=(), geolocation=(self)",
+      },
+      { key: "X-XSS-Protection", value: "1; mode=block" },
+      { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
+    ];
+
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      { source: "/_next/static/:path*", headers: securityHeaders },
+      { source: "/fonts/:path*", headers: securityHeaders },
+      { source: "/images/:path*", headers: securityHeaders },
     ];
   },
 };
