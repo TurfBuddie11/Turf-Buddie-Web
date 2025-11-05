@@ -2,8 +2,6 @@
 import type { NextConfig } from "next";
 import crypto from "crypto";
 
-// ─── UPDATE THESE TWO EVERY DEPLOY (npm run sri) ──────────────────────
-
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -20,16 +18,16 @@ const nextConfig: NextConfig = {
 
     const CSP = [
       `default-src 'self'`,
-      `script-src 'self'  'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com https://www.google-analytics.com`,
-      `style-src 'self' ' 'unsafe-inline' https://fonts.googleapis.com`,
+      `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.razorpay.com https://www.google-analytics.com`,
+      `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
       `img-src 'self' data: blob: https://firebasestorage.googleapis.com https://*.razorpay.com`,
       `font-src 'self' https://fonts.gstatic.com`,
-      `connect-src 'self' https://firebasestorage.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.razorpay.com https://www.google-analytics.com`,
-      `frame-src https://checkout.razorpay.com`,
+      `connect-src 'self' https://checkout.razorpay.com https://api.razorpay.com https://firebasestorage.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.google-analytics.com`,
+      `frame-src https://*.razorpay.com`,
       `object-src 'none'`,
       `base-uri 'self'`,
       `form-action 'self'`,
-      `frame-ancestors 'none'`,
+      `frame-ancestors 'self'`,
     ].join("; ");
 
     return [
@@ -40,7 +38,7 @@ const nextConfig: NextConfig = {
           { key: "X-Nonce", value: nonce },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
           {
             key: "Strict-Transport-Security",
             value: "max-age=31536000; includeSubDomains; preload",

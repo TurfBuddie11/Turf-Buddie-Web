@@ -292,7 +292,7 @@ export default function ExplorePage() {
                                 onClick={() => setMinRating(r)}
                                 aria-pressed={r === minRating}
                               >
-                                {r}{" "}
+                                {r}
                                 <Star className="w-3 h-3 ml-1 fill-current" />
                               </Button>
                             ))}
