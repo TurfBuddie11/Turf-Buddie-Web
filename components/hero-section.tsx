@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Users, MapIcon, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-provider";
+import Image from "next/image";
 
 const HeroSection = () => {
   const { user } = useAuth();
@@ -12,11 +13,12 @@ const HeroSection = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden hero-section pt-36">
       {/* Parallax Background */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-fixed"
-        style={{
-          backgroundImage: `url(/hero-turf.jpg)`,
-        }}
+      <Image
+        src="/hero-turf.jpg"
+        alt="Hero Turf"
+        className="absolute inset-0 w-full h-full object-cover object-center "
+        priority
+        fill
       />
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[4px]" />

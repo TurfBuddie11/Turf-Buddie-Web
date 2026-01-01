@@ -8,7 +8,7 @@ import AppHeader from "@/components/app-header";
 
 export default function TurfBuddieLanding() {
   return (
-    <div className=" min-h-screen    mx-auto">
+    <div className="min-h-screen mx-auto">
       {/* Header */}
       {/* <Header />      */}
       <AppHeader />

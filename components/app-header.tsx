@@ -37,6 +37,7 @@ export default function AppHeader() {
     { name: "Explore", href: "/explore" },
     { name: "Tournaments", href: "/tournaments" },
     { name: "My Bookings", href: "/bookings" },
+    { name: "Join as Owner", href: "/owner" },
   ];
 
   const handleLogout = async () => {
@@ -46,7 +47,7 @@ export default function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-transparent backdrop-blur supports-[backdrop-filter]:bg-background/50">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-transparent backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         {/* Logo and Brand Name */}
         <Link href="/" className="flex items-center gap-2">
@@ -57,9 +58,10 @@ export default function AppHeader() {
               width={56}
               height={56}
               className="rounded-full"
+              priority
             />
           </div>
-          <span className="text-xl font-extrabold tracking-tight text-green-600">
+          <span className="text-xl font-extrabold tracking-tight text-green-700">
             TurfBuddie
           </span>
         </Link>

@@ -1,6 +1,6 @@
 import { Timestamp } from "firebase/firestore";
 
-export interface UserProfile {
+export interface OwnerProfile {
   uid: string;
   name: string;
   role?: string;
@@ -16,8 +16,4 @@ export interface UserProfile {
   city?: string;
   pincode?: string;
   state?: string;
-
-  // Optional referral fields
-  referralCode?: string;
-  referredBy?: string;
 }
