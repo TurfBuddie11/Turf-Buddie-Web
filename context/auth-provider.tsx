@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!user.emailVerified) {
           setUser(user);
           setProfile(null);
-          if (pathname !== "/login") {
+          if (pathname !== "/login" && !pathname.includes("owner")) {
             router.push("/login");
           }
         } else {
@@ -59,9 +59,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             setUser(user);
             setProfile(null);
-            if (pathname !== "/signup") {
-              router.push("/signup?flow=completeProfile");
-            }
+            // if (pathname !== "/signup") {
+            //   router.push("/signup?flow=completeProfile");
+            // }
           }
         }
       } else {
@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-black">
+      <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );

@@ -5,7 +5,7 @@ import { Target, Heart, Zap, Shield, Users, Award } from "lucide-react";
 const AboutSection = () => {
   return (
     <div>
-      <section id="about" className="section-padding bg-muted/20">
+      <section id="about" className="section-padding">
         <div className="container max-w-7xl mx-auto px-4">
           {/* Heading */}
           <div className="text-center mb-16">

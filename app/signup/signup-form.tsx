@@ -250,6 +250,7 @@ export default function SignUpForm() {
     try {
       const userData = {
         name: data.name,
+        role: "user",
         gender: data.gender,
         dob: format(data.dob, "dd/MM/yyyy"),
         mobile: data.mobile,

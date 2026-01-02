@@ -30,7 +30,6 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import type { Turf } from "@/lib/types/booking";
-import { Spinner } from "@/components/ui/spinner";
 
 // Helper for INR formatting from 1000 => ₹1000.00
 const formatINR = (v: number) =>
@@ -45,7 +44,7 @@ const extractCity = (address: string) => {
   return parts.length >= 2 ? parts[parts.length - 2].trim() : "Unknown";
 };
 
-export default function ExplorePage() {
+export default function ExplorePageComponent() {
   const form = useForm();
   const shouldReduceMotion = useReducedMotion();
 
@@ -53,9 +52,6 @@ export default function ExplorePage() {
   const [hasMounted, setHasMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [turfs, setTurfs] = useState<Turf[]>([]);
-
-  const [nearbyTurfs, setNearbyTurfs] = useState<Turf[]>([]);
-  const [locationFound, setLocationFound] = useState(false);
 
   // Filter states
   const [search, setSearch] = useState("");
@@ -77,6 +73,7 @@ export default function ExplorePage() {
         const turfList: Turf[] = snapshot.docs.map((doc) => {
           const data = doc.data();
           const locationData = data.location as GeoPoint | undefined;
+          // const createdAtData = data.createdAt as Timestamp | undefined;
 
           return {
             id: doc.id,
@@ -86,14 +83,16 @@ export default function ExplorePage() {
             rating: data.rating || 0,
             price: data.price || 0,
             timeSlots: data.timeSlots || [],
-
+            // amenities: data.amenities || [],
+            // description: data.description || "",
             location: locationData
               ? { lat: locationData.latitude, lng: locationData.longitude }
               : { lat: 0, lng: 0 },
+            // ownerId: data.ownerId || "",
+            // createdAt: createdAtData ? createdAtData.toDate() : new Date(0),
           };
         });
         setTurfs(turfList);
-        console.log(turfList);
       } catch (err) {
         console.error("Failed to fetch turfs:", err);
       } finally {
@@ -106,12 +105,11 @@ export default function ExplorePage() {
   const findNearbyTurfs = useCallback(
     (
       userLat: { latitude: number; longitude: number },
-      turfsToSearch: Turf[],
+      turfs: Turf[],
       radiusKm: number,
     ) => {
       const nearbyTurfs = [];
-      console.log("Turfs: ", turfs);
-      for (const turf of turfsToSearch) {
+      for (const turf of turfs) {
         const distance = haversineDistance(
           userLat.latitude,
           userLat.longitude,
@@ -126,13 +124,13 @@ export default function ExplorePage() {
       nearbyTurfs.sort((a, b) => a.distance - b.distance);
       return nearbyTurfs;
     },
-    [turfs],
+    [],
   );
 
   // Used for getiing location
   useEffect(() => {
     // This effect runs only on the client after the component has mounted
-    if (hasMounted && navigator.geolocation && turfs.length > 0) {
+    if (hasMounted && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const userLat = position.coords.latitude;
@@ -142,11 +140,9 @@ export default function ExplorePage() {
           const nearbyTurfs = findNearbyTurfs(
             { latitude: userLat, longitude: userLng },
             turfs,
-            10,
+            200,
           );
           console.log("Nearby turfs:", nearbyTurfs);
-          setNearbyTurfs(nearbyTurfs);
-          setLocationFound(true);
         },
         (error) => {
           console.error("Error getting user location:", error);
@@ -184,9 +180,7 @@ export default function ExplorePage() {
   }
 
   const filtered = useMemo(() => {
-    const sourceList = locationFound ? nearbyTurfs : turfs;
-
-    return sourceList.filter((t) => {
+    return turfs.filter((t) => {
       const inSearch =
         t.name.toLowerCase().includes(search.toLowerCase()) ||
         t.address.toLowerCase().includes(search.toLowerCase());
@@ -196,7 +190,16 @@ export default function ExplorePage() {
       const inRating = t.rating >= minRating;
       return inSearch && inLocation && inPrice && inRating;
     });
-  }, [turfs, nearbyTurfs, locationFound, search, location, price, minRating]);
+  }, [turfs, search, location, price, minRating]);
+
+  // Render a loading state on the server and on initial client render
+  // if (!hasMounted) {
+  //   return (
+  //     <div className="min-h-screen   flex items-center justify-center">
+  //       <div>Loading...</div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <>
@@ -218,8 +221,8 @@ export default function ExplorePage() {
           {/* Render filters and results only after initial data load */}
 
           {isLoading ? (
-            <div className="flex min-h-screen items-center justify-center text-center text-muted-foreground py-16">
-              <Spinner className="size-10 text-green-700" />
+            <div className="text-center text-muted-foreground py-16">
+              Loading turfs...
             </div>
           ) : (
             <>
@@ -294,7 +297,7 @@ export default function ExplorePage() {
                                 onClick={() => setMinRating(r)}
                                 aria-pressed={r === minRating}
                               >
-                                {r}
+                                {r}{" "}
                                 <Star className="w-3 h-3 ml-1 fill-current" />
                               </Button>
                             ))}
@@ -309,11 +312,6 @@ export default function ExplorePage() {
                   </div>
                 </CardContent>
               </Card>
-              {!isLoading && locationFound && nearbyTurfs.length === 0 && (
-                <div className="text-center text-muted-foreground py-16">
-                  No turfs found within 10 km of your location.
-                </div>
-              )}
 
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {filtered.map((t, i) => (
@@ -378,14 +376,12 @@ export default function ExplorePage() {
                 ))}
               </div>
 
-              {nearbyTurfs.length > 0 &&
-                locationFound &&
-                filtered.length === 0 && (
-                  <div className="text-center text-muted-foreground py-16">
-                    No turfs match your filters. Try adjusting your search or
-                    selection.
-                  </div>
-                )}
+              {filtered.length === 0 && (
+                <div className="text-center text-muted-foreground py-16">
+                  No turfs match your filters. Try adjusting your search or
+                  selection.
+                </div>
+              )}
             </>
           )}
         </div>
