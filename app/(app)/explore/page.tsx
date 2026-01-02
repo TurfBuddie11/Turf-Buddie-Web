@@ -93,6 +93,7 @@ export default function ExplorePage() {
           };
         });
         setTurfs(turfList);
+        console.log(turfList);
       } catch (err) {
         console.error("Failed to fetch turfs:", err);
       } finally {
@@ -109,6 +110,7 @@ export default function ExplorePage() {
       radiusKm: number,
     ) => {
       const nearbyTurfs = [];
+      console.log("Turfs: ", turfs);
       for (const turf of turfsToSearch) {
         const distance = haversineDistance(
           userLat.latitude,
@@ -124,7 +126,7 @@ export default function ExplorePage() {
       nearbyTurfs.sort((a, b) => a.distance - b.distance);
       return nearbyTurfs;
     },
-    [],
+    [turfs],
   );
 
   // Used for getiing location

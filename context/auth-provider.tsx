@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!user.emailVerified) {
           setUser(user);
           setProfile(null);
-          if (pathname !== "/login") {
+          if (pathname !== "/login" && !pathname.includes("owner")) {
             router.push("/login");
           }
         } else {
