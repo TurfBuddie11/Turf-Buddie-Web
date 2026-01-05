@@ -12,6 +12,13 @@ import { Label } from "@/components/ui/label";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, Timestamp } from "firebase/firestore";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -31,6 +38,22 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+// Master list of time slots to match your BookingFlow
+const TIME_SLOTS = [
+  "09:00 AM - 10:00 AM",
+  "10:00 AM - 11:00 AM",
+  "11:00 AM - 12:00 PM",
+  "12:00 PM - 01:00 PM",
+  "01:00 PM - 02:00 PM",
+  "03:00 PM - 04:00 PM",
+  "04:00 PM - 05:00 PM",
+  "05:00 PM - 06:00 PM",
+  "06:00 PM - 07:00 PM",
+  "07:00 PM - 08:00 PM",
+  "08:00 PM - 09:00 PM",
+  "09:00 PM - 10:00 PM",
+];
+
 export default function BookingsPage() {
   const {
     bookings,
@@ -39,13 +62,18 @@ export default function BookingsPage() {
     addOfflineBooking,
     deleteOfflineBooking,
   } = useTurf();
+
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [filter, setFilter] = useState("all");
   const [userNames, setUserNames] = useState<Record<string, string>>({});
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [manualSlot, setManualSlot] = useState("");
-  const [manualPrice, setManualPrice] = useState(selectedTurf?.price || 0);
+  const [manualPrice, setManualPrice] = useState(0);
+
+  useEffect(() => {
+    if (selectedTurf?.price) setManualPrice(selectedTurf.price);
+  }, [selectedTurf, isDialogOpen]);
 
   useEffect(() => {
     if (selectedTurf?.id) getBookings();
@@ -76,9 +104,6 @@ export default function BookingsPage() {
       if (changed) setUserNames(newNames);
     };
     if (bookings.length > 0) fetchNames();
-    // Removed userNames from dependencies to prevent infinite loops,
-    // uniqueUids check handles the logic.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookings]);
 
   const toDate = useCallback(
@@ -106,6 +131,7 @@ export default function BookingsPage() {
       monthSlot: `${day} ${month}`,
       userUid: "offline_admin",
     });
+
     setIsDialogOpen(false);
     setManualSlot("");
   };
@@ -151,6 +177,12 @@ export default function BookingsPage() {
       ),
     };
   }, [filteredBookings, date, toDate]);
+
+  // Logic to find available slots for the select dropdown
+  const availableOptions = useMemo(() => {
+    const bookedTimesOnThisDay = selectedDateBookings.map((b) => b.timeSlot);
+    return TIME_SLOTS.filter((slot) => !bookedTimesOnThisDay.includes(slot));
+  }, [selectedDateBookings]);
 
   const renderBookingItem = (slot: TimeSlot, isUpcoming = false) => {
     const isOffline = slot.status?.toLowerCase() === "booked_offline";
@@ -232,15 +264,15 @@ export default function BookingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/30 pb-10">
+    <div className="min-h-screen  pb-10">
       <div className="container max-w-7xl mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+            <h1 className="text-3xl font-extrabold tracking-tight ">
               Turf Bookings
             </h1>
             <p className="text-sm text-muted-foreground font-medium">
-              Manage your schedule and customer activity.
+              Manage your schedule and activity.
             </p>
           </div>
 
@@ -250,7 +282,7 @@ export default function BookingsPage() {
                 <PlusCircle className="size-4" /> Book Manually
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-106.5">
               <DialogHeader>
                 <DialogTitle>Add Offline Booking</DialogTitle>
               </DialogHeader>
@@ -260,17 +292,32 @@ export default function BookingsPage() {
                   <Input
                     value={date?.toDateString()}
                     disabled
-                    className="bg-slate-50"
+                    className="bg-slate-50 font-semibold"
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label>Time Slot</Label>
-                  <Input
-                    placeholder="e.g. 7 PM - 8 PM"
-                    value={manualSlot}
-                    onChange={(e) => setManualSlot(e.target.value)}
-                  />
+                  <Select onValueChange={setManualSlot} value={manualSlot}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Choose a slot" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableOptions.length > 0 ? (
+                        availableOptions.map((slot) => (
+                          <SelectItem key={slot} value={slot}>
+                            {slot}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <p className="text-xs p-2 text-center text-muted-foreground">
+                          No slots available for this date
+                        </p>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
+
                 <div className="space-y-2">
                   <Label>Price (₹)</Label>
                   <Input
@@ -288,7 +335,11 @@ export default function BookingsPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="button" onClick={handleManualSubmit}>
+                <Button
+                  type="button"
+                  onClick={handleManualSubmit}
+                  disabled={!manualSlot || availableOptions.length === 0}
+                >
                   Confirm Booking
                 </Button>
               </DialogFooter>
@@ -298,14 +349,23 @@ export default function BookingsPage() {
 
         <div className="mb-6">
           <Tabs defaultValue="all" className="w-full" onValueChange={setFilter}>
-            <TabsList className="grid grid-cols-3 border bg-white h-12 shadow-sm max-w-sm">
-              <TabsTrigger value="all" className="font-bold">
+            <TabsList className="grid grid-cols-3 border h-12 shadow-sm max-w-sm">
+              <TabsTrigger
+                value="all"
+                className="font-bold dark:text-white text-black"
+              >
                 All
               </TabsTrigger>
-              <TabsTrigger value="online" className="font-bold">
+              <TabsTrigger
+                value="online"
+                className="font-bold dark:text-white text-black"
+              >
                 Online
               </TabsTrigger>
-              <TabsTrigger value="offline" className="font-bold">
+              <TabsTrigger
+                value="offline"
+                className="font-bold dark:text-white text-black"
+              >
                 Offline
               </TabsTrigger>
             </TabsList>
@@ -314,7 +374,7 @@ export default function BookingsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-4 space-y-4">
-            <Card className="shadow-md border-none bg-white">
+            <Card className="shadow-md border-none ">
               <CardContent className="p-4 flex justify-center">
                 <Calendar
                   mode="single"
@@ -324,10 +384,10 @@ export default function BookingsPage() {
                 />
               </CardContent>
             </Card>
-            <Card className="bg-primary text-white border-none shadow-lg">
+            <Card className=" border-none shadow-lg">
               <CardContent className="px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3 font-semibold">
-                  <CircleDollarSign className="size-6 text-white/80" />
+                  <CircleDollarSign className="size-6 " />
                   <span className="text-sm">Revenue for Selected Day</span>
                 </div>
                 <span className="text-2xl font-black">
@@ -343,8 +403,8 @@ export default function BookingsPage() {
           <div className="lg:col-span-8 space-y-10">
             <section>
               <div className="flex items-center gap-3 mb-5 px-1">
-                <div className="h-3 w-3 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
-                <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">
+                <div className="h-3 w-3 rounded-full  animate-pulse shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
+                <h2 className="text-xl font-black  uppercase tracking-tight">
                   {date?.toDateString() === new Date().toDateString()
                     ? "Today's Schedule"
                     : `${date?.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}`}
@@ -352,11 +412,9 @@ export default function BookingsPage() {
               </div>
               <div className="space-y-4">
                 {selectedDateBookings.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border-2 border-dashed border-slate-200">
-                    <AlertCircle className="size-10 text-slate-200 mb-2" />
-                    <p className="text-slate-400 font-bold">
-                      No slots booked for this day
-                    </p>
+                  <div className="flex flex-col items-center justify-center py-16 rounded-2xl border-2 border-dashed border-slate-200">
+                    <AlertCircle className="size-10  mb-2" />
+                    <p className=" font-bold">No slots booked for this day</p>
                   </div>
                 ) : (
                   selectedDateBookings.map((slot) =>
@@ -368,16 +426,14 @@ export default function BookingsPage() {
 
             <section>
               <div className="flex items-center justify-between mb-5 px-1">
-                <h2 className="text-lg font-bold text-slate-400 flex items-center gap-2 uppercase tracking-widest">
+                <h2 className="text-lg font-bold  flex items-center gap-2 uppercase tracking-widest">
                   Upcoming Bookings <ChevronRight className="size-4" />
                 </h2>
-                <Badge variant="outline" className="text-slate-400">
-                  {upcomingBookings.length} Slots
-                </Badge>
+                <Badge variant="outline">{upcomingBookings.length} Slots</Badge>
               </div>
               <div className="space-y-4">
                 {upcomingBookings.length === 0 ? (
-                  <p className="text-sm text-slate-400 italic text-center py-4">
+                  <p className="text-sm  italic text-center py-4">
                     No future bookings found.
                   </p>
                 ) : (

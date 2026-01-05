@@ -1,6 +1,5 @@
 "use client";
 
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   MenuDock,
   type MenuDockItem,
@@ -9,7 +8,13 @@ import { OwnerAuthProvider } from "@/context/owner-auth-provider";
 import { TurfProvider } from "@/context/turf-context";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, Timestamp } from "firebase/firestore";
-import { Calendar, HomeIcon, IndianRupeeIcon, MapPin } from "lucide-react";
+import {
+  Calendar,
+  HomeIcon,
+  IndianRupeeIcon,
+  LogOut,
+  MapPin,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { ReactNode, useEffect, useState } from "react";
 
@@ -54,25 +59,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     fetchProfile();
   }, [router]);
 
-  const getInitials = (name?: string) => {
-    if (!name) return "??";
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  // const getInitials = (name?: string) => {
+  //   if (!name) return "??";
+  //   return name
+  //     .split(" ")
+  //     .map((n) => n[0])
+  //     .join("")
+  //     .toUpperCase()
+  //     .slice(0, 2);
+  // };
 
   // Custom Icon Component for the Dock
-  const UserAvatarIcon = () => (
-    <Avatar className="h-6 w-6">
-      <AvatarImage src="" alt={profile?.name} />
-      <AvatarFallback className="text-[10px] text-muted-foreground">
-        {getInitials(profile?.name)}
-      </AvatarFallback>
-    </Avatar>
-  );
+  // const UserAvatarIcon = () => (
+  //   <Avatar className="h-6 w-6">
+  //     <AvatarImage src="" alt={profile?.name} />
+  //     <AvatarFallback className="text-[10px] text-muted-foreground">
+  //       {getInitials(profile?.name)}
+  //     </AvatarFallback>
+  //   </Avatar>
+  // );
 
   const menuItems = [
     {
@@ -97,7 +102,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     },
     {
       label: "Logout",
-      icon: UserAvatarIcon,
+      icon: LogOut,
       onClick: async () => {
         await fetch("/api/auth/owner-session/logout", { method: "POST" });
         router.push("/owner/login");

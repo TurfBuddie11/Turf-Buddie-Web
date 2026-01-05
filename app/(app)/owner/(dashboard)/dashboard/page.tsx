@@ -116,9 +116,9 @@ export default function DashboardPage() {
   } satisfies ChartConfig;
 
   return (
-    <main className="flex flex-col items-center w-full max-w-7xl px-4 py-6 space-y-6">
+    <main className="flex flex-col items-center w-full max-w-7xl px-4 py-6 space-y-6 mx-auto">
       {/* Greeting */}
-      <section className="w-full max-w-4xl flex justify-between items-end">
+      <section className="w-full max-w-7xl flex justify-between items-end">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">
             Good {greeting} 🌞
@@ -154,7 +154,7 @@ export default function DashboardPage() {
       </section>
 
       {/* Stats Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-7xl ">
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -201,7 +201,7 @@ export default function DashboardPage() {
       </section>
 
       {/* Chart */}
-      <section className="w-full max-w-4xl">
+      <section className="w-full max-w-7xl">
         <Card className="shadow-sm">
           <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
             <div>
@@ -219,10 +219,7 @@ export default function DashboardPage() {
           </CardHeader>
 
           <CardContent className="pt-4">
-            <ChartContainer
-              config={chartConfig}
-              className="min-h-[300px] w-full"
-            >
+            <ChartContainer config={chartConfig} className="min-h-75 w-full">
               <BarChart
                 data={chartData}
                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
@@ -244,7 +241,7 @@ export default function DashboardPage() {
                 />
                 <Bar
                   dataKey="bookings"
-                  fill="var(--color-bookings)"
+                  fill="var(--chart-1)"
                   radius={[4, 4, 0, 0]}
                   barSize={40}
                 />
