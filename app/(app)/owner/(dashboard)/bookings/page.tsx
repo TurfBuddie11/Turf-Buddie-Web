@@ -40,18 +40,18 @@ import {
 
 // Master list of time slots to match your BookingFlow
 const TIME_SLOTS = [
-  "09:00 AM - 10:00 AM",
-  "10:00 AM - 11:00 AM",
-  "11:00 AM - 12:00 PM",
-  "12:00 PM - 01:00 PM",
-  "01:00 PM - 02:00 PM",
-  "03:00 PM - 04:00 PM",
-  "04:00 PM - 05:00 PM",
-  "05:00 PM - 06:00 PM",
-  "06:00 PM - 07:00 PM",
-  "07:00 PM - 08:00 PM",
-  "08:00 PM - 09:00 PM",
-  "09:00 PM - 10:00 PM",
+  "9 AM - 10 AM",
+  "10 AM - 11 AM",
+  "11 AM - 12 PM",
+  "12 PM - 1 PM",
+  "1 PM - 2 PM",
+  "3 PM - 4 PM",
+  "4 PM - 5 PM",
+  "5 PM - 6 PM",
+  "6 PM - 7 PM",
+  "7 PM - 8 PM",
+  "8 PM - 9 PM",
+  "9 PM - 0 PM",
 ];
 
 export default function BookingsPage() {

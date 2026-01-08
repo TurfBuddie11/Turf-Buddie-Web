@@ -20,6 +20,8 @@ import {
   GeoPoint,
   DocumentData,
   Timestamp,
+  arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -169,24 +171,19 @@ export const TurfProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     await updateDoc(turfRef, {
-      timeSlots: [...selectedTurf.timeSlots, newSlot],
+      timeSlots: arrayUnion(newSlot),
     });
-    await loadTurfs();
+    await getBookings();
   };
 
   const deleteOfflineBooking = async (slotToDelete: TimeSlot) => {
     if (!selectedTurf) return;
     const turfRef = doc(db, "Turfs", selectedTurf.id);
-    const updatedSlots = selectedTurf.timeSlots.filter(
-      (s) =>
-        !(
-          s.timeSlot === slotToDelete.timeSlot &&
-          s.monthSlot === slotToDelete.monthSlot &&
-          s.status === "booked_offline"
-        ),
-    );
-    await updateDoc(turfRef, { timeSlots: updatedSlots });
-    await loadTurfs();
+
+    await updateDoc(turfRef, {
+      timeSlots: arrayRemove(slotToDelete),
+    });
+    await getBookings();
   };
 
   const addTurf = async (

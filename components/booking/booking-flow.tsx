@@ -33,7 +33,6 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 
-// --- MASTER LIST OF ALL POSSIBLE TIME SLOTS ---
 const ALL_POSSIBLE_SLOTS: Omit<TimeSlot, "price" | "isAvailable">[] =
   Array.from({ length: 13 }, (_, i) => {
     const hour = 9 + i;
