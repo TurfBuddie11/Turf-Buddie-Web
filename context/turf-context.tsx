@@ -180,10 +180,37 @@ export const TurfProvider = ({ children }: { children: React.ReactNode }) => {
     if (!selectedTurf) return;
     const turfRef = doc(db, "Turfs", selectedTurf.id);
 
-    await updateDoc(turfRef, {
-      timeSlots: arrayRemove(slotToDelete),
-    });
-    await getBookings();
+    try {
+      const turfDoc = await getDoc(turfRef);
+      if (!turfDoc.exists()) {
+        throw new Error("Turf document not found!");
+      }
+
+      const existingSlots = (turfDoc.data()?.timeSlots || []) as TimeSlot[];
+
+      // Filter out the slot to be deleted based on a unique combination of properties
+      const updatedSlots = existingSlots.filter(
+        (slot) =>
+          !(
+            slot.timeSlot === slotToDelete.timeSlot &&
+            slot.monthSlot === slotToDelete.monthSlot &&
+            slot.daySlot === slotToDelete.daySlot &&
+            (slot.bookingDate as Timestamp).isEqual(
+              slotToDelete.bookingDate as Timestamp,
+            )
+          ),
+      );
+
+      await updateDoc(turfRef, {
+        timeSlots: updatedSlots,
+      });
+
+      // Refresh bookings from the source of truth
+      await getBookings();
+    } catch (error) {
+      console.error("Error deleting offline booking:", error);
+      // Optionally, handle the error more gracefully in the UI
+    }
   };
 
   const addTurf = async (

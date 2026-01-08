@@ -161,6 +161,7 @@ export function BookingFlow({
         const normalized = new Set<string>(
           (data.bookedSlots || []).map((slot: string) => slot.trim()),
         );
+        console.log(data);
         setBookedSlots(normalized);
       } catch (error) {
         toast.error("Data Fetch Error", {
@@ -376,7 +377,6 @@ export function BookingFlow({
                       className={cn(
                         "p-3 rounded-xl border text-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
                         "hover:border-green-400",
-                        isBooked ? "text-black" : "",
                         isSelected &&
                           !isBooked &&
                           "bg-green-500/20 border-green-600 ring-2 ring-green-600 hover:bg-green-500/30",
