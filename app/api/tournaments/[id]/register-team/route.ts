@@ -1,6 +1,11 @@
 import { adminDb } from "@/lib/firebase/admin";
 import { NextResponse } from "next/server";
-import { firestore } from "firebase-admin";
+import Razorpay from "razorpay";
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID!,
+  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+});
 
 export async function POST(
   request: Request,
@@ -44,28 +49,34 @@ export async function POST(
       );
     }
 
-    // Add the team to a subcollection "teams" under the tournament document
-    const newTeamRef = await tournamentRef.collection("teams").add({
+    const amountInPaise = Math.round(
+      parseFloat(tournamentData.registrationFee) * 100,
+    );
+
+    const order = await razorpay.orders.create({
+      amount: amountInPaise,
+      currency: "INR",
+      receipt: `receipt_${Date.now()}`,
+    });
+
+    const pendingOrderRef = adminDb
+      .collection("pendingRegistrations")
+      .doc(order.id);
+    await pendingOrderRef.set({
       teamName,
       captainName,
       captainPhone,
       players,
-      registeredAt: firestore.FieldValue.serverTimestamp(),
+      tournamentId,
+      amount: tournamentData.registrationFee,
+      createdAt: new Date().toISOString(),
     });
 
-    // Increment registeredTeams count in the main tournament document
-    await tournamentRef.update({
-      registeredTeams: firestore.FieldValue.increment(1),
+    return NextResponse.json({
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
     });
-
-    return NextResponse.json(
-      {
-        success: true,
-        teamId: newTeamRef.id,
-        message: "Team registered successfully!",
-      },
-      { status: 201 },
-    );
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Team registration error";

@@ -1,16 +1,8 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import {
-  Calendar,
-  ImagePlay,
-  ImagePlus,
-  Info,
-  Trophy,
-  Users,
-} from "lucide-react";
-import z from "zod/v3";
+import { Calendar, ImagePlus, Info, Trophy, Users } from "lucide-react";
+import z from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { uploadFile } from "@/lib/firebase/storage";
@@ -80,7 +72,7 @@ export default function CreateTournamentPage() {
         const path = `tournaments/${Date.now()}-${file.name}`;
         imageURL = await uploadFile(file, path);
       }
-      const { image, rules, startDate, endDate, ...restOfData } = values;
+      const { rules, startDate, endDate, ...restOfData } = values;
 
       const rulesArray = rules.split("\n").filter((rule) => rule.trim() !== "");
       const payload = {
@@ -337,10 +329,7 @@ export default function CreateTournamentPage() {
                   <Controller
                     name="image"
                     control={form.control}
-                    render={({
-                      field: { onChange, value, name },
-                      fieldState,
-                    }) => (
+                    render={({ field: { onChange, name }, fieldState }) => (
                       <Field data-invalid={fieldState.invalid}>
                         <input
                           name={name}

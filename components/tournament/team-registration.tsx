@@ -50,10 +50,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Tournament } from "@/lib/types/tournament";
 import { VisuallyHidden } from "radix-ui";
 
+import { initiatePayment, PaymentSuccessPayload } from "@/lib/razorpay/payment";
+import { User } from "@/lib/types/user";
+
 interface TeamRegistrationProps {
   tournament: Tournament;
   isOpen: boolean;
   onClose: () => void;
+  user: User;
 }
 
 const teamRegistrationSchema = z.object({
@@ -80,10 +84,29 @@ const teamRegistrationSchema = z.object({
 
 type TeamRegistrationFormSchema = z.infer<typeof teamRegistrationSchema>;
 
+async function verifyTeamPayment(
+  payload: PaymentSuccessPayload,
+  tournamentId: string,
+): Promise<{ success: boolean; teamId: string; message: string }> {
+  const response = await fetch("/api/tournaments/verify-payment", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...payload, tournamentId }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Payment verification failed");
+  }
+
+  return response.json();
+}
+
 export default function TeamRegistrationMultiStepForm({
   tournament,
   isOpen,
   onClose,
+  user,
 }: TeamRegistrationProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
@@ -130,7 +153,6 @@ export default function TeamRegistrationMultiStepForm({
 
   const handleNextButton = async () => {
     const fieldsToValidate = steps[currentStep].fields;
-    // Validating specific fields for the current step
     const isValid = await form.trigger(fieldsToValidate);
 
     if (isValid && !isLastStep) {
@@ -160,10 +182,29 @@ export default function TeamRegistrationMultiStepForm({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to register team");
+        throw new Error(errorData.error || "Failed to create order");
       }
 
-      toast.success("Team registered successfully!");
+      const order = await response.json();
+
+      const paymentOptions = {
+        amount: order.amount.toString(),
+        currency: order.currency,
+        orderId: order.orderId,
+        userDetails: {
+          name: user.displayName || "Unknown User",
+          email: user.email || "no-email@example.com",
+          contact: values.captainPhone,
+        },
+      };
+
+      const paymentSuccess = await initiatePayment(paymentOptions);
+      const verificationResult = await verifyTeamPayment(
+        paymentSuccess,
+        tournament.id,
+      );
+
+      toast.success(verificationResult.message);
       onClose();
       router.refresh();
     } catch (error: unknown) {
@@ -174,7 +215,6 @@ export default function TeamRegistrationMultiStepForm({
       toast.error(message);
     }
   };
-
   const renderCurrentStepContent = () => {
     switch (currentStep) {
       case 0:
@@ -332,7 +372,7 @@ export default function TeamRegistrationMultiStepForm({
                   {steps[currentStep].description}
                 </CardDescription>
               </div>
-              <div className="bg-primary/10 text-primary px-2 py-1 rounded text-[10px] font-bold">
+              <div className="bg-primary/10 text-primary px-2 py-1 rounded-[4px] text-[10px] font-bold">
                 STEP {currentStep + 1} OF {steps.length}
               </div>
             </div>
@@ -388,7 +428,7 @@ export default function TeamRegistrationMultiStepForm({
                 {form.formState.isSubmitting ? (
                   <Spinner className="mr-2" />
                 ) : (
-                  "Complete Registration"
+                  "Proceed to Pay"
                 )}
               </Button>
             )}

@@ -24,6 +24,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Spinner } from "../ui/spinner";
 import { Team, Tournament } from "@/lib/types/tournament";
+import { useAuth } from "@/context/auth-provider";
+import { useRouter } from "next/navigation";
 
 interface TournamentDetailsProps {
   tournament: Tournament;
@@ -32,11 +34,21 @@ interface TournamentDetailsProps {
 export default function TournamentDetailsPage({
   tournament,
 }: TournamentDetailsProps) {
+  const { user } = useAuth();
+  const router = useRouter();
   const isFull = tournament.registeredTeams >= tournament.maxTeams;
   const [isRegistrationFormOpen, setIsRegistrationFormOpen] = useState(false);
   const [teams, setTeams] = useState<Team[]>();
   const [isLoadingTeams, setIsLoadingTeams] = useState(false);
 
+  const handleRegistrationClick = () => {
+    if (!user) {
+      toast.error("Please log in to register for the tournament.");
+      router.push("/login");
+    } else {
+      setIsRegistrationFormOpen(true);
+    }
+  };
   const fetchTeams = async () => {
     const length = teams?.length ?? 0;
     if (length > 0) return;
@@ -349,7 +361,9 @@ export default function TournamentDetailsPage({
                     >
                       {isFull
                         ? "Full"
-                        : `${tournament.maxTeams - tournament.registeredTeams} Slots Left`}
+                        : `${
+                            tournament.maxTeams - tournament.registeredTeams
+                          } Slots Left`}
                     </Badge>
                   </div>
                   <div className="space-y-2">
@@ -361,7 +375,10 @@ export default function TournamentDetailsPage({
                       <div
                         className="h-full bg-primary transition-all duration-1000 ease-out"
                         style={{
-                          width: `${(tournament.registeredTeams / tournament.maxTeams) * 100}%`,
+                          width: `${
+                            (tournament.registeredTeams / tournament.maxTeams) *
+                            100
+                          }%`,
                         }}
                       />
                     </div>
@@ -372,7 +389,7 @@ export default function TournamentDetailsPage({
                   <Button
                     className="w-full h-14 text-xl font-black shadow-xl shadow-primary/25 active:scale-[0.98] transition-transform"
                     disabled={isFull}
-                    onClick={() => setIsRegistrationFormOpen(true)}
+                    onClick={handleRegistrationClick}
                   >
                     {isFull ? "Joined Waiting List" : "REGISTER TEAM"}
                   </Button>
@@ -407,7 +424,7 @@ export default function TournamentDetailsPage({
           <Button
             className="flex-1  font-black text-lg shadow-lg active:scale-95 transition-transform"
             disabled={isFull}
-            onClick={() => setIsRegistrationFormOpen(true)}
+            onClick={handleRegistrationClick}
           >
             {isFull ? "Registration Closed" : "Register"}
             <ArrowRight className="ml-2" size={20} />
@@ -415,11 +432,14 @@ export default function TournamentDetailsPage({
         </div>
       </div>
 
-      <TeamRegistrationForm
-        tournament={tournament}
-        isOpen={isRegistrationFormOpen}
-        onClose={() => setIsRegistrationFormOpen(false)}
-      />
+      {user && (
+        <TeamRegistrationForm
+          tournament={tournament}
+          isOpen={isRegistrationFormOpen}
+          onClose={() => setIsRegistrationFormOpen(false)}
+          user={user}
+        />
+      )}
     </div>
   );
 }
