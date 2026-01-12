@@ -104,7 +104,7 @@ export default function BookingsPage() {
       if (changed) setUserNames(newNames);
     };
     if (bookings.length > 0) fetchNames();
-  }, [bookings]);
+  }, [bookings, userNames]);
 
   const toDate = useCallback(
     (

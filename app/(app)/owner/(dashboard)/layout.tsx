@@ -7,7 +7,7 @@ import {
 import { OwnerAuthProvider } from "@/context/owner-auth-provider";
 import { TurfProvider } from "@/context/turf-context";
 import { db } from "@/lib/firebase/config";
-import { doc, getDoc, Timestamp } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import {
   Calendar,
   HomeIcon,
@@ -18,17 +18,7 @@ import {
 import { useRouter } from "next/navigation";
 import React, { ReactNode, useEffect, useState } from "react";
 
-export interface UserProfile {
-  uid: string;
-  name: string;
-  role?: string;
-  email: string;
-  createdAt: Timestamp;
-  emailVerified: boolean;
-}
-
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -46,8 +36,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         const docRef = doc(db, "owners", uid);
         const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
-          setProfile(docSnap.data() as UserProfile);
+        if (!docSnap.exists()) {
+          router.push("/owner/login");
+          return;
         }
       } catch (error) {
         console.error("Error fetching profile:", error);

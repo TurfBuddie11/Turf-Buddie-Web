@@ -70,7 +70,7 @@ export default function OwnerLoginPage() {
               className="rounded-full"
               priority
             />
-            <span className="font-bold text-lg">TurfHub Owner</span>
+            <span className="font-bold text-lg">TurfBuddie Owner</span>
           </div>
           <CardTitle>Owner Login</CardTitle>
           <CardDescription>
