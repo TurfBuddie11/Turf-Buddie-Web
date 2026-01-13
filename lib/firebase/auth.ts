@@ -364,3 +364,76 @@ export const sendResetPasswordEmail = async (email: string) => {
     throw new Error("Failed to send password reset email.");
   }
 };
+
+export const loginAdmin = async (
+  email: string,
+  password: string,
+): Promise<UserCredential> => {
+  try {
+    const userCredentials = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password,
+    );
+    const user = userCredentials.user;
+    const adminRef = doc(db, "admins", user.uid);
+    const userSnap = await getDoc(adminRef);
+
+    if (!userSnap.exists()) {
+      await createAdminProfile(user, {});
+    } else if (user.emailVerified && !userSnap.data()?.emailVerified) {
+      await updateDoc(adminRef, { emailVerified: true });
+    }
+
+    return userCredentials;
+  } catch (error) {
+    if (error instanceof FirebaseError) {
+      switch (error.code) {
+        case "auth/user-not-found":
+        case "auth/invalid-credential":
+          throw new Error("Invalid email or password.");
+        case "auth/too-many-requests":
+          throw new Error(
+            "Access to this account has been temporarily disabled due to many failed login attempts.",
+          );
+        default:
+          throw new Error(error.message || "Login failed.");
+      }
+    }
+    if (error instanceof Error) throw error;
+    throw new Error("An unexpected error occurred during login.");
+  }
+};
+
+const createAdminProfile = async (
+  user: User,
+  profileData: Partial<UserProfile>,
+) => {
+  const userRef = doc(db, "admins", user.uid);
+  const profileSnap = await getDoc(userRef);
+
+  if (!profileSnap.exists()) {
+    const email = user.email ?? profileData.email;
+    if (!email) {
+      throw new Error("Email is required to create a user profile.");
+    }
+
+    // Generate a referral code for the new user
+
+    // This object is now type-safe because the UserProfile interface allows optional fields.
+    const newUserProfile = {
+      ...profileData,
+      uid: user.uid,
+      email,
+      createdAt: Timestamp.now(),
+      emailVerified: user.emailVerified,
+    };
+    await setDoc(userRef, newUserProfile);
+
+    await createLoyaltyAccount(user.uid);
+
+    return newUserProfile;
+  }
+
+  return profileSnap.data() as UserProfile;
+};

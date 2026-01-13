@@ -37,7 +37,6 @@ const ReferAndEarnPage = () => {
           const data = await response.json();
           setReferralCode(data.referralCode);
           setReferralsHistory(data.referralsHistory);
-          console.log(data);
         } else {
           const errorText = "Failed to fetch referral data.";
           setError(errorText);

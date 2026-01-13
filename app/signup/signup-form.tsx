@@ -261,11 +261,9 @@ export default function SignUpForm() {
         email: data.email,
         referralCode: data.referralCode,
       };
-      console.log(userData);
 
       if (isCompletionFlow && user) {
         const res = await updateUserProfile(user.uid, userData);
-        console.log(res);
         toast.success(
           "Profile updated! You’re all set to explore TurfBuddies.",
         );

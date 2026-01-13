@@ -44,22 +44,3 @@ export interface Booking {
   paid?: "Not Paid to Owner" | "Paid to Owner"; // Optional for offline bookings
   createdAt?: Date; // Optional since some bookings might not have this
 }
-
-export interface Tournament {
-  id: string;
-  name: string;
-  description: string;
-  image: string;
-  prizePool: number;
-  registrationFee: number;
-  startDate: Date;
-  endDate: Date;
-  venue: string;
-  maxTeams: number;
-  registeredTeams: number;
-  status: "upcoming" | "registration_open" | "ongoing" | "completed";
-  sport: "cricket" | "football" | "badminton" | "tennis";
-  rules: string[];
-  organizer: string;
-  createdAt: Date;
-}
