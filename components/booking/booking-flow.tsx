@@ -210,15 +210,16 @@ export function BookingFlow({
       const timeSlotLabels = selectedSlots.map((slot) =>
         getSlotLabel(slot.startTime, slot.endTime),
       );
+      const day = dateObj.toLocaleDateString("en-US", { day: "numeric" });
+      const month = dateObj.toLocaleDateString("en-US", { month: "short" });
+
+      const formattedDate = `${day} ${month}`;
 
       const initialBookingData = {
         turfId: turf.id,
         timeSlots: timeSlotLabels,
         daySlot: dateObj.toLocaleDateString("en-US", { weekday: "long" }),
-        monthSlot: dateObj.toLocaleDateString("en-US", {
-          day: "numeric",
-          month: "short",
-        }),
+        monthSlot: formattedDate,
         userUid: user.uid,
         status: "pending" as const,
         paid: "Not Paid to Owner" as const,
