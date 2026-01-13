@@ -56,7 +56,7 @@ export default function AdminLoginPage() {
       if (!response.ok) throw new Error("Failed to create session");
 
       toast.success("Welcome back, Admin");
-      router.push("/admin/dashboard");
+      router.push("/admin/tournaments/manage");
     } catch (error: unknown) {
       const msg =
         error instanceof Error ? error.message : "Invalid Credentials";

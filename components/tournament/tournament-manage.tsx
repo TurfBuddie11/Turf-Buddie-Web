@@ -1,12 +1,12 @@
 "use client";
 
-import { Tournament, Team } from "@/lib/types/booking";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx"; // Import SheetJS
+import { Team, Tournament } from "@/lib/types/tournament";
 
 interface ManageTournamentsClientProps {
   tournaments: Tournament[];
@@ -94,7 +94,7 @@ export default function ManageTournamentsClient({
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Manage Your Tournaments</h1>
         <Button asChild>
-          <Link href="/tournaments/create">Create New Tournament</Link>
+          <Link href="/admin/tournaments/create">Create New Tournament</Link>
         </Button>
       </div>
 

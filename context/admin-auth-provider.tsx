@@ -18,7 +18,7 @@ export function OwnerAuthProvider({ children }: { children: React.ReactNode }) {
     checkInProgress.current = true;
 
     try {
-      const response = await fetch("/api/auth/owner-session/check", {
+      const response = await fetch("/api/auth/admin-session/check", {
         credentials: "include",
         cache: "no-store",
       });

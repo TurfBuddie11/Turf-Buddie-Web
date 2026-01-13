@@ -51,13 +51,13 @@ import { Tournament } from "@/lib/types/tournament";
 import { VisuallyHidden } from "radix-ui";
 
 import { initiatePayment, PaymentSuccessPayload } from "@/lib/razorpay/payment";
-import { User } from "@/lib/types/user";
+import { UserProfile } from "@/lib/types/user";
 
 interface TeamRegistrationProps {
   tournament: Tournament;
   isOpen: boolean;
   onClose: () => void;
-  user: User;
+  user: UserProfile;
 }
 
 const teamRegistrationSchema = z.object({

@@ -376,11 +376,10 @@ export const loginAdmin = async (
       password,
     );
     const user = userCredentials.user;
-    const adminRef = doc(db, "admin", user.uid);
+    const adminRef = doc(db, "admins", user.uid);
     const userSnap = await getDoc(adminRef);
 
     if (!userSnap.exists()) {
-      // This case is unlikely if auth succeeded, but it's good for data integrity.
       await createAdminProfile(user, {});
     } else if (user.emailVerified && !userSnap.data()?.emailVerified) {
       await updateDoc(adminRef, { emailVerified: true });
