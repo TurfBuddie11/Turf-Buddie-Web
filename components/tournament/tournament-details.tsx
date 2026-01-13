@@ -332,7 +332,7 @@ export default function TournamentDetailsPage({
                                       size={12}
                                       className="text-green-500"
                                     />
-                                    {player.name} ({player.phone})
+                                    {player.name}
                                   </div>
                                 ),
                               )}

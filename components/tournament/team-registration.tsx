@@ -276,7 +276,7 @@ export default function TeamRegistrationMultiStepForm({
               {fields.map((item, index) => (
                 <div
                   key={item.id}
-                  className="p-3 border rounded-md bg-secondary/5 relative"
+                  className="p-3 border rounded-md bg-secondary/5 relative space-y-2"
                 >
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase">

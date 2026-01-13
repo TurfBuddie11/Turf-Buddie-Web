@@ -45,17 +45,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (pendingRegData.tournamentId !== tournamentId) {
+      return NextResponse.json(
+        { error: "Tournament ID mismatch" },
+        { status: 400 },
+      );
+    }
+
     const tournamentRef = adminDb.collection("Tournaments").doc(tournamentId);
 
-    // Add the team to a subcollection "teams" under the tournament document
-    const newTeamRef = await tournamentRef.collection("teams").add({
-      ...pendingRegData,
-      registeredAt: firestore.FieldValue.serverTimestamp(),
-    });
+    const teamId = await adminDb.runTransaction(async (transaction) => {
+      const tournamentDoc = await transaction.get(tournamentRef);
+      if (!tournamentDoc.exists) {
+        throw new Error("Tournament not found");
+      }
 
-    // Increment registeredTeams count in the main tournament document
-    await tournamentRef.update({
-      registeredTeams: firestore.FieldValue.increment(1),
+      const tournamentData = tournamentDoc.data();
+      if (!tournamentData) {
+        throw new Error("Tournament data not found");
+      }
+
+      if (tournamentData.registeredTeams >= tournamentData.maxTeams) {
+        throw new Error("Tournament is full");
+      }
+
+      const newTeamRef = tournamentRef.collection("teams").doc();
+      transaction.set(newTeamRef, {
+        ...pendingRegData,
+        registeredAt: firestore.FieldValue.serverTimestamp(),
+      });
+
+      transaction.update(tournamentRef, {
+        registeredTeams: firestore.FieldValue.increment(1),
+      });
+
+      return newTeamRef.id;
     });
 
     // Delete the pending registration document
@@ -64,7 +88,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        teamId: newTeamRef.id,
+        teamId: teamId,
         message: "Team registered successfully after payment verification!",
       },
       { status: 201 },
