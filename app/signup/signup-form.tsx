@@ -263,7 +263,7 @@ export default function SignUpForm() {
       };
 
       if (isCompletionFlow && user) {
-        const res = await updateUserProfile(user.uid, userData);
+        await updateUserProfile(user.uid, userData);
         toast.success(
           "Profile updated! You’re all set to explore TurfBuddies.",
         );

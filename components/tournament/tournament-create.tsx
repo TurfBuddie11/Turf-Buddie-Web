@@ -329,10 +329,7 @@ export default function CreateTournamentPage() {
                   <Controller
                     name="image"
                     control={form.control}
-                    render={({
-                      field: { onChange, value, name },
-                      fieldState,
-                    }) => (
+                    render={({ field: { onChange, name }, fieldState }) => (
                       <Field data-invalid={fieldState.invalid}>
                         <input
                           name={name}

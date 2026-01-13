@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileSpreadsheet, Edit3, Trash2, Calendar, Users } from "lucide-react";
+import { FileSpreadsheet, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Team, Tournament } from "@/lib/types/tournament";
-import { useRouter } from "next/navigation";
 
 interface ManageTournamentsClientProps {
   tournaments: Tournament[];
@@ -16,8 +15,6 @@ interface ManageTournamentsClientProps {
 export default function ManageTournamentsClient({
   tournaments,
 }: ManageTournamentsClientProps) {
-  const router = useRouter();
-
   const handleExportTeams = async (
     tournamentId: string,
     tournamentName: string,
@@ -57,7 +54,7 @@ export default function ManageTournamentsClient({
       );
 
       toast.success("Excel exported!");
-    } catch (error) {
+    } catch {
       toast.error("Export failed");
     }
   };
@@ -110,9 +107,9 @@ export default function ManageTournamentsClient({
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
+              <div className="flex items-center justify-between p-3 rounded-lg border">
                 <div className="text-center flex-1 border-r">
-                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">
+                  <p className="text-[10px] uppercase font-bold  leading-none mb-1">
                     Teams
                   </p>
                   <p className="font-bold text-sm">
@@ -120,7 +117,7 @@ export default function ManageTournamentsClient({
                   </p>
                 </div>
                 <div className="text-center flex-1">
-                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">
+                  <p className="text-[10px] uppercase font-bold  leading-none mb-1">
                     Fee
                   </p>
                   <p className="font-bold text-sm text-primary">

@@ -124,7 +124,7 @@ export default function ExplorePage() {
       nearbyTurfs.sort((a, b) => a.distance - b.distance);
       return nearbyTurfs;
     },
-    [turfs],
+    [],
   );
 
   // Used for getiing location

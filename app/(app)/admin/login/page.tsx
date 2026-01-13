@@ -66,7 +66,7 @@ export default function AdminLoginPage() {
 
   return (
     // min-h-dvh (dynamic viewport height) ensures better behavior on mobile browsers
-    <div className="min-h-dvh flex items-center justify-center p-4 sm:p-6 bg-slate-50">
+    <div className="min-h-dvh flex items-center justify-center p-4 sm:p-6 ">
       {/* Mobile: w-full (maximized space)
           Desktop: max-w-md (centered narrow card)
       */}
@@ -83,7 +83,7 @@ export default function AdminLoginPage() {
               />
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-xl sm:text-lg tracking-tight text-slate-900">
+              <span className="font-bold text-xl sm:text-lg tracking-tight">
                 TurfBuddie Admin
               </span>
               <p className="text-xs font-medium text-primary flex items-center justify-center sm:justify-start gap-1">
@@ -105,7 +105,7 @@ export default function AdminLoginPage() {
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel className="text-slate-700 font-semibold">
+                    <FieldLabel className="font-semibold">
                       Email Address
                     </FieldLabel>
                     <Input
@@ -126,9 +126,7 @@ export default function AdminLoginPage() {
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel className="text-slate-700 font-semibold">
-                      Password
-                    </FieldLabel>
+                    <FieldLabel className="font-semibold">Password</FieldLabel>
                     <div className="relative">
                       <Input
                         {...field}
@@ -140,7 +138,7 @@ export default function AdminLoginPage() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-slate-600 transition-colors"
+                        className="absolute right-0 top-0 h-full px-3  transition-colors"
                         aria-label={
                           showPassword ? "Hide password" : "Show password"
                         }
@@ -167,7 +165,7 @@ export default function AdminLoginPage() {
               />
               <label
                 htmlFor="rememberMe"
-                className="text-slate-600 cursor-pointer select-none font-medium"
+                className=" cursor-pointer select-none font-medium"
               >
                 Keep me logged in
               </label>
@@ -189,7 +187,7 @@ export default function AdminLoginPage() {
             </Button>
           </form>
 
-          <p className="mt-8 text-center text-xs text-slate-400">
+          <p className="mt-8 text-center text-xs">
             &copy; {new Date().getFullYear()} TurfBuddie Management System.
             <br />
             Authorized Personnel Only.

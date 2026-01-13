@@ -130,7 +130,7 @@ export default function TurfDetailsClient({
               <BookingFlow
                 turf={turf}
                 selectedDate={date ? format(date, "yyyy-MM-dd") : localDate}
-                onBookingComplete={(booking) => {}}
+                onBookingComplete={() => router.push("/bookings")}
               />
 
               {/* Booking Flow (Time Slot/Duration/Payment) */}
