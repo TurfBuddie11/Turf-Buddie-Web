@@ -1,6 +1,6 @@
 import { adminDb } from "@/lib/firebase/admin";
 import { NextRequest, NextResponse } from "next/server";
-import Razorpay from "razorpay";
+import crypto from "crypto";
 import { firestore } from "firebase-admin";
 
 export async function POST(request: NextRequest) {
@@ -15,14 +15,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify payment signature
-    const generated_signature = Razorpay.generateWebhookSignature(
-      JSON.stringify(request.body),
-      signature,
-      process.env.RAZORPAY_WEBHOOK_SECRET!,
-    );
+    const body = `${orderId}|${paymentId}`;
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
+      .update(body)
+      .digest("hex");
 
-    if (generated_signature !== signature) {
+    if (expectedSignature !== signature) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 

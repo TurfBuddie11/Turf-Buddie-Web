@@ -27,7 +27,6 @@ export async function generateMetadata({
 
 export default async function Page({ params }: PageProps) {
   const { id } = await params;
-  console.log(id);
   const tournament = await getTournamentById(id);
 
   if (!tournament) {

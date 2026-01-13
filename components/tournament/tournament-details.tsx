@@ -23,7 +23,7 @@ import TeamRegistrationForm from "@/components/tournament/team-registration";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Spinner } from "../ui/spinner";
-import { Team, Tournament } from "@/lib/types/tournament";
+import { Player, Team, Tournament } from "@/lib/types/tournament";
 import { useAuth } from "@/context/auth-provider";
 import { useRouter } from "next/navigation";
 
@@ -34,7 +34,7 @@ interface TournamentDetailsProps {
 export default function TournamentDetailsPage({
   tournament,
 }: TournamentDetailsProps) {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const router = useRouter();
   const isFull = tournament.registeredTeams >= tournament.maxTeams;
   const [isRegistrationFormOpen, setIsRegistrationFormOpen] = useState(false);
@@ -42,7 +42,7 @@ export default function TournamentDetailsPage({
   const [isLoadingTeams, setIsLoadingTeams] = useState(false);
 
   const handleRegistrationClick = () => {
-    if (!user) {
+    if (!profile) {
       toast.error("Please log in to register for the tournament.");
       router.push("/login");
     } else {
@@ -323,7 +323,7 @@ export default function TournamentDetailsPage({
                             </div>
                             <div className="grid grid-cols-2 gap-2 pt-2 border-t">
                               {team.players.map(
-                                (player: string, idx: number) => (
+                                (player: Player, idx: number) => (
                                   <div
                                     key={idx}
                                     className="flex items-center gap-2 text-xs text-muted-foreground"
@@ -332,7 +332,7 @@ export default function TournamentDetailsPage({
                                       size={12}
                                       className="text-green-500"
                                     />
-                                    {player}
+                                    {player.name} ({player.phone})
                                   </div>
                                 ),
                               )}
@@ -432,12 +432,12 @@ export default function TournamentDetailsPage({
         </div>
       </div>
 
-      {user && (
+      {profile && (
         <TeamRegistrationForm
           tournament={tournament}
           isOpen={isRegistrationFormOpen}
           onClose={() => setIsRegistrationFormOpen(false)}
-          user={user}
+          user={profile}
         />
       )}
     </div>

@@ -27,8 +27,6 @@ export async function POST(request: Request) {
       path: "/",
     });
 
-    console.log("Owner session cookie created successfully");
-
     return NextResponse.json({ status: "success" });
   } catch (error) {
     console.error("Error creating owner session cookie:", error);

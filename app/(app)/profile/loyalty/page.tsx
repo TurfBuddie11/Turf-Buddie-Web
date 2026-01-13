@@ -104,13 +104,11 @@ export default function ProfilePage() {
 
   const handleProfileUpdate = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("[v0] Profile update:", profileData);
     // Add logic to save profile data to your backend
   };
 
   const handlePasswordChange = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("[v0] Password change requested");
     // Add password change logic here
   };
 
@@ -125,7 +123,6 @@ export default function ProfilePage() {
       alert("You do not have enough points to redeem this amount.");
       return;
     }
-    console.log(`[v0] Redeeming ${amount} points.`);
     // Add logic to process the redemption via your API
     // On success, you might want to refetch the loyalty data
     alert(`${amount} points redeemed successfully!`);

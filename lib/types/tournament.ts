@@ -5,8 +5,13 @@ export interface Team {
   teamName: string;
   captainName: string;
   captainPhone: string;
-  players: string[]; // Array of player names
+  players: Player[]; // Array of player names
   registeredAt: Timestamp;
+}
+
+export interface Player {
+  name: string;
+  phone: string;
 }
 
 export interface Tournament {

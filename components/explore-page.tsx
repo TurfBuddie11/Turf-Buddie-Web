@@ -135,14 +135,12 @@ export default function ExplorePageComponent() {
         (position) => {
           const userLat = position.coords.latitude;
           const userLng = position.coords.longitude;
-          console.log("User location:", userLat, userLng);
           // You can use userLat and userLng to filter or sort turfs by proximity
           const nearbyTurfs = findNearbyTurfs(
             { latitude: userLat, longitude: userLng },
             turfs,
             200,
           );
-          console.log("Nearby turfs:", nearbyTurfs);
         },
         (error) => {
           console.error("Error getting user location:", error);

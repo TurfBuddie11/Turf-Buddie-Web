@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Calendar, ImagePlus, Info, Trophy, Users } from "lucide-react";
-import z from "zod";
+import z from "zod/v3";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { uploadFile } from "@/lib/firebase/storage";
@@ -329,7 +329,10 @@ export default function CreateTournamentPage() {
                   <Controller
                     name="image"
                     control={form.control}
-                    render={({ field: { onChange, name }, fieldState }) => (
+                    render={({
+                      field: { onChange, value, name },
+                      fieldState,
+                    }) => (
                       <Field data-invalid={fieldState.invalid}>
                         <input
                           name={name}

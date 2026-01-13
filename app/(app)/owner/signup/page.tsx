@@ -90,7 +90,6 @@ export default function OwnerSignupPage() {
       toast.error("Passwords do not match");
       return;
     }
-    console.log("Owner signup:", data);
     try {
       const { user } = await registerWithEmail(
         formData.email,

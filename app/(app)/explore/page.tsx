@@ -93,7 +93,6 @@ export default function ExplorePage() {
           };
         });
         setTurfs(turfList);
-        console.log(turfList);
       } catch (err) {
         console.error("Failed to fetch turfs:", err);
       } finally {
@@ -110,7 +109,6 @@ export default function ExplorePage() {
       radiusKm: number,
     ) => {
       const nearbyTurfs = [];
-      console.log("Turfs: ", turfs);
       for (const turf of turfsToSearch) {
         const distance = haversineDistance(
           userLat.latitude,
@@ -137,14 +135,12 @@ export default function ExplorePage() {
         (position) => {
           const userLat = position.coords.latitude;
           const userLng = position.coords.longitude;
-          console.log("User location:", userLat, userLng);
           // You can use userLat and userLng to filter or sort turfs by proximity
           const nearbyTurfs = findNearbyTurfs(
             { latitude: userLat, longitude: userLng },
             turfs,
             10,
           );
-          console.log("Nearby turfs:", nearbyTurfs);
           setNearbyTurfs(nearbyTurfs);
           setLocationFound(true);
         },

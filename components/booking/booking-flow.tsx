@@ -161,7 +161,6 @@ export function BookingFlow({
         const normalized = new Set<string>(
           (data.bookedSlots || []).map((slot: string) => slot.trim()),
         );
-        console.log(data);
         setBookedSlots(normalized);
       } catch (error) {
         toast.error("Data Fetch Error", {

@@ -77,6 +77,7 @@ const teamRegistrationSchema = z.object({
           .string()
           .min(3, "Player name is required")
           .max(50, "Player name cannot exceed 50 characters"),
+        phone: z.string().refine(isValidPhoneNumber, "Invalid phone number"),
       }),
     )
     .min(1, "At least one player is required beyond the captain"),
@@ -141,7 +142,7 @@ export default function TeamRegistrationMultiStepForm({
       teamName: "",
       captainName: "",
       captainPhone: "",
-      players: Array(tournament.teamSize - 1).fill({ name: "" }),
+      players: Array(tournament.teamSize - 1).fill({ name: "", phone: "" }),
     },
     mode: "onTouched",
   });
@@ -175,7 +176,7 @@ export default function TeamRegistrationMultiStepForm({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...values,
-            players: values.players.map((p) => p.name),
+            players: values.players,
           }),
         },
       );
@@ -192,7 +193,7 @@ export default function TeamRegistrationMultiStepForm({
         currency: order.currency,
         orderId: order.orderId,
         userDetails: {
-          name: user.displayName || "Unknown User",
+          name: user.name || "Unknown User",
           email: user.email || "no-email@example.com",
           contact: values.captainPhone,
         },
@@ -265,7 +266,7 @@ export default function TeamRegistrationMultiStepForm({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => append({ name: "" })}
+                  onClick={() => append({ name: "", phone: "" })}
                 >
                   <Plus className="mr-2 h-4 w-4" /> Add Player
                 </Button>
@@ -303,6 +304,16 @@ export default function TeamRegistrationMultiStepForm({
                       </Field>
                     )}
                   />
+                  <Controller
+                    name={`players.${index}.phone`}
+                    control={form.control}
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <PhoneInput {...field} />
+                        <FieldError>{fieldState.error?.message}</FieldError>
+                      </Field>
+                    )}
+                  />
                 </div>
               ))}
             </div>
@@ -335,7 +346,7 @@ export default function TeamRegistrationMultiStepForm({
                   {summary.players.map((p, i) => (
                     <div key={i} className="text-sm flex items-center gap-2">
                       <CheckCircle2 size={12} className="text-primary" />{" "}
-                      {p.name}
+                      {p.name} ({p.phone})
                     </div>
                   ))}
                 </div>

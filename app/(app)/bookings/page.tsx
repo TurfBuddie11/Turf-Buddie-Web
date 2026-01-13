@@ -30,8 +30,6 @@ export default function BookingPage() {
           const turf = turfDoc.data();
           const timeSlots: Booking[] = turfData?.timeSlots || [];
 
-          console.log(turf.image);
-
           timeSlots.forEach((slot) => {
             if (slot.userUid === user?.uid) {
               userBookings.push({
