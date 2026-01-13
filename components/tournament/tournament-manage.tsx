@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, Edit3, Trash2, Calendar, Users } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx"; // Import SheetJS
+import * as XLSX from "xlsx";
 import { Team, Tournament } from "@/lib/types/tournament";
+import { useRouter } from "next/navigation";
 
 interface ManageTournamentsClientProps {
   tournaments: Tournament[];
@@ -15,6 +16,8 @@ interface ManageTournamentsClientProps {
 export default function ManageTournamentsClient({
   tournaments,
 }: ManageTournamentsClientProps) {
+  const router = useRouter();
+
   const handleExportTeams = async (
     tournamentId: string,
     tournamentName: string,
@@ -22,115 +25,145 @@ export default function ManageTournamentsClient({
     try {
       const response = await fetch(`/api/tournaments/${tournamentId}/teams`);
       if (!response.ok) throw new Error("Failed to fetch teams data.");
-
       const teams: Team[] = await response.json();
 
       if (teams.length === 0) {
-        toast.info("No teams registered yet for this tournament.");
+        toast.info("No teams registered yet.");
         return;
       }
 
-      // 1. Prepare Data for "Registered Teams" Sheet
+      const workbook = XLSX.utils.book_new();
+
       const teamsData = teams.map((team, index) => ({
         "Sr. No": index + 1,
         "Team Name": team.teamName,
-        "Captain Name": team.captainName,
-        "Contact Number": team.captainPhone,
-        "Squad Members": team.players.join(", "),
-        "Registration Date": team.registeredAt
+        Captain: team.captainName,
+        Phone: team.captainPhone,
+        Squad: team.players
+          .map(
+            (p: { name: string; phone: string }) => `${p.name} - (${p.phone})`,
+          )
+          .join("\n  "),
+        Date: team.registeredAt
           ? new Date(team.registeredAt.seconds * 1000).toLocaleDateString()
           : "N/A",
       }));
 
-      // 2. Prepare Data for "Tournament Summary" Sheet
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      const summaryData = [
-        { Field: "Tournament Name", Value: tournamentName },
-        { Field: "Export Date", Value: new Date().toLocaleString() },
-        { Field: "Total Teams Registered", Value: teams.length },
-        { Field: "Max Capacity", Value: tournament?.maxTeams || "N/A" },
-        { Field: "Registration Fee", Value: `₹${tournament?.registrationFee}` },
-      ];
-
-      // 3. Create Workbook and Worksheets
-      const workbook = XLSX.utils.book_new();
-
       const teamsSheet = XLSX.utils.json_to_sheet(teamsData);
-      const summarySheet = XLSX.utils.json_to_sheet(summaryData);
-
-      // 4. Set Column Widths (Optional but makes it look much better)
-      const wscols = [
-        { wch: 8 }, // Sr. No
-        { wch: 25 }, // Team Name
-        { wch: 20 }, // Captain Name
-        { wch: 15 }, // Contact
-        { wch: 50 }, // Squad Members
-        { wch: 20 }, // Date
-      ];
-      teamsSheet["!cols"] = wscols;
-
-      // 5. Append Sheets to Workbook
       XLSX.utils.book_append_sheet(workbook, teamsSheet, "Registered Teams");
-      XLSX.utils.book_append_sheet(
+      XLSX.writeFile(
         workbook,
-        summarySheet,
-        "Tournament Summary",
+        `${tournamentName.replace(/\s/g, "_")}_Teams.xlsx`,
       );
 
-      // 6. Finalize and Download
-      const fileName = `${tournamentName.replace(/\s/g, "_")}_Export.xlsx`;
-      XLSX.writeFile(workbook, fileName);
-
-      toast.success("Excel file generated successfully!");
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Failed to export Excel.";
-      toast.error(message);
+      toast.success("Excel exported!");
+    } catch (error) {
+      toast.error("Export failed");
     }
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Manage Your Tournaments</h1>
-        <Button asChild>
+    <div className="container mx-auto py-8 px-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight">
+            Tournament Manager
+          </h1>
+          <p className="text-muted-foreground">
+            Manage registrations and event details
+          </p>
+        </div>
+        <Button asChild className="font-bold">
           <Link href="/admin/tournaments/create">Create New Tournament</Link>
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tournaments.map((tournament: Tournament) => (
-          <Card key={tournament.id} className="relative">
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold">
-                {tournament.name}
-              </CardTitle>
-              <p className="text-sm text-gray-500">
-                {new Date(tournament.startDate).toLocaleDateString()} -{" "}
-                {new Date(tournament.endDate).toLocaleDateString()}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-gray-700 line-clamp-2">
-                {tournament.description}
-              </p>
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <span>
-                  Teams: {tournament.registeredTeams}/{tournament.maxTeams}
-                </span>
-                <span>Fee: ₹{tournament.registrationFee}</span>
+        {tournaments.map((tournament) => (
+          <Card
+            key={tournament.id}
+            className="overflow-hidden border-2 hover:border-primary/50 transition-colors"
+          >
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <CardTitle className="text-xl font-bold line-clamp-1">
+                  {tournament.name}
+                </CardTitle>
+                <div className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded uppercase">
+                  {tournament.sport}
+                </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center text-xs text-muted-foreground gap-1 mt-1">
+                <Calendar size={14} />
+                <span>
+                  {new Date(tournament.startDate).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                  })}{" "}
+                  -
+                  {new Date(tournament.endDate).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                  })}
+                </span>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
+                <div className="text-center flex-1 border-r">
+                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">
+                    Teams
+                  </p>
+                  <p className="font-bold text-sm">
+                    {tournament.registeredTeams} / {tournament.maxTeams}
+                  </p>
+                </div>
+                <div className="text-center flex-1">
+                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">
+                    Fee
+                  </p>
+                  <p className="font-bold text-sm text-primary">
+                    ₹{tournament.registrationFee}
+                  </p>
+                </div>
+              </div>
+
+              {/* ACTION BUTTONS */}
+              <div className="grid grid-cols-3 gap-2">
+                {/* <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex flex-col h-auto py-2 gap-1"
+                  asChild
+                >
+                  <Link href={`/admin/tournaments/edit/${tournament.id}`}>
+                    <Edit3 size={16} />
+                    <span className="text-[10px]">Edit</span>
+                  </Link>
+                </Button> */}
+
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="flex-1"
+                  className="flex flex-col h-auto py-2 gap-1"
                   onClick={() =>
                     handleExportTeams(tournament.id, tournament.name)
                   }
                 >
-                  <FileSpreadsheet className="h-4 w-4 mr-2" /> Export
+                  <FileSpreadsheet size={16} />
+                  <span className="text-[10px]">Export</span>
                 </Button>
+
+                {/* <Button
+                  variant="destructive"
+                  size="sm"
+                  className="flex flex-col h-auto py-2 gap-1"
+                  onClick={() => handleDelete(tournament.id, tournament.name)}
+                >
+                  <Trash2 size={16} />
+                  <span className="text-[10px]">Delete</span>
+                </Button> */}
               </div>
             </CardContent>
           </Card>
