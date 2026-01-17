@@ -9,7 +9,6 @@ import {
   ShieldAlert,
   Info,
   Phone,
-  Clock,
   ArrowRight,
   CheckCircle2,
 } from "lucide-react";
@@ -26,6 +25,7 @@ import { Spinner } from "../ui/spinner";
 import { Player, Team, Tournament } from "@/lib/types/tournament";
 import { useAuth } from "@/context/auth-provider";
 import { useRouter } from "next/navigation";
+import TournamentDescription from "./tournament-description";
 
 interface TournamentDetailsProps {
   tournament: Tournament;
@@ -49,22 +49,28 @@ export default function TournamentDetailsPage({
       setIsRegistrationFormOpen(true);
     }
   };
-  const fetchTeams = async () => {
-    const length = teams?.length ?? 0;
-    if (length > 0) return;
-    setIsLoadingTeams(true);
-    try {
-      const res = await fetch(`/api/tournaments/${tournament.id}/teams`);
-      const data = await res.json();
-      setTeams(data);
-    } finally {
-      setIsLoadingTeams(false);
-    }
-  };
 
   useEffect(() => {
+    let isMounted = true;
+    const fetchTeams = async () => {
+      if (teams && teams.length > 0) return;
+      setIsLoadingTeams(true);
+      try {
+        const res = await fetch(`/api/tournaments/${tournament.id}/teams`);
+        const data = await res.json();
+        if (isMounted) setTeams(data);
+      } catch (err) {
+        console.error(err);
+        toast.error("Could not load registered teams.");
+      } finally {
+        if (isMounted) setIsLoadingTeams(false);
+      }
+    };
     fetchTeams();
-  });
+    return () => {
+      isMounted = false;
+    };
+  }, [tournament.id]);
 
   const handleShare = async () => {
     const shareData = {
@@ -194,9 +200,7 @@ export default function TournamentDetailsPage({
 
               <TabsContent value="overview" className="mt-8 space-y-8">
                 <div className="prose prose-slate max-w-none">
-                  <p className="text-lg leading-relaxed italic border-l-4 border-primary/20 pl-4">
-                    {tournament.description}
-                  </p>
+                  <TournamentDescription content={tournament.description} />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -241,17 +245,7 @@ export default function TournamentDetailsPage({
                     <Info className="text-primary" /> Official Rules
                   </h3>
                   <div className="grid gap-4">
-                    {tournament.rules.map((rule: string, i: number) => (
-                      <div key={i} className="flex gap-3 p-3 rounded-lg border">
-                        <CheckCircle2
-                          className="text-primary shrink-0 mt-0.5"
-                          size={18}
-                        />
-                        <span className="text-sm sm:text-base font-medium">
-                          {rule}
-                        </span>
-                      </div>
-                    ))}
+                    <TournamentDescription content={tournament.rules} />
                   </div>
                 </div>
               </TabsContent>
@@ -393,18 +387,18 @@ export default function TournamentDetailsPage({
                   >
                     {isFull ? "Joined Waiting List" : "REGISTER TEAM"}
                   </Button>
-                  <div className="flex items-center justify-center gap-2 text-xs font-medium">
+                  {/*<div className="flex items-center justify-center gap-2 text-xs font-medium">
                     <Clock size={14} /> Registration ends in 48 hours
-                  </div>
+                  </div>*/}
                 </div>
 
-                <div className="pt-6 border-t flex items-center gap-4 text-xs ">
+                {/*<div className="pt-6 border-t flex items-center gap-4 text-xs ">
                   <ShieldAlert className="text-amber-500 shrink-0" size={20} />
                   <p>
                     Secure checkout with SSL encryption. Non-refundable after
                     bracket generation.
                   </p>
-                </div>
+                </div>*/}
               </CardContent>
             </Card>
           </div>

@@ -1,6 +1,8 @@
 import { getAllTournaments } from "@/lib/db/tournaments";
 import TournamentCard from "@/components/tournament/tournment-card";
 
+export const revalidate = 36000;
+
 export default async function TournamentPage() {
   const tournaments = await getAllTournaments();
 

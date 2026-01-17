@@ -1,10 +1,12 @@
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
 import { MapPin, Users, Trophy, ChevronRight, Clock } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Tournament } from "@/lib/types/tournament";
+import TournamentDescription from "./tournament-description";
 
 interface TournamentCardProps {
   tournament: Omit<Tournament, "prizePool" | "registrationFee">;
@@ -31,7 +33,7 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
 
   return (
     <Link href={`/tournaments/${tournament.id}`} className="w-full">
-      <Card className="group flex flex-col md:max-w-md  overflow-hidden border-none shadow-sm transition-all hover:shadow-lg sm:hover:shadow-xl  active:scale-[0.99] sm:active:scale-100">
+      <Card className="group flex flex-col md:max-w-lg  overflow-hidden border-none shadow-sm transition-all hover:shadow-lg sm:hover:shadow-xl  active:scale-[0.99] sm:active:scale-100">
         <div className="relative h-44 sm:h-52 w-full overflow-hidden">
           <Image
             src={tournament.image || "/placeholder-tournament.jpg"}
@@ -73,9 +75,15 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
             {tournament.name}
           </h3>
 
-          <p className="mb-4 line-clamp-2 text-xs sm:text-sm  leading-relaxed min-h-[2.5rem] sm:min-h-[3rem]">
-            {tournament.description}
-          </p>
+          {/*<article className="prose prose-neutral max-w-none">
+            <TournamentDescription
+              content={
+                tournament.description.length > 60
+                  ? tournament.description.substring(0, 40) + "..."
+                  : tournament.description
+              }
+            />
+          </article>*/}
 
           {/* Metadata Grid: Grid gap optimized for mobile thumb spacing */}
           <div className="grid grid-cols-2 gap-y-3 sm:gap-y-4 border-t pt-4">

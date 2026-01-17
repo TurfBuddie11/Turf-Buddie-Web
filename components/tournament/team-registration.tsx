@@ -30,6 +30,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
+  Info,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -52,6 +53,7 @@ import { VisuallyHidden } from "radix-ui";
 
 import { initiatePayment, PaymentSuccessPayload } from "@/lib/razorpay/payment";
 import { UserProfile } from "@/lib/types/user";
+import TournamentDescription from "./tournament-description";
 
 interface TeamRegistrationProps {
   tournament: Tournament;
@@ -117,6 +119,11 @@ export default function TeamRegistrationMultiStepForm({
     description: string;
     fields: Path<TeamRegistrationFormSchema>[];
   }[] = [
+    {
+      title: "Tournament Rules",
+      description: "Please review the rules before proceeding.",
+      fields: [],
+    },
     {
       title: "Team Details",
       description: "Enter your team and captain's information.",
@@ -220,6 +227,21 @@ export default function TeamRegistrationMultiStepForm({
     switch (currentStep) {
       case 0:
         return (
+          <div className="space-y-4">
+            <div className="rounded-lg border bg-muted/30 p-4 space-y-3 max-h-[300px] overflow-y-auto pr-2">
+              <h4 className="font-bold flex items-center gap-2">
+                <Info size={18} className="text-primary" /> Guidelines
+              </h4>
+              <TournamentDescription content={tournament.rules} />
+            </div>
+            <p className="text-xs text-muted-foreground italic text-center">
+              By clicking Continue, you agree to abide by the rules listed
+              above.
+            </p>
+          </div>
+        );
+      case 1:
+        return (
           <FieldGroup>
             <Controller
               name="teamName"
@@ -256,7 +278,7 @@ export default function TeamRegistrationMultiStepForm({
             />
           </FieldGroup>
         );
-      case 1:
+      case 2:
         return (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -319,7 +341,7 @@ export default function TeamRegistrationMultiStepForm({
             </div>
           </div>
         );
-      case 2:
+      case 3:
         const summary = form.getValues();
         return (
           <div className="space-y-4">

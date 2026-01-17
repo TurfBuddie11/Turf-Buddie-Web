@@ -74,11 +74,10 @@ export default function CreateTournamentPage() {
       }
       const { rules, startDate, endDate, ...restOfData } = values;
 
-      const rulesArray = rules.split("\n").filter((rule) => rule.trim() !== "");
       const payload = {
         ...restOfData,
         image: imageURL,
-        rules: rulesArray,
+        rules: rules,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         createdAt: new Date(),

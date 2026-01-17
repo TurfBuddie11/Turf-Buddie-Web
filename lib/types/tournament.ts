@@ -29,7 +29,7 @@ export interface Tournament {
   registeredTeams: number;
   status: "upcoming" | "registration_open" | "ongoing" | "completed";
   sport: "cricket" | "football" | "badminton" | "tennis" | "pickleball";
-  rules: string[];
+  rules: string;
   organizer?: string;
   createdAt: Date;
   teams?: Team[]; // Added teams array

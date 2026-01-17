@@ -1,6 +1,7 @@
 import { adminDb } from "@/lib/firebase/admin";
 import { Tournament } from "@/lib/types/tournament";
 import { Timestamp } from "firebase-admin/firestore";
+import { cache } from "react";
 
 export async function createTournament(
   tournament: Omit<Tournament, "id" | "createdAt" | "registeredTeams">,
@@ -18,8 +19,14 @@ export async function createTournament(
   return tournamentRef.id;
 }
 
-export async function getAllTournaments(): Promise<Tournament[]> {
-  const snapshot = await adminDb.collection("Tournaments").get();
+// Wrap your function in cache()
+export const getAllTournaments = cache(async (): Promise<Tournament[]> => {
+  const snapshot = await adminDb
+    .collection("Tournaments")
+    .orderBy("createdAt", "desc") // Use "desc" for newest first
+    .limit(20)
+    .get();
+
   return snapshot.docs.map((doc) => {
     const data = doc.data();
     return {
@@ -30,4 +37,4 @@ export async function getAllTournaments(): Promise<Tournament[]> {
       createdAt: data.createdAt.toDate(),
     } as Tournament;
   });
-}
+});

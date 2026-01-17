@@ -1,4 +1,3 @@
-import { OwnerProfile } from "../types/owner";
 import {
   createUserWithEmailAndPassword,
   fetchSignInMethodsForEmail,
@@ -24,105 +23,21 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "./config";
 import { UserProfile } from "../types/user";
+import { OwnerProfile } from "../types/owner";
 import { nanoid } from "nanoid";
+import { SignupFormData } from "../types/signup.types";
 
-// --- Private Helper Functions ---
+/* ==============================
+   INTERNAL HELPERS
+============================== */
 
-/**
- * Creates a user profile document in Firestore if one doesn't already exist.
- * This is called after a new user signs up.
- * @param user - The Firebase Auth user object.
- * @param profileData - Partial profile data to initialize the document with.
- * @returns The user's profile data.
- */
-const createUserProfile = async (
-  user: User,
-  profileData: Partial<UserProfile>,
-): Promise<UserProfile> => {
-  const userRef = doc(db, "users", user.uid);
-  const profileSnap = await getDoc(userRef);
-
-  if (!profileSnap.exists()) {
-    const email = user.email ?? profileData.email;
-    if (!email) {
-      throw new Error("Email is required to create a user profile.");
-    }
-
-    const name = user.displayName ?? profileData.name;
-    if (!name) {
-      throw new Error("Name is required to create a user profile.");
-    }
-
-    // Generate a referral code for the new user
-    const referralCode = nanoid(8).toUpperCase();
-
-    // This object is now type-safe because the UserProfile interface allows optional fields.
-    const newUserProfile: UserProfile = {
-      ...profileData,
-      uid: user.uid,
-      email,
-      name,
-      createdAt: Timestamp.now(),
-      emailVerified: user.emailVerified,
-      referralCode, // Add the generated referral code
-    };
-    await setDoc(userRef, newUserProfile);
-
-    await createLoyaltyAccount(user.uid);
-
-    return newUserProfile;
-  }
-
-  return profileSnap.data() as UserProfile;
-};
-const createOwnerProfile = async (
-  user: User,
-  profileData: Partial<OwnerProfile>,
-): Promise<OwnerProfile> => {
-  const ownerRef = doc(db, "owners", user.uid);
-  const profileSnap = await getDoc(ownerRef);
-
-  if (!profileSnap.exists()) {
-    const email = user.email ?? profileData.email;
-    if (!email) {
-      throw new Error("Email is required to create a user profile.");
-    }
-
-    const name = user.displayName ?? profileData.name;
-    if (!name) {
-      throw new Error("Name is required to create a user profile.");
-    }
-
-    // This object is now type-safe because the UserProfile interface allows optional fields.
-    const newOwnerProfile: OwnerProfile = {
-      ...profileData,
-      uid: user.uid,
-      email,
-      name,
-      createdAt: Timestamp.now(),
-      emailVerified: user.emailVerified,
-    };
-    await setDoc(ownerRef, newOwnerProfile);
-
-    return newOwnerProfile;
-  }
-
-  return profileSnap.data() as OwnerProfile;
-};
-
-/**
- * Creates a loyalty account with a welcome bonus for a new user.
- * @param userId - The UID of the user.
- */
 const createLoyaltyAccount = async (userId: string) => {
   const batch = writeBatch(db);
-  const loyaltyPointsRef = doc(db, "loyalty_points", userId);
-  const loyaltyHistoryRef = doc(collection(db, "loyalty_history"));
 
-  batch.set(loyaltyPointsRef, { balance: 25 });
-  batch.set(loyaltyHistoryRef, {
+  batch.set(doc(db, "loyalty_points", userId), { balance: 25 });
+  batch.set(doc(collection(db, "loyalty_history")), {
     userId,
-    amount: 50,
+    amount: 25,
     type: "credit",
     reason: "Welcome bonus",
     timestamp: Timestamp.now(),
@@ -131,309 +46,214 @@ const createLoyaltyAccount = async (userId: string) => {
   await batch.commit();
 };
 
-// --- Public Auth & Profile Functions ---
+const createUserProfile = async (
+  user: User,
+  profileData: Partial<UserProfile>,
+): Promise<UserProfile> => {
+  const ref = doc(db, "users", user.uid);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    if (!user.email) throw new Error("Email missing");
+
+    const profile: UserProfile = {
+      uid: user.uid,
+      email: user.email,
+      name: user.displayName ?? profileData.name ?? "",
+      createdAt: Timestamp.now(),
+      emailVerified: user.emailVerified,
+      referralCode: nanoid(8).toUpperCase(),
+      ...profileData,
+    };
+
+    await setDoc(ref, profile);
+    await createLoyaltyAccount(user.uid);
+    return profile;
+  }
+
+  return snap.data() as UserProfile;
+};
+
+const createOwnerProfile = async (
+  user: User,
+  profileData: Partial<OwnerProfile>,
+): Promise<OwnerProfile> => {
+  const ref = doc(db, "owners", user.uid);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    if (!user.email) throw new Error("Email missing");
+
+    const profile: OwnerProfile = {
+      uid: user.uid,
+      email: user.email,
+      name: user.displayName ?? profileData.name ?? "",
+      createdAt: Timestamp.now(),
+      emailVerified: user.emailVerified,
+      ...profileData,
+    };
+
+    await setDoc(ref, profile);
+    return profile;
+  }
+
+  return snap.data() as OwnerProfile;
+};
+
+const createAdminProfile = async (user: User) => {
+  const ref = doc(db, "admins", user.uid);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    await setDoc(ref, {
+      uid: user.uid,
+      email: user.email,
+      createdAt: Timestamp.now(),
+      emailVerified: user.emailVerified,
+    });
+  }
+};
+
+/* ==============================
+   GOOGLE SIGN-IN
+============================== */
 
 const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async (): Promise<UserCredential> => {
   try {
-    const userCredentials = await signInWithPopup(auth, googleProvider);
-    const user = userCredentials.user;
+    const cred = await signInWithPopup(auth, googleProvider);
+    const user = cred.user;
 
-    // Check if the email is already registered with a different provider (e.g., email/password)
-    const signInMethods = await fetchSignInMethodsForEmail(auth, user.email!);
+    if (!user.email) throw new Error("Email not available");
+
+    const methods = await fetchSignInMethodsForEmail(auth, user.email);
+
     if (
-      signInMethods.length > 0 &&
-      !signInMethods.includes(GoogleAuthProvider.PROVIDER_ID)
+      methods.length > 0 &&
+      !methods.includes(GoogleAuthProvider.PROVIDER_ID)
     ) {
-      throw new Error(
-        "This email is already registered. Please sign in using your original method.",
+      await signOut(auth);
+      throw new FirebaseError(
+        "auth/account-exists-with-different-credential",
+        "Account exists with another sign-in method.",
       );
     }
 
-    await createUserProfile(user, {
-      name: user.displayName ?? undefined,
-      email: user.email ?? undefined,
-    });
-    return userCredentials;
+    await createUserProfile(user, {});
+    return cred;
   } catch (error) {
     if (error instanceof FirebaseError) {
       switch (error.code) {
         case "auth/account-exists-with-different-credential":
           throw new Error(
-            "An account with this email already exists. Please sign in with your password to link your Google account.",
+            "This email is already registered. Please log in using your original method.",
           );
         case "auth/popup-closed-by-user":
-          throw new Error("Google Sign-In was cancelled.");
-        case "auth/network-request-failed":
-          throw new Error("Network error. Please check your connection.");
+          throw new Error("Google sign-in cancelled.");
         default:
-          throw new Error(error.message || "Google Sign-In failed.");
+          throw new Error(error.message);
       }
     }
-    if (error instanceof Error) throw error;
-    throw new Error("An unexpected error occurred during Google Sign-In.");
+    throw error;
   }
 };
+
+/* ==============================
+   EMAIL / PASSWORD
+============================== */
 
 export const registerWithEmail = async (
   email: string,
   password: string,
-  profile: Omit<
-    UserProfile,
-    "uid" | "email" | "createdAt" | "emailVerified" | "referralCode"
-  >,
+  profile: SignupFormData,
 ) => {
-  try {
-    const { user } = await createUserWithEmailAndPassword(
-      auth,
-      email,
-      password,
-    );
-    await sendEmailVerification(user);
+  const { user } = await createUserWithEmailAndPassword(auth, email, password);
 
-    let userProfile;
+  await sendEmailVerification(user);
 
-    if (profile.role === "user") {
-      userProfile = await createUserProfile(user, profile);
-    }
-    if (profile.role === "owner") {
-      userProfile = await createOwnerProfile(user, profile);
-    }
-    return { user, profile: userProfile };
-  } catch (error) {
-    if (error instanceof FirebaseError) {
-      switch (error.code) {
-        case "auth/email-already-in-use":
-          throw new Error("This email is already registered.");
-        case "auth/weak-password":
-          throw new Error("Password must be at least 6 characters.");
-        case "auth/invalid-email":
-          throw new Error("Invalid email address.");
-        default:
-          throw new Error(error.message || "Registration failed.");
-      }
-    }
-    if (error instanceof Error) throw error;
-    throw new Error("An unexpected error occurred during registration.");
+  if (profile.role === "owner") {
+    return createOwnerProfile(user, profile);
   }
+
+  return createUserProfile(user, profile);
 };
 
 export const login = async (
   email: string,
   password: string,
 ): Promise<UserCredential> => {
-  try {
-    const userCredentials = await signInWithEmailAndPassword(
-      auth,
-      email,
-      password,
-    );
-    const user = userCredentials.user;
-    const userRef = doc(db, "users", user.uid);
-    const userSnap = await getDoc(userRef);
+  const cred = await signInWithEmailAndPassword(auth, email, password);
+  const ref = doc(db, "users", cred.user.uid);
+  const snap = await getDoc(ref);
 
-    if (!userSnap.exists()) {
-      // This case is unlikely if auth succeeded, but it's good for data integrity.
-      await createUserProfile(user, {});
-    } else if (user.emailVerified && !userSnap.data()?.emailVerified) {
-      await updateDoc(userRef, { emailVerified: true });
-    }
-
-    return userCredentials;
-  } catch (error) {
-    if (error instanceof FirebaseError) {
-      switch (error.code) {
-        case "auth/user-not-found":
-        case "auth/invalid-credential":
-          throw new Error("Invalid email or password.");
-        case "auth/too-many-requests":
-          throw new Error(
-            "Access to this account has been temporarily disabled due to many failed login attempts.",
-          );
-        default:
-          throw new Error(error.message || "Login failed.");
-      }
-    }
-    if (error instanceof Error) throw error;
-    throw new Error("An unexpected error occurred during login.");
+  if (!snap.exists()) await createUserProfile(cred.user, {});
+  if (cred.user.emailVerified && !snap.data()?.emailVerified) {
+    await updateDoc(ref, { emailVerified: true });
   }
+
+  return cred;
 };
+
 export const loginOwner = async (
   email: string,
   password: string,
 ): Promise<UserCredential> => {
-  try {
-    const userCredentials = await signInWithEmailAndPassword(
-      auth,
-      email,
-      password,
-    );
-    const user = userCredentials.user;
-    const ownerRef = doc(db, "owners", user.uid);
-    const userSnap = await getDoc(ownerRef);
+  const cred = await signInWithEmailAndPassword(auth, email, password);
+  const ref = doc(db, "owners", cred.user.uid);
+  const snap = await getDoc(ref);
 
-    if (!userSnap.exists()) {
-      // This case is unlikely if auth succeeded, but it's good for data integrity.
-      await createOwnerProfile(user, {});
-    } else if (user.emailVerified && !userSnap.data()?.emailVerified) {
-      await updateDoc(ownerRef, { emailVerified: true });
-    }
+  if (!snap.exists()) await createOwnerProfile(cred.user, {});
+  if (cred.user.emailVerified && !snap.data()?.emailVerified) {
+    await updateDoc(ref, { emailVerified: true });
+  }
 
-    return userCredentials;
-  } catch (error) {
-    if (error instanceof FirebaseError) {
-      switch (error.code) {
-        case "auth/user-not-found":
-        case "auth/invalid-credential":
-          throw new Error("Invalid email or password.");
-        case "auth/too-many-requests":
-          throw new Error(
-            "Access to this account has been temporarily disabled due to many failed login attempts.",
-          );
-        default:
-          throw new Error(error.message || "Login failed.");
-      }
-    }
-    if (error instanceof Error) throw error;
-    throw new Error("An unexpected error occurred during login.");
-  }
-};
-
-export const logout = async () => {
-  try {
-    await signOut(auth);
-  } catch (error) {
-    console.error("Logout Error:", error);
-    throw new Error("An unexpected error occurred during logout.");
-  }
-};
-
-export const getUserProfile = async (
-  uid: string,
-): Promise<DocumentSnapshot> => {
-  try {
-    return await getDoc(doc(db, "users", uid));
-  } catch (error) {
-    console.error("Get User Profile Error:", error);
-    throw new Error("Error fetching user profile.");
-  }
-};
-export const getOwnerProfile = async (
-  uid: string,
-): Promise<DocumentSnapshot> => {
-  try {
-    return await getDoc(doc(db, "owners", uid));
-  } catch (error) {
-    console.error("Get User Profile Error:", error);
-    throw new Error("Error fetching user profile.");
-  }
-};
-
-export const updateUserProfile = async (
-  userId: string,
-  data: Partial<UserProfile>,
-) => {
-  try {
-    const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, data);
-  } catch (error) {
-    console.error("Update User Profile Error:", error);
-    throw new Error("Failed to update profile.");
-  }
-};
-
-export const updateOwnerProfile = async (
-  userId: string,
-  data: Partial<OwnerProfile>,
-) => {
-  try {
-    const userRef = doc(db, "owners", userId);
-    await updateDoc(userRef, data);
-  } catch (error) {
-    console.error("Update User Profile Error:", error);
-    throw new Error("Failed to update profile.");
-  }
-};
-
-export const sendResetPasswordEmail = async (email: string) => {
-  try {
-    await sendPasswordResetEmail(auth, email);
-  } catch (error) {
-    console.error("Send Reset Password Email Error:", error);
-    throw new Error("Failed to send password reset email.");
-  }
+  return cred;
 };
 
 export const loginAdmin = async (
   email: string,
   password: string,
 ): Promise<UserCredential> => {
-  try {
-    const userCredentials = await signInWithEmailAndPassword(
-      auth,
-      email,
-      password,
-    );
-    const user = userCredentials.user;
-    const adminRef = doc(db, "admins", user.uid);
-    const userSnap = await getDoc(adminRef);
-
-    if (!userSnap.exists()) {
-      await createAdminProfile(user, {});
-    } else if (user.emailVerified && !userSnap.data()?.emailVerified) {
-      await updateDoc(adminRef, { emailVerified: true });
-    }
-
-    return userCredentials;
-  } catch (error) {
-    if (error instanceof FirebaseError) {
-      switch (error.code) {
-        case "auth/user-not-found":
-        case "auth/invalid-credential":
-          throw new Error("Invalid email or password.");
-        case "auth/too-many-requests":
-          throw new Error(
-            "Access to this account has been temporarily disabled due to many failed login attempts.",
-          );
-        default:
-          throw new Error(error.message || "Login failed.");
-      }
-    }
-    if (error instanceof Error) throw error;
-    throw new Error("An unexpected error occurred during login.");
-  }
+  const cred = await signInWithEmailAndPassword(auth, email, password);
+  await createAdminProfile(cred.user);
+  return cred;
 };
 
-const createAdminProfile = async (
-  user: User,
-  profileData: Partial<UserProfile>,
+/* ==============================
+   UTILITIES
+============================== */
+
+export const logout = async () => {
+  await signOut(auth);
+};
+
+export const sendResetPasswordEmail = async (email: string) => {
+  await sendPasswordResetEmail(auth, email);
+};
+
+export const getUserProfile = async (
+  uid: string,
+): Promise<DocumentSnapshot> => {
+  return getDoc(doc(db, "users", uid));
+};
+
+export const getOwnerProfile = async (
+  uid: string,
+): Promise<DocumentSnapshot> => {
+  return getDoc(doc(db, "owners", uid));
+};
+
+export const updateUserProfile = async (
+  uid: string,
+  data: Partial<UserProfile>,
 ) => {
-  const userRef = doc(db, "admins", user.uid);
-  const profileSnap = await getDoc(userRef);
+  await updateDoc(doc(db, "users", uid), data);
+};
 
-  if (!profileSnap.exists()) {
-    const email = user.email ?? profileData.email;
-    if (!email) {
-      throw new Error("Email is required to create a user profile.");
-    }
-
-    // Generate a referral code for the new user
-
-    // This object is now type-safe because the UserProfile interface allows optional fields.
-    const newUserProfile = {
-      ...profileData,
-      uid: user.uid,
-      email,
-      createdAt: Timestamp.now(),
-      emailVerified: user.emailVerified,
-    };
-    await setDoc(userRef, newUserProfile);
-
-    await createLoyaltyAccount(user.uid);
-
-    return newUserProfile;
-  }
-
-  return profileSnap.data() as UserProfile;
+export const updateOwnerProfile = async (
+  uid: string,
+  data: Partial<OwnerProfile>,
+) => {
+  await updateDoc(doc(db, "owners", uid), data);
 };

@@ -2,6 +2,8 @@ import { adminDb } from "@/lib/firebase/admin";
 import { NextResponse } from "next/server";
 import { Team } from "@/lib/types/tournament";
 
+export const revalidate = 300;
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -13,6 +15,7 @@ export async function GET(
       .collection("Tournaments")
       .doc(tournamentId)
       .collection("teams")
+      .orderBy("registeredAt", "desc")
       .get();
 
     const teams: Team[] = [];
