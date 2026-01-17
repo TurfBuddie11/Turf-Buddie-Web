@@ -17,12 +17,12 @@ export const sampleTournament: Tournament = {
   registeredTeams: 12,
   status: "registration_open",
   sport: "cricket",
-  rules: [
-    "White ball tournament",
-    "Standard ICC T20 rules apply",
-    "Minimum age: 18 years",
-    "Maximum 2 pro players per squad",
-  ],
+  rules: `
+- White ball tournament
+- Standard ICC T20 rules apply
+- Minimum age: 18 years
+- Maximum 2 pro players per squad
+`,
   organizer: "TurfBuddie Events",
   createdAt: new Date(),
 };

@@ -41,12 +41,21 @@ import { toast } from "sonner";
 export default function OwnerSignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    email: string;
+    phoneNumber: string;
+    dob: string;
+    gender?: "Male" | "Female" | "Other";
+    password: string;
+    confirmPassword: string;
+    termsAccepted: boolean;
+  }>({
     name: "",
     email: "",
     phoneNumber: "",
     dob: "",
-    gender: "",
+    gender: undefined,
     password: "",
     confirmPassword: "",
     termsAccepted: false,
@@ -77,19 +86,22 @@ export default function OwnerSignupPage() {
     }
   };
 
-  const handleGenderSelect = (value: string | undefined) => {
-    if (value) {
-      setFormData((prev) => ({ ...prev, gender: value }));
-    }
+  const handleGenderSelect = (value: "Male" | "Female" | "Other") => {
+    setFormData((prev) => ({ ...prev, gender: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    const data = { ...formData, role: "owner" };
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match");
       return;
     }
+    const { phoneNumber, confirmPassword, termsAccepted, ...rest } = formData;
+    const data = {
+      ...rest,
+      role: "owner" as const,
+      mobile: phoneNumber,
+    };
     try {
       const { user } = await registerWithEmail(
         formData.email,
@@ -221,9 +233,9 @@ export default function OwnerSignupPage() {
                         <SelectValue placeholder="Select Gender" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </Field>

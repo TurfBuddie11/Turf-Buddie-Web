@@ -173,10 +173,12 @@ export const registerWithEmail = async (
   await sendEmailVerification(user);
 
   if (profile.role === "owner") {
-    return createOwnerProfile(user, profile);
+    const ownerProfile = await createOwnerProfile(user, profile);
+    return { user, profile: ownerProfile };
   }
 
-  return createUserProfile(user, profile);
+  const userProfile = await createUserProfile(user, profile);
+  return { user, profile: userProfile };
 };
 
 export const login = async (
