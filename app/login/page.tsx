@@ -194,7 +194,7 @@ export default function LoginPage() {
           >
             <h1 className="text-4xl font-bold leading-tight">
               Welcome back to{" "}
-              <span className="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-primary to-purple-500 bg-clip-text text-transparent">
                 TurfBuddie
               </span>
             </h1>

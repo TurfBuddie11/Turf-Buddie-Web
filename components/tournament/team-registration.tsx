@@ -45,6 +45,8 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -113,6 +115,8 @@ export default function TeamRegistrationMultiStepForm({
 }: TeamRegistrationProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
+  const [dialogMessage, setDialogMessage] = useState("");
+  const [open, setOpen] = useState(false);
 
   const steps: {
     title: string;
@@ -140,7 +144,8 @@ export default function TeamRegistrationMultiStepForm({
       fields: [],
     },
   ];
-
+  const WHATSAPP_GROUP_LINK =
+    "https://chat.whatsapp.com/E5SHvW4iK5F23iGlP3Kr0I";
   const isLastStep = currentStep === steps.length - 1;
 
   const form = useForm<TeamRegistrationFormSchema>({
@@ -212,7 +217,8 @@ export default function TeamRegistrationMultiStepForm({
         tournament.id,
       );
 
-      toast.success(verificationResult.message);
+      setDialogMessage(verificationResult.message);
+      setOpen(true);
       onClose();
       router.refresh();
     } catch (error: unknown) {
@@ -228,7 +234,7 @@ export default function TeamRegistrationMultiStepForm({
       case 0:
         return (
           <div className="space-y-4">
-            <div className="rounded-lg border bg-muted/30 p-4 space-y-3 max-h-[300px] overflow-y-auto pr-2">
+            <div className="rounded-lg border bg-muted/30 p-4 space-y-3 max-h-75 overflow-y-auto pr-2">
               <h4 className="font-bold flex items-center gap-2">
                 <Info size={18} className="text-primary" /> Guidelines
               </h4>
@@ -388,86 +394,115 @@ export default function TeamRegistrationMultiStepForm({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <VisuallyHidden.Root>
-        <DialogTitle>Team Registration Form</DialogTitle>
-        <DialogDescription>
-          Step-by-step registration for the tournament
-        </DialogDescription>
-      </VisuallyHidden.Root>
-      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden">
-        <Card className="border-0 shadow-none">
-          <CardHeader className="bg-secondary/5 pb-8">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <CardTitle>{steps[currentStep].title}</CardTitle>
-                <CardDescription>
-                  {steps[currentStep].description}
-                </CardDescription>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <VisuallyHidden.Root>
+          <DialogTitle>Team Registration Form</DialogTitle>
+          <DialogDescription>
+            Step-by-step registration for the tournament
+          </DialogDescription>
+        </VisuallyHidden.Root>
+        <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden">
+          <Card className="border-0 shadow-none">
+            <CardHeader className="bg-secondary/5 pb-8">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <CardTitle>{steps[currentStep].title}</CardTitle>
+                  <CardDescription>
+                    {steps[currentStep].description}
+                  </CardDescription>
+                </div>
+                <div className="bg-primary/10 text-primary px-2 py-1 rounded-[4px] text-[10px] font-bold">
+                  STEP {currentStep + 1} OF {steps.length}
+                </div>
               </div>
-              <div className="bg-primary/10 text-primary px-2 py-1 rounded-[4px] text-[10px] font-bold">
-                STEP {currentStep + 1} OF {steps.length}
-              </div>
-            </div>
 
-            <Stepper value={currentStep + 1} className="mt-6">
-              <StepperNav>
-                {steps.map((_, index) => (
-                  <StepperItem key={index} step={index + 1}>
-                    <StepperTrigger disabled>
-                      <StepperIndicator>{index + 1}</StepperIndicator>
-                    </StepperTrigger>
-                    {index < steps.length - 1 && <StepperSeparator />}
-                  </StepperItem>
-                ))}
-              </StepperNav>
-            </Stepper>
-          </CardHeader>
+              <Stepper value={currentStep + 1} className="mt-6">
+                <StepperNav>
+                  {steps.map((_, index) => (
+                    <StepperItem key={index} step={index + 1}>
+                      <StepperTrigger disabled>
+                        <StepperIndicator>{index + 1}</StepperIndicator>
+                      </StepperTrigger>
+                      {index < steps.length - 1 && <StepperSeparator />}
+                    </StepperItem>
+                  ))}
+                </StepperNav>
+              </Stepper>
+            </CardHeader>
 
-          <CardContent className="py-6 min-h-[350px]">
-            <form
-              id="team-registration-form"
-              onSubmit={form.handleSubmit(onSubmit)}
-            >
-              {renderCurrentStepContent()}
-            </form>
-          </CardContent>
+            <CardContent className="py-6 min-h-[350px]">
+              <form
+                id="team-registration-form"
+                onSubmit={form.handleSubmit(onSubmit)}
+              >
+                {renderCurrentStepContent()}
+              </form>
+            </CardContent>
 
-          <CardFooter className="flex justify-between border-t bg-secondary/5 p-4">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={handleBackButton}
-              className={currentStep === 0 ? "invisible" : ""}
-            >
-              <ChevronLeft className="mr-2 h-4 w-4" /> Back
-            </Button>
-
-            {!isLastStep ? (
+            <CardFooter className="flex justify-between border-t bg-secondary/5 p-4">
               <Button
                 type="button"
-                onClick={handleNextButton}
-                className="min-w-[120px]"
+                variant="ghost"
+                onClick={handleBackButton}
+                className={currentStep === 0 ? "invisible" : ""}
               >
-                Continue <ChevronRight className="ml-2 h-4 w-4" />
+                <ChevronLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-            ) : (
-              <Button
-                type="submit"
-                form="team-registration-form"
-                disabled={form.formState.isSubmitting}
-                className="min-w-[120px] shadow-lg shadow-primary/20"
-              >
-                {form.formState.isSubmitting ? (
-                  <Spinner className="mr-2" />
-                ) : (
-                  "Proceed to Pay"
-                )}
-              </Button>
-            )}
-          </CardFooter>
-        </Card>
-      </DialogContent>
-    </Dialog>
+
+              {!isLastStep ? (
+                <Button
+                  type="button"
+                  onClick={handleNextButton}
+                  className="min-w-[120px]"
+                >
+                  Continue <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  form="team-registration-form"
+                  disabled={form.formState.isSubmitting}
+                  className="min-w-[120px] shadow-lg shadow-primary/20"
+                >
+                  {form.formState.isSubmitting ? (
+                    <Spinner className="mr-2" />
+                  ) : (
+                    "Proceed to Pay"
+                  )}
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Team Registration</DialogTitle>
+            <DialogDescription>{dialogMessage}</DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 space-y-2">
+            <p className="text-sm text-muted-foreground">
+              🎉 Your team is successfully registered! Stay connected with other
+              participants and get updates in our WhatsApp community.
+            </p>
+            <a
+              href={WHATSAPP_GROUP_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline font-medium"
+            >
+              👉 Join WhatsApp Group
+            </a>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
