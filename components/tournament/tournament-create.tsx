@@ -163,7 +163,7 @@ export default function CreateTournamentPage() {
                         <Textarea
                           {...field}
                           placeholder="Details about the event..."
-                          className="min-h-[120px]"
+                          className="min-h-30"
                         />
                         <FieldError>{fieldState.error?.message}</FieldError>
                       </Field>

@@ -1,12 +1,10 @@
 import Link from "next/link";
-import ReactMarkdown from "react-markdown";
 import { MapPin, Users, Trophy, ChevronRight, Clock } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Tournament } from "@/lib/types/tournament";
-import TournamentDescription from "./tournament-description";
 
 interface TournamentCardProps {
   tournament: Omit<Tournament, "prizePool" | "registrationFee">;

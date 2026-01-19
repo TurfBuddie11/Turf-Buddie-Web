@@ -96,7 +96,7 @@ export default function OwnerSignupPage() {
       toast.error("Passwords do not match");
       return;
     }
-    const { phoneNumber, confirmPassword, termsAccepted, ...rest } = formData;
+    const { phoneNumber, ...rest } = formData;
     const data = {
       ...rest,
       role: "owner" as const,
