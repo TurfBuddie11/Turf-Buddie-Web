@@ -7,7 +7,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { Eye, EyeOff, Loader2, LogIn } from "lucide-react";
-import { FcGoogle } from "react-icons/fc";
+// import { FcGoogle } from "react-icons/fc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,8 +22,8 @@ import {
 } from "@/components/ui/form";
 import {
   login,
-  signInWithGoogle,
-  getUserProfile,
+  // signInWithGoogle,
+  // getUserProfile,
   sendResetPasswordEmail, // Import the new function
 } from "@/lib/firebase/auth";
 import { User, sendEmailVerification } from "firebase/auth";
@@ -56,7 +56,7 @@ export default function LoginPage() {
   const [isResetting, setIsResetting] = useState<boolean>(false); // Loading state for reset
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const [unverifiedUser, setUnverifiedUser] = useState<User | null>(null);
-  const [isGoogleLoading, setIsGoogleLoading] = useState<boolean>(false);
+  // const [isGoogleLoading, setIsGoogleLoading] = useState<boolean>(false);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -66,38 +66,38 @@ export default function LoginPage() {
 
   const { isSubmitting } = form.formState;
 
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
-    try {
-      const result = await signInWithGoogle();
-      const googleUser = result.user;
-      const idToken = await googleUser.getIdToken();
+  // const handleGoogleSignIn = async () => {
+  //   setIsGoogleLoading(true);
+  //   try {
+  //     const result = await signInWithGoogle();
+  //     const googleUser = result.user;
+  //     const idToken = await googleUser.getIdToken();
 
-      await fetch("/api/auth/session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ idToken }),
-        credentials: "include",
-      });
+  //     await fetch("/api/auth/session", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({ idToken }),
+  //       credentials: "include",
+  //     });
 
-      const profileSnap = await getUserProfile(googleUser.uid);
+  //     const profileSnap = await getUserProfile(googleUser.uid);
 
-      if (profileSnap.exists() && profileSnap.data().mobile) {
-        toast.success(`Welcome back, ${googleUser.displayName}!`);
-        router.push("/explore");
-      } else {
-        toast.info("Welcome! Let's complete your profile.");
-        router.push("/signup?flow=completeProfile");
-      }
-    } catch (error) {
-      toast.error("Google Sign-In failed. Please try again.");
-      console.error(error);
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  };
+  //     if (profileSnap.exists() && profileSnap.data().mobile) {
+  //       toast.success(`Welcome back, ${googleUser.displayName}!`);
+  //       router.push("/explore");
+  //     } else {
+  //       toast.info("Welcome! Let's complete your profile.");
+  //       router.push("/signup?flow=completeProfile");
+  //     }
+  //   } catch (error) {
+  //     toast.error("Google Sign-In failed. Please try again.");
+  //     console.error(error);
+  //   } finally {
+  //     setIsGoogleLoading(false);
+  //   }
+  // };
 
   const onEmailSubmit = async (values: LoginFormData) => {
     try {
@@ -174,7 +174,8 @@ export default function LoginPage() {
     }
   };
 
-  const isLoading = isSubmitting || isGoogleLoading;
+  // const isLoading = isSubmitting || isGoogleLoading;
+  const isLoading = isSubmitting;
 
   return (
     <>
@@ -218,7 +219,7 @@ export default function LoginPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Button
+                {/*<Button
                   variant="outline"
                   className="w-full h-11 text-base"
                   onClick={handleGoogleSignIn}
@@ -238,7 +239,7 @@ export default function LoginPage() {
                     Or
                   </span>
                   <Separator className="flex-grow shrink-0 basis-0" />
-                </div>
+                </div>*/}
 
                 <Form {...form}>
                   <form

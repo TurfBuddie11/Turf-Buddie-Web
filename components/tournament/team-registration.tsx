@@ -81,7 +81,12 @@ const teamRegistrationSchema = z.object({
           .string()
           .min(3, "Player name is required")
           .max(50, "Player name cannot exceed 50 characters"),
-        phone: z.string().refine(isValidPhoneNumber, "Invalid phone number"),
+        phone: z
+          .string()
+          .optional()
+          .refine((val) => !val || isValidPhoneNumber(val), {
+            message: "Invalid phone number",
+          }),
       }),
     )
     .min(1, "At least one player is required beyond the captain"),

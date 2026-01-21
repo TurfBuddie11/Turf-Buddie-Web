@@ -17,7 +17,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { format, subYears } from "date-fns";
-import { FcGoogle } from "react-icons/fc";
+// import { FcGoogle } from "react-icons/fc";
 import { toast } from "sonner";
 
 // UI Component Imports
@@ -50,8 +50,8 @@ import { CustomCalendar } from "@/components/custom-calendar";
 // Firebase Auth Function Imports
 import {
   registerWithEmail,
-  signInWithGoogle,
-  getUserProfile,
+  // signInWithGoogle,
+  // getUserProfile,
   updateUserProfile,
 } from "@/lib/firebase/auth";
 
@@ -206,32 +206,32 @@ export default function SignUpForm() {
     }
   }, [pincodeValue, setValue]);
 
-  const handleGoogleSignIn = async (): Promise<void> => {
-    setLoading(true);
-    try {
-      const result = await signInWithGoogle();
-      const googleUser = result?.user;
+  // const handleGoogleSignIn = async (): Promise<void> => {
+  //   setLoading(true);
+  //   try {
+  //     const result = await signInWithGoogle();
+  //     const googleUser = result?.user;
 
-      if (!googleUser) {
-        throw new Error("Could not retrieve user information from Google.");
-      }
+  //     if (!googleUser) {
+  //       throw new Error("Could not retrieve user information from Google.");
+  //     }
 
-      const profileSnap = await getUserProfile(googleUser.uid);
-      if (profileSnap?.exists() && profileSnap?.data().mobile) {
-        toast.success(`Welcome back, ${googleUser.displayName}!`);
-        router.push("/explore");
-      } else {
-        toast.info("Welcome! Just a few more steps to complete your profile.");
-        router.push("/signup?flow=completeProfile");
-      }
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Google Sign-In failed.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     const profileSnap = await getUserProfile(googleUser.uid);
+  //     if (profileSnap?.exists() && profileSnap?.data().mobile) {
+  //       toast.success(`Welcome back, ${googleUser.displayName}!`);
+  //       router.push("/explore");
+  //     } else {
+  //       toast.info("Welcome! Just a few more steps to complete your profile.");
+  //       router.push("/signup?flow=completeProfile");
+  //     }
+  //   } catch (error) {
+  //     toast.error(
+  //       error instanceof Error ? error.message : "Google Sign-In failed.",
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleNextStep = async (): Promise<void> => {
     const fields = steps[currentStep].fields;
@@ -311,7 +311,7 @@ export default function SignUpForm() {
         >
           <h1 className="text-4xl font-bold leading-tight">
             Join{" "}
-            <span className="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-primary to-purple-500 bg-clip-text text-transparent">
               TurfBuddie
             </span>
           </h1>
@@ -351,14 +351,14 @@ export default function SignUpForm() {
                     exit="exit"
                     className="space-y-5"
                   >
-                    <Button
+                    {/*<Button
                       onClick={handleGoogleSignIn}
                       variant="outline"
                       className="w-full h-12 text-base"
                       disabled={loading}
                     >
                       <FcGoogle className="w-6 h-6 mr-3" /> Continue with Google
-                    </Button>
+                    </Button>*/}
                     <Button
                       onClick={() => setShowForm(true)}
                       className="w-full h-12 text-base glow-button"
