@@ -136,6 +136,7 @@ export default function ExplorePageComponent() {
           const userLat = position.coords.latitude;
           const userLng = position.coords.longitude;
           // You can use userLat and userLng to filter or sort turfs by proximity
+          // eslint-disable-next-line
           const nearbyTurfs = findNearbyTurfs(
             { latitude: userLat, longitude: userLng },
             turfs,

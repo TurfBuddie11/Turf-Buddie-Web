@@ -70,7 +70,7 @@ export default function TournamentDetailsPage({
     return () => {
       isMounted = false;
     };
-  }, [tournament.id]);
+  }, [tournament.id, teams]);
 
   const handleShare = async () => {
     const shareData = {
@@ -385,7 +385,9 @@ export default function TournamentDetailsPage({
                     disabled={isFull}
                     onClick={handleRegistrationClick}
                   >
-                    {isFull ? "Joined Waiting List" : "REGISTER TEAM"}
+                    {isFull || tournament.status == "completed"
+                      ? "Joined Waiting List"
+                      : "REGISTER TEAM"}
                   </Button>
                   {/*<div className="flex items-center justify-center gap-2 text-xs font-medium">
                     <Clock size={14} /> Registration ends in 48 hours
@@ -420,7 +422,9 @@ export default function TournamentDetailsPage({
             disabled={isFull}
             onClick={handleRegistrationClick}
           >
-            {isFull ? "Registration Closed" : "Register"}
+            {isFull || tournament.status == "completed"
+              ? "Registration Closed"
+              : "Register"}
             <ArrowRight className="ml-2" size={20} />
           </Button>
         </div>

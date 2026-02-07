@@ -25,6 +25,8 @@ export async function generateMetadata({
   };
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function Page({ params }: PageProps) {
   const { id } = await params;
   const tournament = await getTournamentById(id);
