@@ -35,7 +35,8 @@ export interface TimeSlot {
     | "cancelled"
     | "available"
     | "booked_offline"
-    | "Confirmed";
+    | "Confirmed"
+    | "blocked";
   userUid?: string;
   price: number;
   transactionId?: string;
@@ -143,7 +144,8 @@ export const TurfProvider = ({ children }: { children: React.ReactNode }) => {
     const filtered = slots.filter(
       (s) =>
         s.status?.toLowerCase() === "confirmed" ||
-        s.status?.toLowerCase() === "booked_offline",
+        s.status?.toLowerCase() === "booked_offline" ||
+        s.status?.toLowerCase() == "blocked",
     );
 
     setBookings(filtered);

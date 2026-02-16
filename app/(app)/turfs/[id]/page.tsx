@@ -25,9 +25,12 @@ async function fetchTurf(id: string): Promise<Turf | null> {
       id: `slot_${idx}`,
       startTime: slot.timeSlot?.split(" - ")[0] || "00:00",
       endTime: slot.timeSlot?.split(" - ")[1] || "01:00",
-      isAvailable: !["confirmed", "pending", "booked_offline"].includes(
-        slot.status || "",
-      ),
+      isAvailable: ![
+        "confirmed",
+        "pending",
+        "booked_offline",
+        "blocked",
+      ].includes(slot.status || ""),
       price: slot.price || 499,
     }));
   }

@@ -141,7 +141,11 @@ export default function BookingsPage() {
       const status = slot.status?.toLowerCase();
       if (filter === "online" && status === "booked_offline") return false;
       if (filter === "offline" && status !== "booked_offline") return false;
-      return status === "confirmed" || status === "booked_offline";
+      return (
+        status === "confirmed" ||
+        status === "booked_offline" ||
+        status == "blocked"
+      );
     });
   }, [bookings, filter]);
 
@@ -185,29 +189,55 @@ export default function BookingsPage() {
   }, [selectedDateBookings]);
 
   const renderBookingItem = (slot: TimeSlot, isUpcoming = false) => {
-    const isOffline = slot.status?.toLowerCase() === "booked_offline";
-    const displayName = isOffline
-      ? "Offline Booking"
-      : userNames[slot.userUid || ""] ||
-        `User: ${slot.userUid?.slice(0, 5)}...`;
+    const status = slot.status?.toLowerCase();
+    const isOffline = status === "booked_offline";
+    const isBlocked = status === "blocked";
+
+    const displayName = isBlocked
+      ? "Slot Blocked"
+      : isOffline
+        ? "Offline Booking"
+        : userNames[slot.userUid || ""] ||
+          `User: ${slot.userUid?.slice(0, 5)}...`;
 
     return (
       <Card
         key={`${slot.timeSlot}-${slot.monthSlot}-${Math.random()}`}
-        className={`overflow-hidden border-l-4 ${isUpcoming ? "border-l-slate-300" : "border-l-primary"} shadow-sm hover:shadow-md transition-shadow`}
+        className={`overflow-hidden border-l-4
+          ${
+            isBlocked
+              ? "border-l-red-500 "
+              : isUpcoming
+                ? "border-l-slate-300"
+                : "border-l-primary"
+          }
+          shadow-sm hover:shadow-md transition-shadow`}
       >
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div className="flex items-start gap-3 flex-1">
               <UserCircle
-                className={`${isUpcoming ? "text-slate-400" : "text-primary"} size-10 mt-1 opacity-40 hidden sm:block`}
+                className={`${
+                  isBlocked
+                    ? "text-red-400"
+                    : isUpcoming
+                      ? "text-slate-400"
+                      : "text-primary"
+                } size-10 mt-1 opacity-40 hidden sm:block`}
               />
+
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="font-bold text-base text-slate-800">
-                    {displayName}
-                  </h4>
-                  {isOffline ? (
+                  <h4 className="font-bold text-base ">{displayName}</h4>
+
+                  {isBlocked ? (
+                    <Badge
+                      variant="destructive"
+                      className="text-[10px] uppercase font-bold"
+                    >
+                      Blocked
+                    </Badge>
+                  ) : isOffline ? (
                     <Badge
                       variant="outline"
                       className="text-[10px] uppercase font-bold text-slate-500"
@@ -223,40 +253,47 @@ export default function BookingsPage() {
                     </Badge>
                   )}
                 </div>
+
                 <div className="grid grid-cols-1 gap-1 mt-2 text-sm text-muted-foreground font-medium">
                   <div className="flex items-center gap-2">
                     <Clock className="size-3" /> {slot.timeSlot}
                   </div>
                   <div className="flex items-center gap-2">
-                    <CalendarDays className="size-3" /> {slot.monthSlot} •{" "}
-                    {slot.daySlot}
+                    <CalendarDays className="size-3" />
+                    {slot.monthSlot} • {slot.daySlot}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-0">
-              <div className="text-right mr-4">
-                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
-                  Amount
-                </p>
-                <p
-                  className={`text-lg font-bold ${isUpcoming ? "text-slate-600" : "text-primary"}`}
-                >
-                  ₹{(slot.payout ?? slot.price).toLocaleString()}
-                </p>
+            {/* Right Side */}
+            {!isBlocked && (
+              <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-0">
+                <div className="text-right mr-4">
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
+                    Amount
+                  </p>
+                  <p
+                    className={`text-lg font-bold ${
+                      isUpcoming ? "text-slate-600" : "text-primary"
+                    }`}
+                  >
+                    ₹{(slot.payout ?? slot.price).toLocaleString()}
+                  </p>
+                </div>
+
+                {isOffline && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-400 hover:text-red-600 hover:bg-red-50"
+                    onClick={() => deleteOfflineBooking(slot)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                )}
               </div>
-              {isOffline && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-red-400 hover:text-red-600 hover:bg-red-50"
-                  onClick={() => deleteOfflineBooking(slot)}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              )}
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -417,9 +454,9 @@ export default function BookingsPage() {
                     <p className=" font-bold">No slots booked for this day</p>
                   </div>
                 ) : (
-                  selectedDateBookings.map((slot) =>
-                    renderBookingItem(slot, false),
-                  )
+                  selectedDateBookings.map((slot) => {
+                    return renderBookingItem(slot, false);
+                  })
                 )}
               </div>
             </section>

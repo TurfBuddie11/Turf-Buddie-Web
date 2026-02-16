@@ -1,3 +1,5 @@
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
+
 export interface TimeSlot {
   id: string;
   startTime: string;
@@ -37,10 +39,23 @@ export interface Booking {
     | "confirmed"
     | "cancelled"
     | "completed"
-    | "booked_offline";
+    | "booked_offline"
+    | "blocked";
   price: number;
   commission: number; // Optional for offline bookings
   payout?: number; // Optional for offline bookings
   paid?: "Not Paid to Owner" | "Paid to Owner"; // Optional for offline bookings
   createdAt?: Date; // Optional since some bookings might not have this
+  bookingDate?: FieldValue;
+}
+
+export interface WebhookBooking {
+  id?: string;
+  turfId?: string;
+  timeSlot: string;
+  daySlot: string;
+  monthSlot: string;
+  status: "blocked";
+  createdAt?: Date; // Optional since some bookings might not have this
+  bookingDate?: FieldValue;
 }

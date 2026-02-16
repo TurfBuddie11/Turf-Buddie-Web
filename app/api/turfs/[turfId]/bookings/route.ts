@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
         "confirmed",
         "pending",
         "booked_offline",
+        "blocked",
       ].includes(status);
 
       return isSameDay && isBlockingStatus;
