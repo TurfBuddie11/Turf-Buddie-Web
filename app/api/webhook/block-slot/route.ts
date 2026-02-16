@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { adminDb } from "@/lib/firebase/admin";
 import { Booking, WebhookBooking } from "@/lib/types/booking";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { Timestamp } from "firebase-admin/firestore";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,8 +10,14 @@ export async function POST(request: NextRequest) {
 
     const rawBody = await request.text();
 
+    const secret = process.env.WEBHOOK_SECRET!;
+
+    if (!secret) {
+      throw new Error("WEBHOOK_SECRET is not defined");
+    }
+
     const expectedSignature = crypto
-      .createHmac("sha256", process.env.WEBHOOK_SECRET!)
+      .createHmac("sha256", secret)
       .update(rawBody)
       .digest("hex");
 
