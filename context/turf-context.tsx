@@ -21,7 +21,6 @@ import {
   DocumentData,
   Timestamp,
   arrayUnion,
-  arrayRemove,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 

@@ -46,7 +46,7 @@ export interface Booking {
   payout?: number; // Optional for offline bookings
   paid?: "Not Paid to Owner" | "Paid to Owner"; // Optional for offline bookings
   createdAt?: Date; // Optional since some bookings might not have this
-  bookingDate?: FieldValue;
+  bookingDate?: Date | Timestamp | FieldValue;
 }
 
 export interface WebhookBooking {
@@ -57,5 +57,5 @@ export interface WebhookBooking {
   monthSlot: string;
   status: "blocked";
   createdAt?: Date; // Optional since some bookings might not have this
-  bookingDate?: FieldValue;
+  bookingDate?: Date | Timestamp;
 }
