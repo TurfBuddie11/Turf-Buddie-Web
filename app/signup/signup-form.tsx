@@ -55,6 +55,19 @@ import {
   updateUserProfile,
 } from "@/lib/firebase/auth";
 
+const optionalString = (regex?: RegExp, message?: string) => {
+  return z
+    .string()
+    .trim()
+    .refine(
+      (val) => {
+        if (val == "") return true;
+        if (!regex) return true;
+        return regex.test(val);
+      },
+      { message },
+    );
+};
 // --- Zod Schema (TypeScript-native) ---
 const genderOptions = ["Male", "Female", "Other"] as const;
 const signupSchema = z
@@ -70,46 +83,55 @@ const signupSchema = z
         (date) => date <= subYears(new Date(), 13),
         "You must be at least 13 years old",
       ),
-    mobile: z
-      .string()
-      .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
-    pincode: z.string().regex(/^\d{6}$/, "Enter a valid 6-digit pincode"),
-    area: z.string().min(1, "Please select your area"),
-    city: z.string().min(1, "City is required"),
-    state: z.string().min(1, "State is required"),
-    referralCode: z.string().optional(),
+    // mobile: z
+    //   .string()
+    //   .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number")
+    //   .optional(),
+    // pincode: z
+    //   .string()
+    //   .regex(/^\d{6}$/, "Enter a valid 6-digit pincode")
+    //   .optional(),
+    // area: z.string().min(1, "Please select your area").optional(),
+    // city: z.string().min(1, "City is required").optional(),
+    // state: z.string().min(1, "State is required").optional(),
+    // referralCode: z.string().optional(),
+    mobile: optionalString(),
+    pincode: optionalString(),
+    area: optionalString(),
+    city: optionalString(),
+    state: optionalString(),
+    referralCode: optionalString(),
   })
   .superRefine((data, ctx) => {
-    if (data.password || data.confirmPassword) {
-      if ((data.password?.length ?? 0) < 0) {
-        ctx.addIssue({
-          code: "too_small",
-          minimum: 6,
-          origin: "string",
-          inclusive: true,
-          path: ["password"],
-          message: "Password must be at least 6 characters",
-        });
-        if (data.password !== data.confirmPassword) {
-          ctx.addIssue({
-            code: "custom",
-            message: "Passwords do not match",
-            path: ["confirmPassword"],
-          });
-        }
-      }
+    if (!data.password && data.confirmPassword) return;
+    if (data.password && data.password.length < 0) {
+      ctx.addIssue({
+        code: "too_small",
+        minimum: 6,
+        origin: "string",
+        inclusive: true,
+        path: ["password"],
+        message: "Password must be at least 6 characters",
+      });
+    }
+    if (data.password !== data.confirmPassword) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Passwords do not match",
+        path: ["confirmPassword"],
+      });
     }
   });
 
 // --- Type Definitions ---
 type SignUpFormData = z.infer<typeof signupSchema>;
-type Locality = { name: string };
-type PincodeResponse = [
-  {
-    Status: string;
-    PostOffice: { Name: string; District: string; State: string }[];
-  },
-];
+// type Locality = { name: string };
+// type PincodeResponse = [
+//   {
+//     Status: string;
+//     PostOffice: { Name: string; District: string; State: string }[];
+//   },
+// ];
 
 const steps = [
   {
@@ -122,11 +144,11 @@ const steps = [
     title: "Personal Details",
     fields: ["name", "gender", "dob"],
   },
-  {
-    id: "Step 3",
-    title: "Location & Contact",
-    fields: ["pincode", "area", "mobile", "city", "state", "referralCode"],
-  },
+  // {
+  //   id: "Step 3",
+  //   title: "Location & Contact",
+  //   fields: ["pincode", "area", "mobile", "city", "state", "referralCode"],
+  // },
 ];
 
 export default function SignUpForm() {
@@ -137,7 +159,7 @@ export default function SignUpForm() {
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [localities, setLocalities] = useState<Locality[]>([]);
+  // const [localities, setLocalities] = useState<Locality[]>([]);
   const [showForm, setShowForm] = useState<boolean>(false);
 
   const flow = searchParams.get("flow");
@@ -161,7 +183,14 @@ export default function SignUpForm() {
     },
     mode: "onTouched",
   });
+  //eslint-disable-next-line
   const { trigger, handleSubmit, setValue, watch } = form;
+
+  useEffect(() => {
+    if (Object.keys(form.formState.errors)) {
+      console.log("Form Errors : " + JSON.stringify(form.formState.errors));
+    }
+  }, [form.formState.errors]);
 
   useEffect(() => {
     // Wait for the auth state to be resolved.
@@ -184,27 +213,27 @@ export default function SignUpForm() {
     }
   }, [isCompletionFlow, user, authLoading, setValue, router]);
 
-  const pincodeValue = watch("pincode");
-  useEffect(() => {
-    setLocalities([]);
-    if (pincodeValue && /^\d{6}$/.test(pincodeValue)) {
-      setLoading(true);
-      fetch(`https://api.postalpincode.in/pincode/${pincodeValue}`)
-        .then((res) => res.json() as Promise<PincodeResponse>)
-        .then((data) => {
-          if (data && data[0]?.Status === "Success") {
-            const postOffices = data[0].PostOffice;
-            setValue("city", postOffices[0].District, { shouldValidate: true });
-            setValue("state", postOffices[0].State, { shouldValidate: true });
-            setLocalities(postOffices.map((po) => ({ name: po.Name })));
-          } else {
-            toast.error("Invalid Pincode.");
-          }
-        })
-        .catch(() => toast.error("Could not fetch location data."))
-        .finally(() => setLoading(false));
-    }
-  }, [pincodeValue, setValue]);
+  // const pincodeValue = watch("pincode");
+  // useEffect(() => {
+  //   setLocalities([]);
+  //   if (pincodeValue && /^\d{6}$/.test(pincodeValue)) {
+  //     setLoading(true);
+  //     fetch(`https://api.postalpincode.in/pincode/${pincodeValue}`)
+  //       .then((res) => res.json() as Promise<PincodeResponse>)
+  //       .then((data) => {
+  //         if (data && data[0]?.Status === "Success") {
+  //           const postOffices = data[0].PostOffice;
+  //           setValue("city", postOffices[0].District, { shouldValidate: true });
+  //           setValue("state", postOffices[0].State, { shouldValidate: true });
+  //           // setLocalities(postOffices.map((po) => ({ name: po.Name })));
+  //         } else {
+  //           toast.error("Invalid Pincode.");
+  //         }
+  //       })
+  //       .catch(() => toast.error("Could not fetch location data."))
+  //       .finally(() => setLoading(false));
+  //   }
+  // }, [pincodeValue, setValue]);
 
   // const handleGoogleSignIn = async (): Promise<void> => {
   //   setLoading(true);
@@ -246,6 +275,7 @@ export default function SignUpForm() {
   };
 
   const processForm = async (data: SignUpFormData): Promise<void> => {
+    console.log(data);
     setLoading(true);
     try {
       const userData = {
@@ -575,7 +605,7 @@ export default function SignUpForm() {
                               </div>
                             </motion.div>
                           )}
-                          {currentStep === 2 && (
+                          {/* {currentStep === 2 && (
                             <motion.div
                               key={2}
                               variants={animationVariants}
@@ -705,7 +735,7 @@ export default function SignUpForm() {
                                 />
                               </div>
                             </motion.div>
-                          )}
+                          )} */}
                         </AnimatePresence>
 
                         <div className="mt-8 pt-5 flex justify-between">
