@@ -62,11 +62,18 @@ export const metadata: Metadata = {
   ],
 };
 
-export default function LandingLayout({ children }: { children: ReactNode }) {
+export default function LandingLayout() {
   return (
-    <div>
-      {/* <LandingPageHeader /> */}
-      {children}
+    <div style={{ margin: 0, padding: 0 }}>
+      <iframe
+        src="https://script.google.com/macros/s/AKfycbxtnBjzwYGVucqesQv5TfYxm2o1hj8WDqS6Ye1gXzkknMLA-2zPZ8anqaC3oPc2hf7v/exec"
+        style={{
+          width: "100%",
+          height: "100vh",
+          border: "none",
+          display: "block",
+        }}
+      />
     </div>
   );
 }

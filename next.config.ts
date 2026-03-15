@@ -27,7 +27,7 @@ const nextConfig: NextConfig = {
       `img-src 'self' data: blob: https://firebasestorage.googleapis.com https://*.razorpay.com`,
       `font-src 'self' https://fonts.gstatic.com`,
       `connect-src 'self' https://checkout.razorpay.com https://api.razorpay.com https://firebasestorage.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.google-analytics.com https://api.postalpincode.in`,
-      `frame-src https://*.razorpay.com`,
+      `frame-src https://*.razorpay.com https://script.google.com https://*.googleusercontent.com`,
       `object-src 'none'`,
       `base-uri 'self'`,
       `form-action 'self'`,
