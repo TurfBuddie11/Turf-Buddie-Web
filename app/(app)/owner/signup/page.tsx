@@ -96,18 +96,22 @@ export default function OwnerSignupPage() {
       toast.error("Passwords do not match");
       return;
     }
-    const { phoneNumber, ...rest } = formData;
+    // Explicitly exclude sensitive fields from the profile data
+    // to prevent them from being written to Firestore in plaintext.
+    const {
+      password,
+      confirmPassword,
+      termsAccepted,
+      phoneNumber,
+      ...safeFields
+    } = formData;
     const data = {
-      ...rest,
+      ...safeFields,
       role: "owner" as const,
       mobile: phoneNumber,
     };
     try {
-      const { user } = await registerWithEmail(
-        formData.email,
-        formData.password,
-        data,
-      );
+      const { user } = await registerWithEmail(formData.email, password, data);
       const idToken = await user.getIdToken();
 
       await fetch("/api/auth/owner-session", {

@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 
         const totalAmount = serverBookingData.amount;
         const pricePerSlot = totalAmount / requestedSlots.length;
-        const commission = pricePerSlot * 0.094;
+        const commission = pricePerSlot * 0.05; // 5% owner-side commission
         const payout = pricePerSlot - commission;
 
         const newBookingSlots: Booking[] = requestedSlots.map((slotLabel) => ({
