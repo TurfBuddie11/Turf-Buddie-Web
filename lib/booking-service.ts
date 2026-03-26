@@ -36,7 +36,7 @@ export async function processBookingTransaction(
 
       const totalAmount = serverBookingData.amount;
       const pricePerSlot = totalAmount / requestedSlots.length;
-      const commissionPerSlot = pricePerSlot * 0.094; // 9.4% commission
+      const commissionPerSlot = pricePerSlot * 0.05; // 5% owner-side commission
       const payoutPerSlot = pricePerSlot - commissionPerSlot;
 
       const newBookingSlots: Booking[] = requestedSlots.map(
