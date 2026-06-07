@@ -20,8 +20,20 @@ async function fetchTurf(id: string): Promise<Turf | null> {
     price?: number;
   }
 
-  function formatTimeSlots(rawTimeSlots: RawTimeSlot[]) {
-    return rawTimeSlots.map((slot, idx) => ({
+  function formatTimeSlots(rawTimeSlots: unknown) {
+    // Firebase mein timeSlots array, object, ya undefined ho sakta hai
+    let slots: RawTimeSlot[] = [];
+
+    if (Array.isArray(rawTimeSlots)) {
+      slots = rawTimeSlots as RawTimeSlot[];
+    } else if (rawTimeSlots && typeof rawTimeSlots === "object") {
+      // Object/map format: { "0": {...}, "1": {...} }
+      slots = Object.values(rawTimeSlots) as RawTimeSlot[];
+    } else {
+      return [];
+    }
+
+    return slots.map((slot, idx) => ({
       id: `slot_${idx}`,
       startTime: slot.timeSlot?.split(" - ")[0] || "00:00",
       endTime: slot.timeSlot?.split(" - ")[1] || "01:00",
@@ -42,7 +54,7 @@ async function fetchTurf(id: string): Promise<Turf | null> {
     imageurl: data.imageurl || "",
     rating: data.rating || 0,
     price: data.price || 0,
-    timeSlots: formatTimeSlots(data.timeSlots || []),
+    timeSlots: formatTimeSlots(data.timeSlots),
     // amenities: data.amenities || [],
     // description: data.description || "",
     location: data.location
@@ -107,7 +119,7 @@ export default async function TurfDetailsPage({
     .slice(0, 10);
 
   return (
-    <div className="min-h-screen  overflow-x-hidden px-4">
+    <div className="min-h-screen overflow-hidden px-4 py-8">
       <TurfDetailsClient turf={turf} localDate={localDate} />
     </div>
   );

@@ -3,19 +3,19 @@ import type { NextConfig } from "next";
 import crypto from "crypto";
 
 const nextConfig: NextConfig = {
-  // images: {
-  //   remotePatterns: [
-  //     {
-  //       protocol: "https",
-  //       hostname: "firebasestorage.googleapis.com",
-  //       pathname: "/v0/b/**",
-  //     },
-  //     {
-  //       protocol: "https",
-  //       hostname: "plus.unsplash.com",
-  //     },
-  //   ],
-  // },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "firebasestorage.googleapis.com",
+        pathname: "/v0/b/**",
+      },
+      {
+        protocol: "https",
+        hostname: "plus.unsplash.com",
+      },
+    ],
+  },
   // async headers() {
   //   const nonce = crypto.randomBytes(16).toString("base64");
   //   const CSP = [

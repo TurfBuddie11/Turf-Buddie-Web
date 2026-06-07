@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { Star } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SafeImage } from "@/components/ui/safe-image";
 import { Input } from "@/components/ui/input";
 import { FormControl, FormItem, FormLabel } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
@@ -145,7 +145,9 @@ export default function ExplorePage() {
           setLocationFound(true);
         },
         (error) => {
-          console.error("Error getting user location:", error);
+          if (error.code !== 1) {
+            console.warn("Geolocation unavailable:", error.message);
+          }
         },
         { enableHighAccuracy: true },
       );
@@ -195,15 +197,14 @@ export default function ExplorePage() {
   }, [turfs, nearbyTurfs, locationFound, search, location, price, minRating]);
 
   return (
-    <>
-      <div className="min-h-screen  py-8 px-4">
-        <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen px-4 py-8">
+      <div className="max-w-7xl mx-auto space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: shouldReduceMotion ? 0 : 0.5 }}
           >
-            <h1 className="text-4xl font-bold tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight">
               Find your turf 🏟️
             </h1>
             <p className="text-muted-foreground mt-2">
@@ -325,7 +326,7 @@ export default function ExplorePage() {
                     <Card className="glass-card overflow-hidden ">
                       <div className="relative h-44 w-full">
                         {t.imageurl && (
-                          <Image
+                          <SafeImage
                             src={t.imageurl}
                             alt={`Image of ${t.name}`}
                             fill
@@ -385,7 +386,6 @@ export default function ExplorePage() {
             </>
           )}
         </div>
-      </div>
-    </>
+    </div>
   );
 }

@@ -47,9 +47,8 @@ const formatTo12Hour = (time24: string) => {
   if (isNaN(hours)) return "Invalid";
   const period = hours >= 12 ? "PM" : "AM";
   const hours12 = hours % 12 || 12;
-  return `${hours12}${
-    minutes ? `:${String(minutes).padStart(2, "0")}` : ""
-  } ${period}`;
+  return `${hours12}${minutes ? `:${String(minutes).padStart(2, "0")}` : ""
+    } ${period}`;
 };
 
 const getSlotLabel = (startTime: string, endTime: string) =>
@@ -76,6 +75,11 @@ export function BookingFlow({
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [redeemPoints, setRedeemPoints] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [splitCount, setSplitCount] = useState(2);
+  const [teamMembers, setTeamMembers] = useState<{ phone: string; name: string; amount: number }[]>([]);
+  const [customAmounts, setCustomAmounts] = useState<number[]>([]);
+  const [splitGroupId, setSplitGroupId] = useState<string | null>(null);
+  const [isCreatingSplitGroup, setIsCreatingSplitGroup] = useState(false);
 
   // User details form state
   const [userDetails, setUserDetails] = useState({
@@ -141,6 +145,16 @@ export function BookingFlow({
   const totalPrice = useMemo(
     () => Math.max(0, Math.round(basePrice) - discount + turf.price * 0.015),
     [basePrice, discount, turf.price],
+  );
+
+  const perPersonPrice = useMemo(
+    () => Math.ceil(totalPrice / splitCount),
+    [totalPrice, splitCount],
+  );
+
+  const customTotal = useMemo(
+    () => customAmounts.reduce((sum, a) => sum + a, 0),
+    [customAmounts],
   );
 
   // Fetch Booked Slots
@@ -224,6 +238,7 @@ export function BookingFlow({
         status: "pending" as const,
         paid: "Not Paid to Owner" as const,
         userDetails: userDetails,
+        splitCount,
       };
 
       const orderResponse = await fetch("/api/payment/create-order", {
@@ -306,7 +321,82 @@ export function BookingFlow({
     redeemPoints,
     loyaltyPoints,
     userDetails,
+    splitCount,
   ]);
+
+  const handleCreateSplitGroup = useCallback(async () => {
+    if (!user || selectedSlots.length === 0) {
+      toast.info("Please select at least one slot and ensure you are logged in.");
+      return;
+    }
+
+    setIsCreatingSplitGroup(true);
+    try {
+      const timeSlotLabels = selectedSlots.map((slot) =>
+        getSlotLabel(slot.startTime, slot.endTime),
+      );
+      const day = dateObj.toLocaleDateString("en-US", { day: "numeric" });
+      const month = dateObj.toLocaleDateString("en-US", { month: "short" });
+
+      // Build members array: organizer first, then teammates
+      const allMembers = [
+        {
+          name: userDetails.name || profile?.name || "Organizer",
+          phone: userDetails.phone || profile?.mobile || "",
+          amount: customAmounts[0] || perPersonPrice,
+        },
+        ...teamMembers.map((m, i) => ({
+          name: m.name || `Player ${i + 2}`,
+          phone: m.phone,
+          amount: customAmounts[i + 1] || perPersonPrice,
+        })),
+      ];
+
+      const res = await fetch("/api/split-payment/create-group", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          turfId: turf.id,
+          turfName: turf.name,
+          timeSlots: timeSlotLabels,
+          daySlot: dateObj.toLocaleDateString("en-US", { weekday: "long" }),
+          monthSlot: `${day} ${month}`,
+          totalAmount: totalPrice,
+          members: allMembers,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to create split group");
+      }
+
+      const data = await res.json();
+      setSplitGroupId(data.groupId);
+
+      toast.success("Split group created! Slot blocked for 30 minutes.", {
+        description: "Share the payment link with your teammates.",
+      });
+
+      // Send individual WhatsApp messages to each teammate
+      allMembers.slice(1).forEach((member) => {
+        if (member.phone) {
+          const link = `${window.location.origin}/split-pay/${data.groupId}`;
+          const msg = `🏟 Hey ${member.name}! ${userDetails.name || "Your friend"} has booked ${turf.name} on ${day} ${month}.\n💰 Your share: ₹${member.amount}\n🔗 Pay here: ${link}\n⏰ Please pay within 30 minutes to confirm the slot.`;
+          window.open(
+            `https://wa.me/${member.phone.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`,
+            "_blank",
+          );
+        }
+      });
+    } catch (error) {
+      toast.error("Failed to create split group", {
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setIsCreatingSplitGroup(false);
+    }
+  }, [user, selectedSlots, dateObj, turf, totalPrice, perPersonPrice, teamMembers, customAmounts, userDetails, profile]);
 
   const handleUserDetailChange = (
     field: keyof typeof userDetails,
@@ -378,8 +468,8 @@ export function BookingFlow({
                         "p-3 rounded-xl border text-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
                         "hover:border-green-400",
                         isSelected &&
-                          !isBooked &&
-                          "bg-green-500/20 border-green-600 ring-2 ring-green-600 hover:bg-green-500/30",
+                        !isBooked &&
+                        "bg-green-500/20 border-green-600 ring-2 ring-green-600 hover:bg-green-500/30",
                       )}
                     >
                       <p className="font-semibold text-sm sm:text-base">
@@ -560,6 +650,139 @@ export function BookingFlow({
                         />
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+
+                {/* Split 'n Pay */}
+                <Card className="border-green-200 dark:border-green-800">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <span>Split &apos;n Pay</span>
+                      <Badge variant="secondary" className="text-xs">Invite Friends</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Split count */}
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium">Split between:</span>
+                      <div className="flex gap-1">
+                        {[2, 3, 4, 5, 6].map((n) => (
+                          <button
+                            key={n}
+                            onClick={() => {
+                              setSplitCount(n);
+                              setTeamMembers(
+                                Array.from({ length: n - 1 }, () => ({ phone: "", name: "", amount: 0 }))
+                              );
+                              setCustomAmounts(Array.from({ length: n }, () => perPersonPrice));
+                            }}
+                            className={cn(
+                              "w-8 h-8 rounded-full text-sm font-semibold transition-all border",
+                              splitCount === n
+                                ? "bg-green-600 text-white border-green-600"
+                                : "border-gray-300 dark:border-gray-600 hover:border-green-400"
+                            )}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                      <span className="text-sm text-muted-foreground">people</span>
+                    </div>
+
+                    {/* Per person amount */}
+                    <div className="bg-green-50 dark:bg-green-950/20 rounded-xl p-3 flex justify-between items-center">
+                      <span className="text-sm text-gray-600">₹{totalPrice} ÷ {splitCount} =</span>
+                      <span className="font-bold text-green-700 text-lg">₹{perPersonPrice} each</span>
+                    </div>
+
+                    {/* Member inputs */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Add teammates</p>
+
+                      {/* Organizer row (you) */}
+                      <div className="flex items-center gap-2 p-2 rounded-lg bg-green-50 border border-green-200">
+                        <div className="w-7 h-7 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                          {(profile?.name || userDetails.name || "Y").charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-sm font-medium flex-1 text-gray-800">
+                          {profile?.name || userDetails.name || "You"} <span className="text-xs text-green-600">(Organizer)</span>
+                        </span>
+                        <span className="text-sm font-bold text-gray-900">₹{customAmounts[0] || perPersonPrice}</span>
+                      </div>
+
+                      {teamMembers.map((member, i) => (
+                        <div key={i} className="flex gap-2 items-center">
+                          <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold shrink-0">
+                            {member.name ? member.name.charAt(0).toUpperCase() : (i + 2)}
+                          </div>
+                          <Input
+                            value={member.name}
+                            onChange={(e) => {
+                              const updated = [...teamMembers];
+                              updated[i].name = e.target.value;
+                              setTeamMembers(updated);
+                            }}
+                            className="h-8 text-xs flex-1"
+                            placeholder={`Player ${i + 2} name`}
+                          />
+                          <Input
+                            value={member.phone}
+                            onChange={(e) => {
+                              const updated = [...teamMembers];
+                              updated[i].phone = e.target.value.replace(/\D/g, "").slice(0, 10);
+                              setTeamMembers(updated);
+                            }}
+                            className="h-8 text-xs w-28"
+                            placeholder="Phone"
+                            type="tel"
+                          />
+                          <span className="text-xs font-bold text-gray-700 w-14 text-right shrink-0">
+                            ₹{customAmounts[i + 1] || perPersonPrice}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Create Group button */}
+                    {splitGroupId ? (
+                      <div className="space-y-2">
+                        <div className="rounded-xl bg-green-50 border border-green-200 p-3 text-center">
+                          <p className="text-xs font-semibold text-green-700 mb-1">✅ Split group created! Share link with teammates:</p>
+                          <p className="text-xs text-gray-500 break-all">
+                            {typeof window !== "undefined" ? `${window.location.origin}/split-pay/${splitGroupId}` : ""}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2 border-green-600 text-green-700 hover:bg-green-50"
+                          onClick={() => {
+                            const link = `${window.location.origin}/split-pay/${splitGroupId}`;
+                            const msg = `🏟 Hey! Pay your share for ${turf.name} on ${displayDate}.\n💰 Each person: ₹${perPersonPrice}\n🔗 Pay here: ${link}`;
+                            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+                          }}
+                        >
+                          <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
+                          Send WhatsApp Payment Links
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        onClick={handleCreateSplitGroup}
+                        disabled={isCreatingSplitGroup || selectedSlots.length === 0}
+                        className="w-full bg-green-600 hover:bg-green-700 gap-2"
+                      >
+                        {isCreatingSplitGroup ? (
+                          <><Spinner className="w-4 h-4" /> Creating group...</>
+                        ) : (
+                          "💸 Create Split Group & Block Slot"
+                        )}
+                      </Button>
+                    )}
+
+                    <p className="text-xs text-gray-400 text-center">
+                      Slot is held for 30 minutes. Booking confirms when all members pay.
+                    </p>
                   </CardContent>
                 </Card>
 

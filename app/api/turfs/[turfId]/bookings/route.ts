@@ -47,7 +47,14 @@ export async function GET(request: NextRequest) {
     }
 
     const turfData = turfSnapshot.data() || {};
-    const allBookingsInDoc: BookingSlot[] = turfData.timeSlots || [];
+
+    // timeSlots Firebase mein array, object/map, ya undefined ho sakta hai
+    let allBookingsInDoc: BookingSlot[] = [];
+    if (Array.isArray(turfData.timeSlots)) {
+      allBookingsInDoc = turfData.timeSlots as BookingSlot[];
+    } else if (turfData.timeSlots && typeof turfData.timeSlots === "object") {
+      allBookingsInDoc = Object.values(turfData.timeSlots) as BookingSlot[];
+    }
 
     const dailyBookings = allBookingsInDoc.filter((booking: BookingSlot) => {
       if (!booking.monthSlot) return false;
@@ -73,9 +80,13 @@ export async function GET(request: NextRequest) {
       return isSameDay && isBlockingStatus;
     });
 
-    const bookedSlots = dailyBookings
-      .map((booking: BookingSlot) => booking.timeSlot)
-      .filter((slot): slot is string => !!slot);
+    const bookedSlots = dailyBookings.flatMap((booking: BookingSlot) => {
+      // timeSlots array (new format) ya timeSlot string (old format) dono handle karo
+      if (Array.isArray((booking as { timeSlots?: string[] }).timeSlots)) {
+        return (booking as { timeSlots: string[] }).timeSlots.filter(Boolean);
+      }
+      return booking.timeSlot ? [booking.timeSlot] : [];
+    });
 
     return NextResponse.json({
       bookedSlots,

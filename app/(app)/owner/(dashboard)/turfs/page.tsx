@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { Edit, IndianRupee, MapPin, PlusCircle } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import z from "zod";
 import { useTurf } from "@/context/turf-context";
+import { SafeImage } from "@/components/ui/safe-image";
 
 import {
   Dialog,
@@ -278,7 +278,7 @@ export default function TurfsPage() {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <Image
+              <SafeImage
                 src={turf.imageUrl || "/hero-turf.jpg"}
                 alt="turf image"
                 width={700}

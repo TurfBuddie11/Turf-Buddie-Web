@@ -10,6 +10,7 @@ export async function POST(request: Request) {
     if (!idToken) {
       return new NextResponse("ID token not found", { status: 400 });
     }
+// ...existing code...
 
     const expiresIn = parseInt(
       process.env.SESSION_COOKIE_EXPIRES_IN || "432000000",

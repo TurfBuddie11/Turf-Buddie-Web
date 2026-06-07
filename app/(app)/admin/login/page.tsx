@@ -133,21 +133,14 @@ export default function AdminLoginPage() {
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         autoComplete="current-password"
-                        className="h-12 sm:h-10 text-base sm:text-sm pr-12"
+                        className="h-12 sm:h-10 text-base sm:text-sm"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-0 top-0 h-full px-3  transition-colors"
-                        aria-label={
-                          showPassword ? "Hide password" : "Show password"
-                        }
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       >
-                        {showPassword ? (
-                          <EyeOff size={20} />
-                        ) : (
-                          <Eye size={20} />
-                        )}
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
                     <FieldError>{fieldState.error?.message}</FieldError>
@@ -187,11 +180,62 @@ export default function AdminLoginPage() {
             </Button>
           </form>
 
+          {process.env.NODE_ENV === "development" && (
+            <div className="mt-4 pt-4 border-t border-dashed">
+              <Button
+                variant="outline"
+                className="w-full h-10 text-sm font-medium"
+                onClick={async () => {
+                  try {
+                    const res = await fetch("/api/auth/debug-login", { method: "POST" });
+                    if (res.ok) {
+                      toast.success("Debug login successful");
+                      router.push("/admin/tournaments/manage");
+                    } else {
+                      toast.error("Debug login failed");
+                    }
+                  } catch {
+                    toast.error("Debug login failed");
+                  }
+                }}
+              >
+                Debug Login (Dev Only)
+              </Button>
+            </div>
+          )}
+
           <p className="mt-8 text-center text-xs">
             &copy; {new Date().getFullYear()} TurfBuddie Management System.
             <br />
             Authorized Personnel Only.
           </p>
+
+          {/* DEV ONLY — debug bypass */}
+          {process.env.NODE_ENV === "development" && (
+            <div className="mt-6 border-t pt-4">
+              <p className="text-xs text-center text-muted-foreground mb-2">🛠 Dev Debug Access</p>
+              <button
+                type="button"
+                onClick={async () => {
+                  const pwd = prompt("Debug password:");
+                  if (!pwd) return;
+                  const res = await fetch("/api/auth/admin-session/debug", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ password: pwd }),
+                  });
+                  if (res.ok) {
+                    router.push("/admin/tournaments/manage");
+                  } else {
+                    alert("Wrong debug password");
+                  }
+                }}
+                className="w-full text-xs border border-dashed border-amber-400 text-amber-600 rounded-lg py-2 hover:bg-amber-50 transition-colors"
+              >
+                🔓 Debug Login (Dev Only)
+              </button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

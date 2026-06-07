@@ -3,6 +3,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { DocumentData } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
 import { processBookingTransaction } from "@/lib/booking-service";
+import { sendBookingNotifications } from "@/lib/hellotick/automation";
 
 // Helper to fetch pending order details
 async function getBookingDetailsFromOrderId(
@@ -62,6 +63,30 @@ export async function POST(request: NextRequest) {
             bookingError,
           );
         }
+      } else {
+        const slots = Array.isArray(serverBookingData.timeSlots)
+          ? serverBookingData.timeSlots
+          : [serverBookingData.timeSlot].filter(Boolean);
+        const splitMembers: { name?: string; amount?: number }[] =
+          serverBookingData.splitMembers || [];
+        const splitInfo = splitMembers.length
+          ? `Split with: ${splitMembers
+              .map((m) => `${m.name || "Guest"} (₹${m.amount ?? 0})`)
+              .join(", ")}`
+          : undefined;
+
+        sendBookingNotifications({
+          turfId: serverBookingData.turfId,
+          daySlot: serverBookingData.daySlot,
+          monthSlot: serverBookingData.monthSlot,
+          timeSlot: slots.join(", "),
+          transactionId: paymentId,
+          amount: serverBookingData.amount,
+          userUid: serverBookingData.userUid,
+          splitInfo,
+        }).catch((err) => {
+          console.error("[webhook] WhatsApp automation error:", err);
+        });
       }
     }
 
