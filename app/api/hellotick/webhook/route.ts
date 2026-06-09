@@ -54,6 +54,30 @@ function extractPhoneFromChat(chat: unknown): string | undefined {
   return (nested?.phone as string) || (c.phone as string);
 }
 
+function extractMessageText(payload: Record<string, unknown>): string | undefined {
+  // Direct text fields
+  const direct =
+    (payload.text as string | undefined) ||
+    (payload.body as string | undefined) ||
+    (payload.message as string | undefined);
+  if (direct) return direct;
+
+  // Hellotick/WhatsApp Cloud API: messages[0].text.body
+  const messages = payload.messages;
+  if (Array.isArray(messages) && messages.length > 0) {
+    const m = messages[0] as Record<string, unknown>;
+    const textField = m.text as Record<string, unknown> | string | undefined;
+    if (typeof textField === "string") return textField;
+    if (textField && typeof textField === "object" && "body" in textField) {
+      return String(textField.body);
+    }
+    // Also check for button responses
+    const button = m.button as Record<string, unknown> | undefined;
+    if (button?.text) return String(button.text);
+  }
+  return undefined;
+}
+
 export async function POST(request: NextRequest) {
   if (!isValidSecret(request)) {
     return NextResponse.json({ error: "Invalid secret" }, { status: 401 });
@@ -85,15 +109,17 @@ export async function POST(request: NextRequest) {
 
   // Process incoming messages
   if (event === "message.received" && body.data) {
-    const messageData = body.data as Record<string, unknown>;
+    // Hellotick wraps actual data under body.data.value
+    const messageData = ((body.data as Record<string, unknown>).value ||
+      body.data) as Record<string, unknown>;
 
     // Try multiple locations where Hellotick might put the phone number
     const from =
       (messageData.from as string | undefined) ||
-      (messageData.phone as string | undefined) ||
-      extractPhoneFromContacts(messageData.contacts) ||
       extractPhoneFromMessages(messageData.messages) ||
-      extractPhoneFromChat(messageData.chat);
+      extractPhoneFromContacts(messageData.contacts) ||
+      extractPhoneFromChat(messageData.chat) ||
+      (messageData.phone as string | undefined);
 
     if (!from) {
       console.warn(
@@ -110,7 +136,7 @@ export async function POST(request: NextRequest) {
       try {
         await handleIncomingMessage({
           from,
-          text: messageData.text ? String(messageData.text) : undefined,
+          text: extractMessageText(messageData),
           type: (messageData.type as "text" | "image" | "video" | "document" | "audio" | "button" | "list") || "text",
           timestamp: messageData.timestamp
             ? Number(messageData.timestamp)
