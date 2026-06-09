@@ -124,24 +124,33 @@ async function safeSend(
   meta: { event: string; payload: Record<string, unknown> },
 ): Promise<{ ok: boolean; error?: string }> {
   const normalized = normalizePhone(phone);
+
+  console.log(`[hellotick] Attempting to send to ${normalized}`, {
+    event: meta.event,
+    phone: normalized,
+    messageLength: message.length,
+  });
+
   try {
     const result = await hellotick.sendText({ phone: normalized, message });
+    console.log(`[hellotick] Send successful to ${normalized}`, result);
     await logWhatsAppEvent(meta.event, normalized, meta.payload, result);
     return { ok: true };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const errorMessage = err instanceof Error ? err.message : String(err);
     console.error(
       `[hellotick] send failed to ${normalized} (${meta.event}):`,
-      message,
+      errorMessage,
     );
+    console.error("[hellotick] Full error:", err);
     await logWhatsAppEvent(
       meta.event,
       normalized,
       meta.payload,
       undefined,
-      message,
+      errorMessage,
     );
-    return { ok: false, error: message };
+    return { ok: false, error: errorMessage };
   }
 }
 
@@ -153,6 +162,14 @@ export interface BookingAutomationResult {
 export async function sendBookingNotifications(
   data: BookingEventData,
 ): Promise<BookingAutomationResult> {
+  console.log("[hellotick] Starting sendBookingNotifications", {
+    turfId: data.turfId,
+    userUid: data.userUid,
+    transactionId: data.transactionId,
+    customerEnabled: SEND_TO_CUSTOMER,
+    ownerEnabled: SEND_TO_OWNER,
+  });
+
   const result: BookingAutomationResult = {
     customer: { ok: false, skipped: false },
     owner: { ok: false, skipped: false },
@@ -164,6 +181,12 @@ export async function sendBookingNotifications(
   ]);
 
   const owner = turf?.ownerId ? await getOwner(turf.ownerId) : null;
+
+  console.log("[hellotick] Fetched entities:", {
+    customer: customer ? { uid: customer.uid, mobile: customer.mobile } : null,
+    turf: turf ? { id: turf.id, name: turf.name, ownerId: turf.ownerId } : null,
+    owner: owner ? { uid: owner.uid, mobile: owner.mobile } : null,
+  });
 
   const timeSlots = Array.isArray(data.timeSlot)
     ? data.timeSlot.join(", ")

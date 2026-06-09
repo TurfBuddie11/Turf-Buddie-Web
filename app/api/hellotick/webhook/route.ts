@@ -1,6 +1,7 @@
 import { adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
+import { handleIncomingMessage } from "@/lib/hellotick/chatbot-final";
 
 const WEBHOOK_SECRET = process.env.HELLOTICK_WEBHOOK_SECRET || "";
 
@@ -60,6 +61,33 @@ export async function POST(request: NextRequest) {
     supported,
     createdAt: FieldValue.serverTimestamp(),
   });
+
+  // Process incoming messages
+  if (event === "message.received" && body.data) {
+    const messageData = body.data as Record<string, unknown>;
+
+    try {
+      await handleIncomingMessage({
+        from: String(messageData.from || ""),
+        text: messageData.text ? String(messageData.text) : undefined,
+        type: (messageData.type as "text" | "image" | "video" | "document" | "audio" | "button" | "list") || "text",
+        timestamp: messageData.timestamp
+          ? Number(messageData.timestamp)
+          : Date.now(),
+      });
+
+      console.log("[webhook] Message processed successfully");
+    } catch (err) {
+      console.error("[webhook] Error processing incoming message:", err);
+
+      await adminDb.collection("whatsappWebhookErrors").add({
+        event,
+        error: err instanceof Error ? err.message : String(err),
+        payload: body,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
 
   return NextResponse.json({ ok: true, supported });
 }

@@ -63,6 +63,42 @@ export interface HellotickSendTemplatePayload {
   };
 }
 
+export interface HellotickInteractivePayload {
+  phone: string;
+  type: "button" | "list";
+  header?: {
+    type: "text" | "image" | "video" | "document";
+    text?: string;
+    image?: string;
+    video?: string;
+    document?: string;
+  };
+  body: {
+    text: string;
+  };
+  footer?: {
+    text: string;
+  };
+  action: {
+    buttons?: Array<{
+      type: "reply";
+      reply: {
+        id: string;
+        title: string;
+      };
+    }>;
+    button?: string;
+    sections?: Array<{
+      title: string;
+      rows: Array<{
+        id: string;
+        title: string;
+        description?: string;
+      }>;
+    }>;
+  };
+}
+
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 async function call<T = unknown>(
@@ -167,6 +203,29 @@ export const hellotick = {
     call("/api/send/media", "POST", data),
   sendTemplate: (data: HellotickSendTemplatePayload) =>
     call("/api/send/template", "POST", data),
+
+  // Interactive messages - Try standard WhatsApp Cloud API format
+  sendInteractive: async (data: HellotickInteractivePayload) => {
+    // First try direct /api/send with interactive payload
+    try {
+      return await call("/api/send", "POST", data);
+    } catch (err) {
+      // Fallback: Try /api/send/interactive
+      try {
+        return await call("/api/send/interactive", "POST", data);
+      } catch {
+        // Last resort: Convert to rich text message with emojis
+        const buttons = data.action.buttons || [];
+        const buttonText = buttons.map((b, i) => `${i + 1}️⃣ ${b.reply.title}`).join('\n');
+        const fullMessage = `${data.header?.text ? `*${data.header.text}*\n\n` : ''}${data.body.text}\n\n${buttonText}${data.footer?.text ? `\n\n_${data.footer.text}_` : ''}`;
+
+        return await call("/api/send", "POST", {
+          phone: data.phone,
+          message: fullMessage,
+        });
+      }
+    }
+  },
 };
 
 export const hellotickConfig = {

@@ -71,22 +71,54 @@ export async function POST(request: NextRequest) {
           serverBookingData.splitMembers || [];
         const splitInfo = splitMembers.length
           ? `Split with: ${splitMembers
-              .map((m) => `${m.name || "Guest"} (₹${m.amount ?? 0})`)
-              .join(", ")}`
+            .map((m) => `${m.name || "Guest"} (₹${m.amount ?? 0})`)
+            .join(", ")}`
           : undefined;
 
-        sendBookingNotifications({
+        // Send WhatsApp notifications with detailed logging
+        console.log("[webhook] Preparing to send WhatsApp notifications...", {
+          orderId,
+          paymentId,
           turfId: serverBookingData.turfId,
-          daySlot: serverBookingData.daySlot,
-          monthSlot: serverBookingData.monthSlot,
-          timeSlot: slots.join(", "),
-          transactionId: paymentId,
-          amount: serverBookingData.amount,
           userUid: serverBookingData.userUid,
-          splitInfo,
-        }).catch((err) => {
-          console.error("[webhook] WhatsApp automation error:", err);
         });
+
+        try {
+          const result = await sendBookingNotifications({
+            turfId: serverBookingData.turfId,
+            daySlot: serverBookingData.daySlot,
+            monthSlot: serverBookingData.monthSlot,
+            timeSlot: slots.join(", "),
+            transactionId: paymentId,
+            amount: serverBookingData.amount,
+            userUid: serverBookingData.userUid,
+            splitInfo,
+          });
+
+          console.log("[webhook] WhatsApp notifications result:", {
+            customer: result.customer,
+            owner: result.owner,
+          });
+
+          // Log to Firebase for tracking
+          await adminDb.collection("whatsappWebhookLogs").add({
+            orderId,
+            paymentId,
+            result,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (err) {
+          console.error("[webhook] WhatsApp automation error:", err);
+
+          // Log error to Firebase for debugging
+          await adminDb.collection("whatsappWebhookErrors").add({
+            orderId,
+            paymentId,
+            error: err instanceof Error ? err.message : String(err),
+            stack: err instanceof Error ? err.stack : undefined,
+            timestamp: new Date().toISOString(),
+          });
+        }
       }
     }
 
