@@ -109,9 +109,18 @@ export async function POST(request: NextRequest) {
 
   // Process incoming messages
   if (event === "message.received" && body.data) {
-    // Hellotick wraps actual data under body.data.value
-    const messageData = ((body.data as Record<string, unknown>).value ||
-      body.data) as Record<string, unknown>;
+    // Unwrap nested data — Hellotick has shipped 2 formats:
+    //   1. body.data.value.{contacts,messages}
+    //   2. body.data.data.value.{contacts,messages}
+    // Walk down as long as we find a nested "value" or "data" wrapper.
+    let messageData: Record<string, unknown> = body.data as Record<string, unknown>;
+    for (let i = 0; i < 3; i++) {
+      const inner = (messageData.value || messageData.data) as
+        | Record<string, unknown>
+        | undefined;
+      if (!inner || inner === messageData) break;
+      messageData = inner;
+    }
 
     // Try multiple locations where Hellotick might put the phone number
     const from =
@@ -123,8 +132,10 @@ export async function POST(request: NextRequest) {
 
     if (!from) {
       console.warn(
-        "[webhook] message.received without usable phone; skipping chatbot:",
-        JSON.stringify(messageData).slice(0, 300),
+        "[webhook] message.received without usable phone; skipping chatbot. Full payload keys:",
+        Object.keys(messageData),
+        " body keys:",
+        Object.keys(body),
       );
       await adminDb.collection("whatsappWebhookErrors").add({
         event,
