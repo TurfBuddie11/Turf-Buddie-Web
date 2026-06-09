@@ -24,6 +24,23 @@ interface IncomingMessage {
     timestamp?: number;
 }
 
+interface WhatsappSession {
+    lastCommand?: string;
+    waitingFor?: string;
+    cities?: string[];
+    selectedCity?: string;
+    turfs?: Array<{ id: string; name: string }>;
+    selectedTurf?: { id: string; name: string };
+    availableSlots?: string[];
+    ownerPhone?: string;
+    ownerName?: string;
+    ownerTurfId?: string;
+    ownerTurfName?: string;
+    ownerVerified?: boolean;
+    updatedAt?: number;
+    [key: string]: unknown;
+}
+
 /**
  * Log chat interaction to database
  */
@@ -31,7 +48,7 @@ async function logChat(
     phone: string,
     step: string,
     message: string,
-    data?: any,
+    data?: unknown,
 ): Promise<void> {
     await adminDb.collection("whatsappChatLogs").add({
         phone,
@@ -186,7 +203,7 @@ export async function handleIncomingMessage(
     // Get user session
     const sessionRef = adminDb.collection("whatsappSessions").doc(phone);
     const sessionDoc = await sessionRef.get();
-    const session = sessionDoc.exists ? (sessionDoc.data() as any) : {};
+    const session = sessionDoc.exists ? (sessionDoc.data() as WhatsappSession) : ({} as WhatsappSession);
 
     try {
         // ============================================
@@ -384,6 +401,13 @@ export async function handleIncomingMessage(
             }
 
             const timeSlot = availableSlots[slotIndex];
+            if (!session.selectedTurf) {
+                await hellotick.sendText({
+                    phone,
+                    message: "Please select a turf first. Send *SLOTS* to start.",
+                });
+                return;
+            }
             await processBooking(phone, session.selectedTurf, timeSlot);
         }
         // ============================================
@@ -396,13 +420,14 @@ export async function handleIncomingMessage(
         // OWNER PANEL: OTP entered
         // ============================================
         else if (/^\d{4}$/.test(text) && session.waitingFor === "owner_otp") {
-            await verifyOwnerOTP(phone, text, session.ownerPhone);
+            await verifyOwnerOTP(phone, text, session.ownerPhone ?? "");
         }
         // ============================================
         // OWNER PANEL: Block slot
         // ============================================
         else if (text.startsWith("BLOCK ") && session.ownerVerified) {
             const timeSlot = text.replace("BLOCK ", "").trim();
+            if (!session.ownerTurfId || !session.ownerTurfName) return;
             await blockSlot(phone, session.ownerTurfId, session.ownerTurfName, timeSlot);
         }
         // ============================================
@@ -410,6 +435,7 @@ export async function handleIncomingMessage(
         // ============================================
         else if (text.startsWith("UNBLOCK ") && session.ownerVerified) {
             const timeSlot = text.replace("UNBLOCK ", "").trim();
+            if (!session.ownerTurfId || !session.ownerTurfName) return;
             await unblockSlot(phone, session.ownerTurfId, session.ownerTurfName, timeSlot);
         }
         // ============================================
@@ -423,6 +449,7 @@ export async function handleIncomingMessage(
                 });
                 return;
             }
+            if (!session.ownerTurfId || !session.ownerTurfName) return;
             await sendOwnerReport(phone, session.ownerTurfId, session.ownerTurfName);
         }
         // ============================================

@@ -17,6 +17,22 @@ interface IncomingMessage {
     timestamp?: number;
 }
 
+interface WhatsappSessionV2 {
+    lastCommand?: string;
+    waitingFor?: string;
+    turfs?: Array<{ id: string; name: string; location?: string; city?: string }>;
+    selectedTurfId?: string;
+    selectedTurfName?: string;
+    availableSlots?: string[];
+    ownerPhone?: string;
+    ownerName?: string;
+    ownerTurfId?: string;
+    ownerTurfName?: string;
+    ownerVerified?: boolean;
+    updatedAt?: number;
+    [key: string]: unknown;
+}
+
 /**
  * Get list of all active turfs
  */
@@ -249,7 +265,7 @@ export async function handleIncomingMessage(
     // Get user session
     const sessionRef = adminDb.collection("whatsappSessions").doc(phone);
     const sessionDoc = await sessionRef.get();
-    const session = sessionDoc.exists ? (sessionDoc.data() as any) : {};
+    const session = sessionDoc.exists ? (sessionDoc.data() as WhatsappSessionV2) : ({} as WhatsappSessionV2);
 
     try {
         // STEP 1: Welcome
@@ -307,7 +323,7 @@ export async function handleIncomingMessage(
             await processBooking(
                 phone,
                 session.selectedTurfId,
-                session.selectedTurfName,
+                session.selectedTurfName ?? "",
                 timeSlot,
             );
         }
@@ -355,10 +371,11 @@ export async function handleIncomingMessage(
             const slotIndex = parseInt(text) - 1;
 
             if (availableSlots[slotIndex]) {
+                if (!session.selectedTurfId) return;
                 await processBooking(
                     phone,
                     session.selectedTurfId,
-                    session.selectedTurfName,
+                    session.selectedTurfName ?? "",
                     availableSlots[slotIndex],
                 );
             } else {
