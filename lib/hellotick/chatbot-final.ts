@@ -189,6 +189,12 @@ export async function handleIncomingMessage(
     const phone = normalizePhone(message.from);
     const text = (message.text || "").trim().toUpperCase();
 
+    if (!phone) {
+        throw new Error(
+            `Cannot process message: empty phone number. Payload: ${JSON.stringify(message).slice(0, 200)}`,
+        );
+    }
+
     console.log("[chatbot] Message from:", phone, "->", text);
 
     // Log incoming message
