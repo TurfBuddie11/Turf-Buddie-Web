@@ -1,0 +1,102 @@
+import { NextRequest, NextResponse } from "next/server";
+import { adminDb } from "@/lib/firebase/admin";
+import { Timestamp } from "firebase-admin/firestore";
+
+type BookingSlot = {
+  bookingDate?: Timestamp | { _seconds: number; _nanoseconds: number } | string;
+  daySlot?: string;
+  monthSlot?: string;
+  timeSlot?: string;
+  userUid?: string;
+  price?: number;
+  status?: string;
+  transactionId?: string;
+  commission?: number;
+  payout?: number;
+  paid?: string;
+};
+
+export async function GET(request: NextRequest) {
+  try {
+    const pathnameParts = request.nextUrl.pathname.split("/");
+    const turfId = pathnameParts[pathnameParts.indexOf("turfs") + 1];
+    const { searchParams } = request.nextUrl;
+    const dateParam = searchParams.get("date");
+
+    if (!turfId || !dateParam) {
+      return NextResponse.json(
+        { error: "Missing turfId or date parameter" },
+        { status: 400 },
+      );
+    }
+
+    const targetDate = new Date(dateParam);
+    const targetDay = targetDate.getDate();
+    const targetMonthName = targetDate.toLocaleString("en-US", {
+      month: "short",
+    });
+
+    const turfRef = adminDb.collection("Turfs").doc(turfId);
+    const turfSnapshot = await turfRef.get();
+
+    if (!turfSnapshot.exists) {
+      return NextResponse.json(
+        { error: `Turf with ID '${turfId}' not found.` },
+        { status: 404 },
+      );
+    }
+
+    const turfData = turfSnapshot.data() || {};
+
+    // timeSlots Firebase mein array, object/map, ya undefined ho sakta hai
+    let allBookingsInDoc: BookingSlot[] = [];
+    if (Array.isArray(turfData.timeSlots)) {
+      allBookingsInDoc = turfData.timeSlots as BookingSlot[];
+    } else if (turfData.timeSlots && typeof turfData.timeSlots === "object") {
+      allBookingsInDoc = Object.values(turfData.timeSlots) as BookingSlot[];
+    }
+
+    const dailyBookings = allBookingsInDoc.filter((booking: BookingSlot) => {
+      if (!booking.monthSlot) return false;
+
+      const parts = booking.monthSlot.trim().split(" ");
+      if (parts.length !== 2) return false;
+
+      const bookingDay = parseInt(parts[0], 10);
+      const bookingMonth = parts[1];
+
+      const isSameDay =
+        bookingDay === targetDay &&
+        bookingMonth.toLowerCase() === targetMonthName.toLowerCase();
+
+      const status = booking.status?.toLowerCase() || "";
+      const isBlockingStatus = [
+        "confirmed",
+        "pending",
+        "booked_offline",
+        "blocked",
+      ].includes(status);
+
+      return isSameDay && isBlockingStatus;
+    });
+
+    const bookedSlots = dailyBookings.flatMap((booking: BookingSlot) => {
+      // timeSlots array (new format) ya timeSlot string (old format) dono handle karo
+      if (Array.isArray((booking as { timeSlots?: string[] }).timeSlots)) {
+        return (booking as { timeSlots: string[] }).timeSlots.filter(Boolean);
+      }
+      return booking.timeSlot ? [booking.timeSlot] : [];
+    });
+
+    return NextResponse.json({
+      bookedSlots,
+      bookings: dailyBookings,
+    });
+  } catch (error) {
+    console.error("Error in bookings API:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch bookings due to a server error." },
+      { status: 500 },
+    );
+  }
+}
