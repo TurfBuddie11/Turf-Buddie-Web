@@ -68,35 +68,74 @@ async function getCities(): Promise<string[]> {
 
     turfsSnapshot.docs.forEach((doc) => {
         const data = doc.data();
-        const city = data.city || data.location;
+        const city = extractCity(data);
         if (city) cities.add(city);
     });
 
     return Array.from(cities).sort();
 }
 
+function extractCity(data: Record<string, unknown>): string {
+    const candidates: unknown[] = [
+        data.city,
+        data.location,
+        data.cityName,
+    ];
+
+    for (const c of candidates) {
+        const extracted = extractString(c);
+        if (extracted) return extracted;
+    }
+
+    // Fallback: last segment of address (after last comma)
+    const address = extractString(data.address);
+    if (address) {
+        const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
+        if (parts.length > 0) return parts[parts.length - 1];
+    }
+
+    return "";
+}
+
+function extractString(value: unknown): string {
+    if (!value) return "";
+    if (typeof value === "string") return value.trim();
+    if (typeof value === "number") return String(value);
+    if (Array.isArray(value) && value.length > 0) {
+        return extractString(value[0]);
+    }
+    if (typeof value === "object") {
+        const obj = value as Record<string, unknown>;
+        const keys = ["name", "city", "cityName", "label", "displayName"];
+        for (const k of keys) {
+            const v = extractString(obj[k]);
+            if (v) return v;
+        }
+        // Coordinates object: try to use first available string
+        for (const k of Object.keys(obj)) {
+            const v = extractString(obj[k]);
+            if (v) return v;
+        }
+    }
+    return "";
+}
+
 /**
- * Get turfs in a city
+ * Get turfs in a city (client-side filter — handles object/string city fields)
  */
 async function getTurfsInCity(
     city: string,
 ): Promise<Array<{ id: string; name: string }>> {
-    let turfsSnapshot = await adminDb
-        .collection("Turfs")
-        .where("city", "==", city)
-        .get();
+    const turfsSnapshot = await adminDb.collection("Turfs").get();
+    const cityLower = city.toLowerCase().trim();
 
-    if (turfsSnapshot.empty) {
-        turfsSnapshot = await adminDb
-            .collection("Turfs")
-            .where("location", "==", city)
-            .get();
-    }
-
-    return turfsSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        name: doc.data().name || "Unnamed Turf",
-    }));
+    return turfsSnapshot.docs
+        .map((doc) => ({ id: doc.id, data: doc.data() }))
+        .filter(({ data }) => extractCity(data).toLowerCase() === cityLower)
+        .map(({ id, data }) => ({
+            id,
+            name: (data.name as string) || "Unnamed Turf",
+        }));
 }
 
 /**
