@@ -33,6 +33,27 @@ function isValidSecret(request: NextRequest): boolean {
   return headerSecret === WEBHOOK_SECRET || querySecret === WEBHOOK_SECRET;
 }
 
+function extractPhoneFromContacts(
+  contacts: unknown,
+): string | undefined {
+  if (!Array.isArray(contacts) || contacts.length === 0) return undefined;
+  const c = contacts[0] as Record<string, unknown>;
+  return (c.input as string) || (c.wa_id as string) || (c.phone as string);
+}
+
+function extractPhoneFromMessages(messages: unknown): string | undefined {
+  if (!Array.isArray(messages) || messages.length === 0) return undefined;
+  const m = messages[0] as Record<string, unknown>;
+  return (m.from as string) || (m.phone as string);
+}
+
+function extractPhoneFromChat(chat: unknown): string | undefined {
+  if (!chat || typeof chat !== "object") return undefined;
+  const c = chat as Record<string, unknown>;
+  const nested = c.contact as Record<string, unknown> | undefined;
+  return (nested?.phone as string) || (c.phone as string);
+}
+
 export async function POST(request: NextRequest) {
   if (!isValidSecret(request)) {
     return NextResponse.json({ error: "Invalid secret" }, { status: 401 });
@@ -66,26 +87,47 @@ export async function POST(request: NextRequest) {
   if (event === "message.received" && body.data) {
     const messageData = body.data as Record<string, unknown>;
 
-    try {
-      await handleIncomingMessage({
-        from: String(messageData.from || ""),
-        text: messageData.text ? String(messageData.text) : undefined,
-        type: (messageData.type as "text" | "image" | "video" | "document" | "audio" | "button" | "list") || "text",
-        timestamp: messageData.timestamp
-          ? Number(messageData.timestamp)
-          : Date.now(),
-      });
+    // Try multiple locations where Hellotick might put the phone number
+    const from =
+      (messageData.from as string | undefined) ||
+      (messageData.phone as string | undefined) ||
+      extractPhoneFromContacts(messageData.contacts) ||
+      extractPhoneFromMessages(messageData.messages) ||
+      extractPhoneFromChat(messageData.chat);
 
-      console.log("[webhook] Message processed successfully");
-    } catch (err) {
-      console.error("[webhook] Error processing incoming message:", err);
-
+    if (!from) {
+      console.warn(
+        "[webhook] message.received without usable phone; skipping chatbot:",
+        JSON.stringify(messageData).slice(0, 300),
+      );
       await adminDb.collection("whatsappWebhookErrors").add({
         event,
-        error: err instanceof Error ? err.message : String(err),
+        error: "No phone number in payload",
         payload: body,
         timestamp: new Date().toISOString(),
       });
+    } else {
+      try {
+        await handleIncomingMessage({
+          from,
+          text: messageData.text ? String(messageData.text) : undefined,
+          type: (messageData.type as "text" | "image" | "video" | "document" | "audio" | "button" | "list") || "text",
+          timestamp: messageData.timestamp
+            ? Number(messageData.timestamp)
+            : Date.now(),
+        });
+
+        console.log("[webhook] Message processed successfully");
+      } catch (err) {
+        console.error("[webhook] Error processing incoming message:", err);
+
+        await adminDb.collection("whatsappWebhookErrors").add({
+          event,
+          error: err instanceof Error ? err.message : String(err),
+          payload: body,
+          timestamp: new Date().toISOString(),
+        });
+      }
     }
   }
 
