@@ -50,6 +50,7 @@ export async function GET() {
                 id: doc.id,
                 name: d.name || "",
                 address: d.address || "",
+                city: d.city || "",
                 imageurl: d.imageurl || "",
                 rating: d.rating || 0,
                 price: d.price || 0,

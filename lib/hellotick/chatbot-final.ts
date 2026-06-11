@@ -577,6 +577,21 @@ async function processBooking(
         timeSlot,
         refCode,
     });
+
+    // Reset session so the same booking can't be triggered again
+    await adminDb.collection("whatsappSessions").doc(phone).set(
+        {
+            lastCommand: "booked",
+            waitingFor: null,
+            selectedTurf: null,
+            availableSlots: null,
+            turfs: null,
+            selectedCity: null,
+            cities: null,
+            updatedAt: Date.now(),
+        },
+        { merge: true },
+    );
 }
 
 /**

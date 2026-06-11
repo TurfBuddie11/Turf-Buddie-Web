@@ -36,9 +36,10 @@ export async function GET(
       { status: 200 },
     );
   } catch (error) {
-    console.error("Error fetching turf details:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("[GET /api/turfs/:turfId] Error:", { message: errorMessage, turfId });
     return NextResponse.json(
-      { error: "Failed to fetch turf details" },
+      { error: "Failed to fetch turf details", details: errorMessage },
       { status: 500 },
     );
   }
@@ -54,6 +55,8 @@ export async function PUT(
     const formData = await req.formData();
     const name = formData.get("name") as string;
     const address = formData.get("address") as string;
+    const cityRaw = formData.get("city") as string | null;
+    const city = cityRaw ? cityRaw.trim() : null;
     const coordinates = formData.get("coordinates") as string;
     const price = formData.get("price") as string;
     const ownerId = formData.get("ownerId") as string | null;
@@ -86,6 +89,7 @@ export async function PUT(
     const turfData: Record<string, unknown> = {
       name,
       address,
+      city: city || null,
       coordinates,
       price: Number(price),
       imageurl,
@@ -109,9 +113,15 @@ export async function PUT(
       { status: 200 },
     );
   } catch (error) {
-    console.error("Error updating turf:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error("[PUT /api/turfs/:turfId] Error updating turf:", {
+      message: errorMessage,
+      stack: errorStack,
+      turfId,
+    });
     return NextResponse.json(
-      { error: "Failed to update turf" },
+      { error: "Failed to update turf", details: errorMessage },
       { status: 500 },
     );
   }

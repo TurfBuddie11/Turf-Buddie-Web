@@ -49,6 +49,7 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const name = formData.get("name") as string;
     const address = formData.get("address") as string;
+    const city = (formData.get("city") as string | null)?.trim() || null;
     const coordinates = formData.get("coordinates") as string;
     const price = formData.get("price") as string;
     const ownerId = formData.get("ownerId") as string | null;
@@ -72,6 +73,7 @@ export async function POST(req: Request) {
     const turfData: Record<string, unknown> = {
       name,
       address,
+      city,
       coordinates,
       price: Number(price),
       imageurl,

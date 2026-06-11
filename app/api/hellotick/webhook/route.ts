@@ -78,6 +78,18 @@ function extractMessageText(payload: Record<string, unknown>): string | undefine
   return undefined;
 }
 
+function extractMessageId(
+  payload: Record<string, unknown>,
+): string | undefined {
+  const messages = payload.messages;
+  if (Array.isArray(messages) && messages.length > 0) {
+    const m = messages[0] as Record<string, unknown>;
+    if (typeof m.id === "string" && m.id) return m.id;
+  }
+  if (typeof payload.id === "string" && payload.id) return payload.id;
+  return undefined;
+}
+
 export async function POST(request: NextRequest) {
   if (!isValidSecret(request)) {
     return NextResponse.json({ error: "Invalid secret" }, { status: 401 });
@@ -129,6 +141,26 @@ export async function POST(request: NextRequest) {
       extractPhoneFromContacts(messageData.contacts) ||
       extractPhoneFromChat(messageData.chat) ||
       (messageData.phone as string | undefined);
+
+    // Deduplicate by WhatsApp message ID — Hellotick sometimes retries
+    const messageId = extractMessageId(messageData);
+    if (messageId) {
+      const dedupRef = adminDb
+        .collection("whatsappProcessedMessages")
+        .doc(messageId);
+      const dedupDoc = await dedupRef.get();
+      if (dedupDoc.exists) {
+        console.log(
+          `[webhook] Skipping duplicate message ID ${messageId} from ${from}`,
+        );
+        return NextResponse.json({ ok: true, supported, deduped: true });
+      }
+      // Mark as processed before handling (race-safe)
+      await dedupRef.set({
+        phone: from || "",
+        processedAt: FieldValue.serverTimestamp(),
+      });
+    }
 
     if (!from) {
       console.warn(

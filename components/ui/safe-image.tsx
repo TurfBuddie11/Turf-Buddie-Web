@@ -23,24 +23,11 @@ export function SafeImage({
   if (!hasSrc || errored) {
     return (
       <div
-        className={cn(
-          "absolute inset-0 bg-gradient-to-br from-green-700 via-green-600 to-emerald-500 flex items-center justify-center",
-          fallbackClassName,
-          className,
-        )}
+        className={cn(fallbackClassName, className)}
         role="img"
-        aria-label={alt}
+        aria-label={alt || "image unavailable"}
       >
-        {fallbackContent ?? (
-          <div
-            className="absolute inset-0 opacity-20"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)",
-              backgroundSize: "20px 20px",
-            }}
-          />
-        )}
+        {fallbackContent}
       </div>
     );
   }
