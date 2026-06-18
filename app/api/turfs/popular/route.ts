@@ -41,6 +41,7 @@ export async function GET() {
           id: doc.id,
           name: turfData.name || "",
           address: turfData.address || "",
+          city: turfData.city || "",
           imageurl: turfData.imageurl || "",
           rating: turfData.rating || 0,
           price: turfData.price || 0,

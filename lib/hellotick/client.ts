@@ -233,12 +233,12 @@ export const hellotickConfig = {
   hasKey: Boolean(API_KEY),
 };
 
-export function normalizePhone(phone: string): string {
-  if (!phone) return phone;
+export function normalizePhone(phone: string | undefined | null): string {
+  if (!phone) return "";
   const trimmed = phone.trim().replace(/\s+/g, "");
   if (trimmed.startsWith("+")) return trimmed;
   const digits = trimmed.replace(/\D/g, "");
-  if (!digits) return trimmed;
+  if (!digits) return "";
   if (digits.length === 10) return `+91${digits}`;
   if (digits.length === 12 && digits.startsWith("91")) return `+${digits}`;
   return `+${digits}`;

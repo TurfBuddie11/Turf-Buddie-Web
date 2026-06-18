@@ -124,7 +124,11 @@ export default function LoginPage() {
       });
 
       toast.success("Logged in successfully!");
-      router.push("/explore");
+      if (loggedInUser.email === "turfbuddie@gmail.com") {
+        router.push("/admin");
+      } else {
+        router.push("/");
+      }
     } catch (e) {
       if (e instanceof Error && e.message.includes("auth/invalid-credential")) {
         toast.error("Invalid email or password. Please try again.");

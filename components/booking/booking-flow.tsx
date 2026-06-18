@@ -81,6 +81,14 @@ export function BookingFlow({
   const [splitGroupId, setSplitGroupId] = useState<string | null>(null);
   const [isCreatingSplitGroup, setIsCreatingSplitGroup] = useState(false);
 
+  // Coupon state
+  const [couponInput, setCouponInput] = useState("");
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponMessage, setCouponMessage] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState("");
+
   // User details form state
   const [userDetails, setUserDetails] = useState({
     name: "",
@@ -143,8 +151,8 @@ export function BookingFlow({
   }, [redeemPoints, loyaltyPoints]);
 
   const totalPrice = useMemo(
-    () => Math.max(0, Math.round(basePrice) - discount + turf.price * 0.015),
-    [basePrice, discount, turf.price],
+    () => Math.max(0, Math.round(basePrice) - discount - couponDiscount + turf.price * 0.015),
+    [basePrice, discount, couponDiscount, turf.price],
   );
 
   const perPersonPrice = useMemo(
@@ -398,6 +406,47 @@ export function BookingFlow({
     }
   }, [user, selectedSlots, dateObj, turf, totalPrice, perPersonPrice, teamMembers, customAmounts, userDetails, profile]);
 
+  const handleApplyCoupon = useCallback(async () => {
+    if (!couponInput.trim()) return;
+    if (!user) { setCouponError("Please login to apply a coupon."); return; }
+
+    setCouponLoading(true);
+    setCouponError("");
+    setCouponMessage("");
+
+    try {
+      const idToken = await user.getIdToken();
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ code: couponInput.trim().toUpperCase(), orderAmount: basePrice }),
+      });
+      const data = await res.json();
+
+      if (data.valid) {
+        setCouponDiscount(data.discountAmount);
+        setCouponApplied(true);
+        setCouponMessage(data.message);
+      } else {
+        setCouponDiscount(0);
+        setCouponApplied(false);
+        setCouponError(data.message || "Invalid coupon.");
+      }
+    } catch {
+      setCouponError("Could not validate coupon. Try again.");
+    } finally {
+      setCouponLoading(false);
+    }
+  }, [couponInput, user, basePrice]);
+
+  const handleRemoveCoupon = () => {
+    setCouponInput("");
+    setCouponApplied(false);
+    setCouponDiscount(0);
+    setCouponMessage("");
+    setCouponError("");
+  };
+
   const handleUserDetailChange = (
     field: keyof typeof userDetails,
     value: string,
@@ -580,11 +629,63 @@ export function BookingFlow({
                         </Label>
                       </div>
 
+                      {/* Coupon Code */}
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Coupon Code</p>
+                        {!couponApplied ? (
+                          <div className="flex gap-2">
+                            <Input
+                              value={couponInput}
+                              onChange={(e) => {
+                                setCouponInput(e.target.value.toUpperCase());
+                                setCouponError("");
+                              }}
+                              placeholder="Enter coupon code"
+                              className="uppercase text-sm h-9"
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleApplyCoupon}
+                              disabled={couponLoading || !couponInput.trim()}
+                              className="bg-green-600 hover:bg-green-700 shrink-0 h-9 px-4"
+                            >
+                              {couponLoading ? <Spinner className="h-4 w-4" /> : "Apply"}
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 px-3 py-2">
+                            <span className="text-sm font-semibold text-green-700">
+                              🎟 {couponInput} applied
+                            </span>
+                            <button
+                              type="button"
+                              onClick={handleRemoveCoupon}
+                              className="text-xs text-red-500 hover:text-red-600 font-medium"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        )}
+                        {couponError && (
+                          <p className="text-xs text-red-500">{couponError}</p>
+                        )}
+                        {couponMessage && !couponError && (
+                          <p className="text-xs text-green-600 font-medium">✓ {couponMessage}</p>
+                        )}
+                      </div>
+
                       <Separator />
                       {redeemPoints && (
                         <div className="flex justify-between text-sm font-bold">
                           <span>Loyalty Points Discount</span>
                           <span>-₹{discount}</span>
+                        </div>
+                      )}
+                      {couponApplied && couponDiscount > 0 && (
+                        <div className="flex justify-between text-sm font-bold text-green-600">
+                          <span>Coupon Discount ({couponInput})</span>
+                          <span>-₹{couponDiscount}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-sm font-bold">

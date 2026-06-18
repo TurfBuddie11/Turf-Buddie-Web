@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
+import { uploadFileToStorage } from "@/lib/firebase/storage-admin";
 import { Timestamp } from "firebase-admin/firestore";
 
 export async function GET() {
@@ -49,6 +50,7 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const name = formData.get("name") as string;
     const address = formData.get("address") as string;
+    const city = (formData.get("city") as string | null)?.trim() || null;
     const coordinates = formData.get("coordinates") as string;
     const price = formData.get("price") as string;
     const ownerId = formData.get("ownerId") as string | null;
@@ -56,10 +58,15 @@ export async function POST(req: Request) {
 
     let imageurl = "";
     if (image) {
-      const buffer = await image.arrayBuffer();
-      const base64 = Buffer.from(buffer).toString("base64");
-      const mimeType = image.type || "image/jpeg";
-      imageurl = `data:${mimeType};base64,${base64}`;
+      // Upload to Firebase Storage instead of storing as base64 data URL.
+      // Base64 in Firestore bloats documents and breaks the 1MB limit on
+      // even moderate images.
+      const safeName = (name || "turf").replace(/\s+/g, "-");
+      imageurl = await uploadFileToStorage(
+        image,
+        `Turf/${safeName}`,
+        image.name || "image.jpg",
+      );
     }
 
     const sport = formData.getAll("sport").filter(Boolean) as string[];
@@ -72,6 +79,7 @@ export async function POST(req: Request) {
     const turfData: Record<string, unknown> = {
       name,
       address,
+      city,
       coordinates,
       price: Number(price),
       imageurl,

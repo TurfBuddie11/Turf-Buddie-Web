@@ -13,6 +13,7 @@ export interface Turf {
   name: string;
   imageurl: string;
   address: string;
+  city?: string;
   rating: number;
   price: number;
   timeSlots: TimeSlot[];

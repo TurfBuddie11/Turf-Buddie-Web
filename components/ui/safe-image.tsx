@@ -3,12 +3,21 @@
 import { useState } from "react";
 import Image, { ImageProps } from "next/image";
 import { cn } from "@/lib/utils";
+import { TurfField } from "./turf-field";
 
 interface SafeImageProps extends Omit<ImageProps, "onError"> {
   fallbackClassName?: string;
   fallbackContent?: React.ReactNode;
 }
 
+/**
+ * Image component that gracefully falls back to a green turf-field
+ * mockup when:
+ *   - the `src` is empty / missing
+ *   - the image fails to load (404, network error, blocked hostname, etc.)
+ *
+ * Pass a custom `fallbackContent` to override the default field design.
+ */
 export function SafeImage({
   src,
   alt,
@@ -21,28 +30,10 @@ export function SafeImage({
   const hasSrc = Boolean(src && src !== "");
 
   if (!hasSrc || errored) {
-    return (
-      <div
-        className={cn(
-          "absolute inset-0 bg-gradient-to-br from-green-700 via-green-600 to-emerald-500 flex items-center justify-center",
-          fallbackClassName,
-          className,
-        )}
-        role="img"
-        aria-label={alt}
-      >
-        {fallbackContent ?? (
-          <div
-            className="absolute inset-0 opacity-20"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)",
-              backgroundSize: "20px 20px",
-            }}
-          />
-        )}
-      </div>
-    );
+    // Render fallback directly — caller controls the positioning.
+    // The default <TurfField /> uses `relative w-full h-full` so the parent
+    // should have defined dimensions.
+    return fallbackContent ?? <TurfField className={fallbackClassName} />;
   }
 
   return (

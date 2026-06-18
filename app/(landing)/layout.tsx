@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     "Book football, cricket and badminton turfs with TurfBuddies. Join Tournamnets, track live scores & enjoy seamless booking with secure payments.",
   openGraph: {
     title:
-      "TurfBuddie | A Premium Turf Booking Platform for Vidharbha and Nagpur",
+      "TurfBuddie | A Premium Turf Booking Platform",
     description:
       "Book football, cricket and badminton turfs with TurfBuddies. Join Tournamnets, track live scores & enjoy seamless booking with secure payments.",
     url: "https://turfbuddie.com",
@@ -58,7 +58,6 @@ export const metadata: Metadata = {
     "online turf booking",
     "sports tournaments",
     "turf buddies",
-    "turf booking nagpur",
   ],
 };
 

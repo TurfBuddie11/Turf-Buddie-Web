@@ -2,6 +2,7 @@ export interface Turf {
   id: string;
   name: string;
   address: string;
+  city?: string;
   coordinates?: string;
   price: number;
   imageurl?: string;

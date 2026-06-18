@@ -12,7 +12,16 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "storage.googleapis.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "plus.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
       },
     ],
   },

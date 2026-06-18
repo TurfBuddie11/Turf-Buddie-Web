@@ -376,7 +376,7 @@ export async function handleIncomingMessage(
     // Log to Firebase
     await adminDb.collection("whatsappIncomingMessages").add({
         from: phone,
-        text: message.text,
+        text: message.text ?? null,
         type: message.type,
         timestamp: message.timestamp || Date.now(),
         processedAt: new Date().toISOString(),

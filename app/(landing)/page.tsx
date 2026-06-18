@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SafeImage } from "@/components/ui/safe-image";
+import { TurfField } from "@/components/ui/turf-field";
 import {
   Select,
   SelectContent,
@@ -31,9 +32,10 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/context/auth-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { cn } from "@/lib/utils";
 
 const stats = [
-  { value: "30+", label: "Turfs in Nagpur" },
+  { value: "30+", label: "Active Turfs" },
   { value: "2,400+", label: "Bookings Made" },
   { value: "5,800+", label: "Players Connected" },
   { value: "48", label: "Active Tournaments" },
@@ -89,6 +91,7 @@ interface PopularTurf {
   id: string;
   name: string;
   address: string;
+  city?: string;
   imageurl: string;
   rating: number;
   price: number;
@@ -163,7 +166,7 @@ export default function TurfBuddieLanding() {
   const [selectedPlayerSkill, setSelectedPlayerSkill] = useState("All");
   const [selectedGender, setSelectedGender] = useState("All");
   const [selectedLocation, setSelectedLocation] = useState("All");
-  const [headerCity, setHeaderCity] = useState("Nagpur");
+  const [headerCity, setHeaderCity] = useState("Your City");
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [popularTurfs, setPopularTurfs] = useState<PopularTurf[]>([]);
@@ -268,31 +271,39 @@ export default function TurfBuddieLanding() {
 
   const dates = useMemo(() => getDynamicDates(), []);
 
-  // Extract city from address — last meaningful part
+  const scrollToBrowse = (e?: React.MouseEvent) => {
+    if (e && typeof e.preventDefault === "function") e.preventDefault();
+    const el = document.getElementById("browse");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      window.location.hash = "#browse";
+    }
+  };
+
+  // Extract city ONLY from `data.city` column (no address fallback)
   const extractCity = (address: string): string => {
-    if (!address) return "Nagpur";
-    const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
-    // Try second-to-last part (usually city), fallback to last
-    return parts.length >= 2 ? parts[parts.length - 2] : parts[parts.length - 1] || "Nagpur";
+    return "";
   };
 
   const locations = useMemo(() => {
     const uniqueLocs = new Set<string>();
     browseTurfs.forEach((t) => {
-      uniqueLocs.add(extractCity(t.address));
+      const city = (t as { city?: string }).city;
+      if (city && typeof city === "string" && city.trim()) {
+        uniqueLocs.add(city.trim());
+      }
     });
     return Array.from(uniqueLocs).sort();
   }, [browseTurfs]);
 
   const filteredBrowseTurfs = useMemo(() => {
     let result = browseTurfs.filter((t) => {
-      // Location filter
+      // Location filter — match only by `city` column
       if (selectedLocation !== "All") {
-        const city = extractCity(t.address);
-        if (!city.toLowerCase().includes(selectedLocation.toLowerCase()) &&
-          !selectedLocation.toLowerCase().includes(city.toLowerCase())) {
-          return false;
-        }
+        const city = (t.city || "").toLowerCase().trim();
+        const sel = selectedLocation.toLowerCase().trim();
+        if (city !== sel) return false;
       }
 
       // Sport filter — case-insensitive partial match
@@ -371,33 +382,46 @@ export default function TurfBuddieLanding() {
     <div className="min-h-screen bg-white dark:bg-gray-950">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+          {/* Left: Logo + Nav */}
+          <div className="flex items-center gap-4 shrink-0">
+            <Link href="/" className="flex items-center gap-2 shrink-0">
               <Image
                 src="/logo.png"
                 alt="TurfBuddie"
                 width={36}
                 height={36}
-                className="rounded-lg"
+                className="rounded-lg shrink-0"
                 priority
               />
-              <span className="text-xl font-bold text-green-600 hidden sm:block">TurfBuddie</span>
+              <span className="text-lg font-bold text-green-600 hidden sm:block">TurfBuddie</span>
             </Link>
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/explore" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400">Browse</Link>
-              <button className="text-sm font-medium text-green-600 dark:text-green-400">Split Pay</button>
-              <button className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400">Find Player</button>
-              <button className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400">Tournaments</button>
+            <nav className="hidden md:flex items-center gap-5">
+              <a href="#browse" onClick={scrollToBrowse} className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400">Browse</a>
+              <a href="#split-pay" className="text-sm font-medium text-green-600 dark:text-green-400">Split Pay</a>
+              <a href="#find-player" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400">Find Player</a>
+              <a href="#tournaments" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400">Tournaments</a>
             </nav>
           </div>
-          <div className="flex items-center gap-3">
+
+          {/* Right: City + Theme + Book Now */}
+          <div className="flex items-center gap-2 shrink-0">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2 dark:border-gray-700 dark:text-gray-200">
-                  <MapPin className="w-4 h-4 text-green-600" />
-                  {locationLoading ? "Locating..." : headerCity}
-                  <ChevronDown className="w-4 h-4" />
+                <Button variant="outline" className="gap-1.5 dark:border-gray-700 dark:text-gray-200 justify-between px-2.5 md:min-w-[140px]">
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-green-600 shrink-0" />
+                    <span className="hidden sm:block truncate max-w-[80px] md:max-w-none text-sm">
+                      {locationLoading
+                        ? "Locating..."
+                        : selectedLocation === "All"
+                          ? headerCity === "All"
+                            ? "All Cities"
+                            : headerCity
+                          : selectedLocation}
+                    </span>
+                  </span>
+                  <ChevronDown className="w-4 h-4 shrink-0 hidden sm:block" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -437,64 +461,164 @@ export default function TurfBuddieLanding() {
             </DropdownMenu>
             {/* Dark/Light toggle */}
             <ThemeToggle />
-            <Button className="bg-green-600 hover:bg-green-700 text-white">Book Now</Button>
+            {/* Book Now — hidden on mobile */}
+            <Button onClick={scrollToBrowse} className="hidden md:inline-flex bg-green-600 hover:bg-green-700 text-white">Book Now</Button>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-green-50 to-white dark:from-gray-900 dark:to-gray-950 py-16 md:py-24">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900 dark:text-white">
-            Find. Book. <span className="text-green-600 dark:text-green-400">Play Together.</span>
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto">
-            Nagpur&apos;s smartest turf booking platform. Real-time slot availability, split payments with your squad, find new players, and compete in local tournaments.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4 mb-12">
-            <Link href="/explore">
-              <Button size="lg" className="bg-green-600 hover:bg-green-700 gap-2">⚽ Browse Turfs</Button>
-            </Link>
-            <Link href="/tournaments">
-              <Button size="lg" variant="outline" className="gap-2">🏆 View Tournaments</Button>
-            </Link>
-          </div>
-          <div className="flex flex-wrap justify-center gap-8 md:gap-16">
-            {stats.map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">{stat.value}</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Platform Features */}
-      <section className="py-16 bg-gray-50 dark:bg-gray-900">
+      <section className="bg-white dark:bg-gray-950 py-12 md:py-20">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-2xl font-bold text-center mb-12 text-gray-900 dark:text-white">Platform Features</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature, i) => (
-              <Card key={i} className="p-6 hover:shadow-lg transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                <div className="flex items-start gap-4">
-                  <span className="text-3xl">{feature.icon}</span>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{feature.title}</h3>
-                      <Badge variant="secondary" className="text-xs">{feature.tag}</Badge>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
+            {/* Left: Copy + CTA + Stats */}
+            <div className="order-1 md:order-1 min-w-0">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 mb-4">
+                <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                Live Now
+              </div>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900 dark:text-white leading-tight">
+                Find. Book.{" "}
+                <span className="text-green-600 dark:text-green-400">
+                  Play Together.
+                </span>
+              </h1>
+              <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-xl">
+                The smartest turf booking platform. Real-time slot availability, split payments with your squad, find new players, and compete in local tournaments.
+              </p>
+              <div className="flex flex-wrap gap-3 mb-10">
+                <Button
+                  size="lg"
+                  className="bg-green-600 hover:bg-green-700 gap-2"
+                  onClick={() => document.getElementById("browse")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                >
+                  ⚽ Browse Turfs
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => document.getElementById("tournaments")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                >
+                  🏆 View Tournaments
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                {stats.map((stat, i) => (
+                  <div key={i}>
+                    <div className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">
+                      {stat.value}
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{feature.desc}</p>
+                    <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+                      {stat.label}
+                    </div>
                   </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Field mockup with turf card overlay */}
+            <div className="relative order-2 md:order-2 min-w-0">
+              {/* Floating "Instant" badge */}
+              <div className="absolute -top-4 right-4 z-20 bg-white rounded-2xl shadow-xl px-4 py-2 flex items-center gap-2 ring-1 ring-green-100">
+                <span className="text-lg">⚡</span>
+                <span className="text-sm font-semibold text-gray-900">Instant</span>
+              </div>
+
+              {/* Field mockup — show real turf image if available, else green field */}
+              <div className="relative rounded-3xl overflow-hidden aspect-[4/3] shadow-2xl bg-gray-900 max-h-[480px]">
+                {(() => {
+                  // Find a turf image that isn't a broken base64 data URL
+                  const isUsable = (url: string | undefined) =>
+                    !!url && !url.startsWith("data:");
+                  const featured =
+                    (popularTurfs.find((t) => isUsable(t.imageurl)) ||
+                      browseTurfs.find((t) => isUsable(t.imageurl))) ??
+                    null;
+                  if (featured?.imageurl) {
+                    return (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={featured.imageurl}
+                        alt={featured.name}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        loading="eager"
+                      />
+                    );
+                  }
+                  // Green field fallback (always renders)
+                  return <TurfField />;
+                })()}
+                {/* Subtle dark tint so text overlays remain readable on real images */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-black/0" />
+              </div>
+
+              {/* Floating turf card overlay (bottom) */}
+              <div className="relative -mt-20 sm:-mt-24 mx-4 sm:mx-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-4 sm:p-5 ring-1 ring-black/5 z-10">
+                <div className="flex items-start justify-between mb-3">
+                  <h3 className="font-bold text-base sm:text-lg text-gray-900 dark:text-white">
+                    Greenfield Sports Arena
+                  </h3>
                 </div>
-              </Card>
-            ))}
+                <div className="flex items-center gap-2 mb-3 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                  <Badge className="bg-green-100 text-green-700 border-0 gap-1 px-1.5 py-0.5">
+                    <Star className="h-3 w-3 fill-green-600 text-green-600" />
+                    <span className="font-semibold">4.7</span>
+                  </Badge>
+                  <MapPin className="h-3.5 w-3.5 text-red-500" />
+                  <span>2.1 km · Dharampeth</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {["6 AM", "7 AM", "8 AM", "9 AM", "10 AM", "5 PM", "6 PM"].map(
+                    (slot, idx) => {
+                      const isStrikethrough = idx === 1 || idx === 4;
+                      const isHighlighted = idx === 2 || idx === 3 || idx === 5 || idx === 6;
+                      return (
+                        <span
+                          key={slot}
+                          className={cn(
+                            "px-2.5 py-1 text-xs rounded-md border",
+                            isStrikethrough
+                              ? "bg-gray-100 text-gray-400 border-gray-200 line-through"
+                              : isHighlighted
+                                ? "bg-green-50 text-green-700 border-green-200"
+                                : "bg-white text-gray-700 border-gray-200"
+                          )}
+                        >
+                          {slot}
+                        </span>
+                      );
+                    }
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                      ₹800
+                    </span>
+                    <span className="text-sm text-gray-500"> /hr</span>
+                  </div>
+                  <Button className="bg-green-600 hover:bg-green-700 text-white gap-2">
+                    Book Now
+                  </Button>
+                </div>
+              </div>
+
+              {/* Floating "Split Pay" badge */}
+              <div className="absolute -bottom-2 -left-2 z-20 bg-white rounded-2xl shadow-xl px-4 py-3 ring-1 ring-green-100 flex items-center gap-3">
+                <div className="text-2xl">👥</div>
+                <div>
+                  <div className="text-sm font-bold text-gray-900">Split Pay</div>
+                  <div className="text-xs text-gray-500">Share with squad</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Browse & Discover */}
-      <section className="py-16 bg-white dark:bg-gray-950">
+      <section id="browse" className="py-16 bg-white dark:bg-gray-950 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4">
           {/* Section Header */}
           <div className="mb-8">
@@ -797,18 +921,10 @@ export default function TurfBuddieLanding() {
                               <div className="absolute inset-0 bg-black/20" />
                             </>
                           ) : (
-                            <div className="absolute inset-0 bg-gradient-to-br from-green-700 via-green-600 to-emerald-500">
-                              <div
-                                className="absolute inset-0 opacity-20"
-                                style={{
-                                  backgroundImage:
-                                    "linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)",
-                                  backgroundSize: "28px 28px",
-                                }}
-                              />
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-6xl opacity-40 select-none">{sportIcon}</span>
-                              </div>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-6xl opacity-30 select-none grayscale">
+                                {sportIcon}
+                              </span>
                             </div>
                           )}
 
@@ -935,7 +1051,7 @@ export default function TurfBuddieLanding() {
                     <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5 flex-wrap">
                       <span className="flex items-center gap-0.5">
                         <MapPin className="w-3 h-3 text-red-400" />
-                        {selectedTurf?.address?.split(",").slice(0, 2).join(",").trim() || "Nagpur"}
+                        {selectedTurf?.address?.split(",").slice(0, 2).join(",").trim() || "Location"}
                       </span>
                       <span className="flex items-center gap-0.5">
                         <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
@@ -1145,7 +1261,7 @@ export default function TurfBuddieLanding() {
       </section>
 
       {/* Split Payment Section */}
-      <section className="py-16 bg-white dark:bg-gray-950" id="split-payment">
+      <section id="split-pay" className="py-16 bg-white dark:bg-gray-950 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4">
           {/* Header */}
           <div className="mb-10">
@@ -1183,20 +1299,19 @@ export default function TurfBuddieLanding() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-semibold text-gray-800">Split between</p>
-                  <div className="flex items-center gap-1.5">
-                    {[2, 3, 4, 5, 6].map((n) => (
-                      <button
-                        key={n}
-                        onClick={() => setSplitCount(n)}
-                        className={`w-8 h-8 rounded-full text-sm font-bold border transition-all ${splitCount === n
-                          ? "bg-green-600 border-green-600 text-white"
-                          : "border-gray-200 text-gray-600 hover:border-green-400"
-                          }`}
-                      >
-                        {n}
-                      </button>
-                    ))}
-                    <span className="text-sm text-gray-400 ml-1">players</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={2}
+                      max={50}
+                      value={splitCount}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val) && val >= 2) setSplitCount(val);
+                      }}
+                      className="w-16 rounded-lg border border-gray-200 px-2 py-1.5 text-sm font-bold text-center text-gray-800 focus:outline-none focus:border-green-400"
+                    />
+                    <span className="text-sm text-gray-400">players</span>
                   </div>
                 </div>
 
@@ -1366,8 +1481,31 @@ export default function TurfBuddieLanding() {
         </div>
       </section>
 
+      {/* Platform Features (duplicate placed before Find Your Player) */}
+      <section className="py-16 bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-2xl font-bold text-center mb-12 text-gray-900 dark:text-white">Platform Features</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature, i) => (
+              <Card key={`dup-${i}`} className="p-6 hover:shadow-lg transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <div className="flex items-start gap-4">
+                  <span className="text-3xl">{feature.icon}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{feature.title}</h3>
+                      <Badge variant="secondary" className="text-xs">{feature.tag}</Badge>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{feature.desc}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Find Your Player Section */}
-      <section className="py-16 bg-gray-50 dark:bg-gray-900" id="find-player">
+      <section id="find-player" className="py-16 bg-gray-50 dark:bg-gray-900 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Find Your Player</h2>
@@ -1414,7 +1552,7 @@ export default function TurfBuddieLanding() {
                   </div>
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">{player.name}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{player.position} · Nagpur</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{player.position}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-sm mb-3 text-gray-700 dark:text-gray-300">
@@ -1432,7 +1570,7 @@ export default function TurfBuddieLanding() {
       </section>
 
       {/* Tournaments Section */}
-      <section className="py-16 bg-white dark:bg-gray-950" id="tournaments">
+      <section id="tournaments" className="py-16 bg-white dark:bg-gray-950 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Tournaments & Events</h2>
@@ -1568,34 +1706,62 @@ export default function TurfBuddieLanding() {
                 />
                 <h3 className="font-bold text-xl">TurfBuddie</h3>
               </div>
-              <p className="text-sm text-gray-400">Nagpur&apos;s smartest sports booking platform.</p>
+              <p className="text-sm text-gray-400">The smartest sports booking platform.</p>
             </div>
             <div>
               <h4 className="font-medium mb-3">Platform</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>Browse Turfs</li>
-                <li>Book a Slot</li>
-                <li>Split Payment</li>
-                <li>Find Player</li>
-                <li>Tournaments</li>
+                {[
+                  { label: "Browse Turfs", id: "browse" },
+                  { label: "Book a Slot", id: "browse" },
+                  { label: "Split Payment", id: "split-pay" },
+                  { label: "Find Player", id: "find-player" },
+                  { label: "Tournaments", id: "tournaments" },
+                ].map(({ label, id }) => (
+                  <li key={label}>
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                      className="hover:text-green-400 transition-colors text-left"
+                    >
+                      {label}
+                    </button>
+                  </li>
+                ))}
               </ul>
             </div>
             <div>
               <h4 className="font-medium mb-3">Company</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>About Us</li>
-                <li>Contact</li>
-                <li>Privacy Policy</li>
-                <li>Terms of Use</li>
+                {[
+                  { label: "About Us", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                  { label: "Privacy Policy", href: "/privacy" },
+                  { label: "Terms of Use", href: "/terms" },
+                ].map(({ label, href }) => (
+                  <li key={label}>
+                    <Link href={href} className="hover:text-green-400 transition-colors">
+                      {label}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
             <div>
               <h4 className="font-medium mb-3">📲 Chat on WhatsApp</h4>
-              <Button variant="outline" className="text-white border-white hover:bg-white/10">Message Us</Button>
+              <a
+                href="http://wa.me/917020495817"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-md bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 transition-colors"
+              >
+                <span>💬</span>
+                Message Us
+              </a>
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-sm text-gray-400">
-            © 2025 TurfBuddie Private Limited, Nagpur · All rights reserved
+            © 2025 TurfBuddie Private Limited · All rights reserved
           </div>
         </div>
       </footer>

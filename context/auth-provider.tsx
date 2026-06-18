@@ -6,7 +6,6 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { UserProfile } from "@/lib/types/user";
 import { usePathname, useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
 
 interface AuthContextType {
   user: User | null;
@@ -37,56 +36,87 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        if (!user.emailVerified) {
-          setUser(user);
-          setProfile(null);
-          if (
-            pathname !== "/login" &&
-            !pathname.includes("owner") &&
-            !pathname.includes("admin")
-          ) {
-            router.push("/login");
-          }
-        } else {
-          const userProfileSnap = await getUserProfile(user.uid);
-          const userProfile = userProfileSnap?.data() as UserProfile | null;
+    let timeoutId: NodeJS.Timeout | null = null;
+    let didFire = false;
 
-          if (userProfileSnap?.exists() && userProfile?.mobile) {
-            setUser(user);
-            setProfile(userProfile);
+    // Failsafe: if Firebase doesn't respond in 3s, unblock the UI
+    timeoutId = setTimeout(() => {
+      if (!didFire) {
+        didFire = true;
+        setLoading(false);
+      }
+    }, 3000);
 
-            if (["/login", "/signup"].includes(pathname)) {
-              router.push("/explore");
-            }
-          } else {
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      async (user) => {
+        if (didFire) return;
+        didFire = true;
+        if (timeoutId) clearTimeout(timeoutId);
+
+        if (user) {
+          if (!user.emailVerified) {
             setUser(user);
             setProfile(null);
-            // if (pathname !== "/signup") {
-            //   router.push("/signup?flow=completeProfile");
-            // }
+            if (
+              pathname !== "/login" &&
+              !pathname.includes("owner") &&
+              !pathname.includes("admin")
+            ) {
+              router.push("/login");
+            }
+          } else {
+            try {
+              const userProfileSnap = await getUserProfile(user.uid);
+              const userProfile = userProfileSnap?.data() as
+                | UserProfile
+                | null;
+
+              if (userProfileSnap?.exists() && userProfile?.mobile) {
+                setUser(user);
+                setProfile(userProfile);
+
+                if (["/login", "/signup"].includes(pathname)) {
+                  if (user.email === "turfbuddie@gmail.com") {
+                    router.push("/admin");
+                  } else {
+                    router.push("/");
+                  }
+                }
+              } else {
+                setUser(user);
+                setProfile(null);
+              }
+            } catch {
+              setUser(user);
+              setProfile(null);
+            }
           }
+        } else {
+          setUser(null);
+          setProfile(null);
         }
-      } else {
-        setUser(null);
-        setProfile(null);
-      }
 
-      setLoading(false);
-    });
+        setLoading(false);
+      },
+      (err) => {
+        // Auth error — still unblock the UI
+        console.warn("[auth] state change error:", err);
+        if (!didFire) {
+          didFire = true;
+          if (timeoutId) clearTimeout(timeoutId);
+          setLoading(false);
+        }
+      },
+    );
 
-    return () => unsubscribe();
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      unsubscribe();
+    };
   }, [pathname, router]);
 
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+  // Always render children — pages can check `loading` for user-specific UI
   return (
     <AuthContext.Provider value={{ user, profile, loading }}>
       {children}

@@ -67,6 +67,7 @@ export default function AdminTurfsPage() {
   const [formData, setFormData] = useState({
     name: "",
     address: "",
+    city: "",
     coordinates: "",
     price: "",
     ownerId: "",
@@ -76,11 +77,12 @@ export default function AdminTurfsPage() {
   const [owners, setOwners] = useState<{ uid: string; name: string; email: string }[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [showCoords, setShowCoords] = useState(false);
+  const [cityFilter, setCityFilter] = useState<string>("all");
 
   const resetForm = () => {
     setEditingTurfId(null);
     setDialogMode("add");
-    setFormData({ name: "", address: "", coordinates: "", price: "", ownerId: "" });
+    setFormData({ name: "", address: "", city: "", coordinates: "", price: "", ownerId: "" });
     setSelectedSportCategories([]);
     setSelectedFormats([]);
     setSelectedAmenities([]);
@@ -112,6 +114,7 @@ export default function AdminTurfsPage() {
       setFormData({
         name: existingTurf.name || "",
         address: existingTurf.address || "",
+        city: existingTurf.city || "",
         coordinates: existingTurf.coordinates || "",
         price: existingTurf.price?.toString() || "",
         ownerId: existingTurf.ownerId || "",
@@ -127,6 +130,7 @@ export default function AdminTurfsPage() {
       setFormData({
         name: turf.name || "",
         address: turf.address || "",
+        city: turf.city || "",
         coordinates: turf.coordinates || "",
         price: turf.price?.toString() || "",
         ownerId: turf.ownerId || "",
@@ -139,6 +143,16 @@ export default function AdminTurfsPage() {
       setShowCoords(false);
     }
   };
+
+  const uniqueCities = useMemo(() => {
+    const cities = new Set<string>();
+    turfs.forEach((t) => {
+      if (t.city && typeof t.city === "string") {
+        cities.add(t.city.trim());
+      }
+    });
+    return Array.from(cities).sort();
+  }, [turfs]);
 
   const filteredTurfs = useMemo(() => {
     const query = searchQuery.toLowerCase();
@@ -158,9 +172,14 @@ export default function AdminTurfsPage() {
         (selectedStatusFilter === "Active" && t.active !== false) ||
         (selectedStatusFilter === "Inactive" && t.active === false);
 
-      return matchesSearch && matchesSport && matchesStatus;
+      const matchesCity =
+        cityFilter === "all" ||
+        (typeof t.city === "string" &&
+          t.city.toLowerCase() === cityFilter.toLowerCase());
+
+      return matchesSearch && matchesSport && matchesStatus && matchesCity;
     });
-  }, [turfs, searchQuery, selectedSportFilter, selectedStatusFilter]);
+  }, [turfs, searchQuery, selectedSportFilter, selectedStatusFilter, cityFilter]);
 
   const totalPages = Math.ceil(filteredTurfs.length / ITEMS_PER_PAGE);
   const paginatedTurfs = useMemo(() => {
@@ -251,6 +270,7 @@ export default function AdminTurfsPage() {
       const formPayload = new FormData();
       formPayload.append("name", formData.name);
       formPayload.append("address", formData.address);
+      formPayload.append("city", formData.city || "");
       formPayload.append("coordinates", formData.coordinates);
       formPayload.append("price", formData.price);
       if (formData.ownerId) {
@@ -364,6 +384,23 @@ export default function AdminTurfsPage() {
                       }
                       placeholder="Enter full address"
                     />
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>City</FieldLabel>
+                    <Input
+                      value={formData.city}
+                      onChange={(e) =>
+                        setFormData((p) => ({ ...p, city: e.target.value }))
+                      }
+                      placeholder="e.g., Nagpur, Mumbai, Pune"
+                      list="city-suggestions"
+                    />
+                    <datalist id="city-suggestions">
+                      {uniqueCities.map((c) => (
+                        <option key={c} value={c} />
+                      ))}
+                    </datalist>
                   </Field>
 
                   <Field>
@@ -620,6 +657,24 @@ export default function AdminTurfsPage() {
                 </select>
               </div>
               <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">City</label>
+                <select
+                  value={cityFilter}
+                  onChange={(e) => {
+                    setCityFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="all">All cities</option>
+                  {uniqueCities.map((city) => (
+                    <option key={city} value={city}>
+                      {city}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">Sport Categories</label>
                 <div className="flex flex-wrap gap-2">
                   {sportOptions.slice(1).map((sport) => (
@@ -770,6 +825,11 @@ export default function AdminTurfsPage() {
                     <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
                     <span className="line-clamp-2">{turf.address}</span>
                   </p>
+                  {turf.city && (
+                    <p className="text-xs text-muted-foreground pl-6">
+                      📍 {turf.city}
+                    </p>
+                  )}
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1 font-semibold">

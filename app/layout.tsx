@@ -81,7 +81,7 @@ export default function RootLayout({
       <Head>
         <meta name="apple-mobile-web-app-title" content="Turfbuddie" />
       </Head>
-      <body className={`${inter.className} antialiased`}>
+      <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <ThemeProvider defaultTheme="light" storageKey="turf-theme">
           <Toaster position="top-center" richColors />
           <AuthProvider>{children}</AuthProvider>
