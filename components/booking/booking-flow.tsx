@@ -766,28 +766,21 @@ export function BookingFlow({
                     {/* Split count */}
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-medium">Split between:</span>
-                      <div className="flex gap-1">
-                        {[2, 3, 4, 5, 6].map((n) => (
-                          <button
-                            key={n}
-                            onClick={() => {
-                              setSplitCount(n);
-                              setTeamMembers(
-                                Array.from({ length: n - 1 }, () => ({ phone: "", name: "", amount: 0 }))
-                              );
-                              setCustomAmounts(Array.from({ length: n }, () => perPersonPrice));
-                            }}
-                            className={cn(
-                              "w-8 h-8 rounded-full text-sm font-semibold transition-all border",
-                              splitCount === n
-                                ? "bg-green-600 text-white border-green-600"
-                                : "border-gray-300 dark:border-gray-600 hover:border-green-400"
-                            )}
-                          >
-                            {n}
-                          </button>
-                        ))}
-                      </div>
+                      <input
+                        type="number"
+                        min={2}
+                        max={50}
+                        value={splitCount}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (!isNaN(val) && val >= 2) {
+                            setSplitCount(val);
+                            setTeamMembers(Array.from({ length: val - 1 }, () => ({ phone: "", name: "", amount: 0 })));
+                            setCustomAmounts(Array.from({ length: val }, () => perPersonPrice));
+                          }
+                        }}
+                        className="w-16 rounded-lg border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm font-bold text-center focus:outline-none focus:border-green-400 bg-white dark:bg-gray-800"
+                      />
                       <span className="text-sm text-muted-foreground">people</span>
                     </div>
 
@@ -809,7 +802,7 @@ export function BookingFlow({
                         <span className="text-sm font-medium flex-1 text-gray-800">
                           {profile?.name || userDetails.name || "You"} <span className="text-xs text-green-600">(Organizer)</span>
                         </span>
-                        <span className="text-sm font-bold text-gray-900">₹{customAmounts[0] || perPersonPrice}</span>
+                        <span className="text-sm font-bold text-gray-900">₹{perPersonPrice}</span>
                       </div>
 
                       {teamMembers.map((member, i) => (
@@ -839,7 +832,7 @@ export function BookingFlow({
                             type="tel"
                           />
                           <span className="text-xs font-bold text-gray-700 w-14 text-right shrink-0">
-                            ₹{customAmounts[i + 1] || perPersonPrice}
+                            ₹{perPersonPrice}
                           </span>
                         </div>
                       ))}

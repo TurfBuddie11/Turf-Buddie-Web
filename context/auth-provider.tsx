@@ -58,11 +58,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (!user.emailVerified) {
             setUser(user);
             setProfile(null);
-            if (
-              pathname !== "/login" &&
-              !pathname.includes("owner") &&
-              !pathname.includes("admin")
-            ) {
+            const publicPaths = ["/", "/login", "/signup", "/explore", "/tournaments", "/about", "/contact", "/privacy", "/terms"];
+            const isPublic = publicPaths.some(p => pathname === p || pathname.startsWith("/turfs/"));
+            if (!isPublic && !pathname.includes("owner") && !pathname.includes("admin")) {
               router.push("/login");
             }
           } else {
