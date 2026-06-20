@@ -769,12 +769,12 @@ export function BookingFlow({
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-medium">Split between:</span>
                         <input
-                          type="number"
-                          min={2}
-                          max={30}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           value={splitInputValue}
                           onChange={(e) => {
-                            const raw = e.target.value;
+                            const raw = e.target.value.replace(/[^0-9]/g, "");
                             setSplitInputValue(raw);
                             const val = parseInt(raw);
                             if (!isNaN(val) && val >= 2 && val <= 30) {
