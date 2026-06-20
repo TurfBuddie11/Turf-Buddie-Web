@@ -789,11 +789,11 @@ export function BookingFlow({
                       </div>
                       {(() => {
                         const val = parseInt(splitInputValue);
-                        if (splitInputValue !== "" && (isNaN(val) || val < 2)) {
+                        if (splitInputValue === "" || isNaN(val) || val < 2) {
                           return <p className="text-xs text-red-500">Minimum 2 logon ke beech split karna zaroori hai</p>;
                         }
-                        if (!isNaN(val) && val > 30) {
-                          return <p className="text-xs text-red-500">Maximum 30 logon tak hi split kar sakte hain</p>;
+                        if (val > 30) {
+                          return <p className="text-xs text-red-500">Minimum 2 logon ke beech split karna zaroori hai</p>;
                         }
                         return null;
                       })()}
