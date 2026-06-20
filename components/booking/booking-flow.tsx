@@ -790,10 +790,10 @@ export function BookingFlow({
                       {(() => {
                         const val = parseInt(splitInputValue);
                         if (splitInputValue === "" || isNaN(val) || val < 2) {
-                          return <p className="text-xs text-red-500">Minimum 2 logon ke beech split karna zaroori hai</p>;
+                          return <p className="text-xs text-red-500">A minimum of 2 people are required to split the amount.</p>;
                         }
                         if (val > 30) {
-                          return <p className="text-xs text-red-500">Minimum 2 logon ke beech split karna zaroori hai</p>;
+                          return <p className="text-xs text-red-500">Maximum 30 people can split the amount.</p>;
                         }
                         return null;
                       })()}
