@@ -76,6 +76,7 @@ export function BookingFlow({
   const [redeemPoints, setRedeemPoints] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [splitCount, setSplitCount] = useState(2);
+  const [splitInputValue, setSplitInputValue] = useState("2");
   const [teamMembers, setTeamMembers] = useState<{ phone: string; name: string; amount: number }[]>([]);
   const [customAmounts, setCustomAmounts] = useState<number[]>([]);
   const [splitGroupId, setSplitGroupId] = useState<string | null>(null);
@@ -764,24 +765,38 @@ export function BookingFlow({
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Split count */}
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium">Split between:</span>
-                      <input
-                        type="number"
-                        min={2}
-                        max={50}
-                        value={splitCount}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value);
-                          if (!isNaN(val) && val >= 2) {
-                            setSplitCount(val);
-                            setTeamMembers(Array.from({ length: val - 1 }, () => ({ phone: "", name: "", amount: 0 })));
-                            setCustomAmounts(Array.from({ length: val }, () => perPersonPrice));
-                          }
-                        }}
-                        className="w-16 rounded-lg border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm font-bold text-center focus:outline-none focus:border-green-400 bg-white dark:bg-gray-800"
-                      />
-                      <span className="text-sm text-muted-foreground">people</span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium">Split between:</span>
+                        <input
+                          type="number"
+                          min={2}
+                          max={30}
+                          value={splitInputValue}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            setSplitInputValue(raw);
+                            const val = parseInt(raw);
+                            if (!isNaN(val) && val >= 2 && val <= 30) {
+                              setSplitCount(val);
+                              setTeamMembers(Array.from({ length: val - 1 }, () => ({ phone: "", name: "", amount: 0 })));
+                              setCustomAmounts(Array.from({ length: val }, () => perPersonPrice));
+                            }
+                          }}
+                          className="w-16 rounded-lg border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm font-bold text-center focus:outline-none focus:border-green-400 bg-white dark:bg-gray-800"
+                        />
+                        <span className="text-sm text-muted-foreground">people</span>
+                      </div>
+                      {(() => {
+                        const val = parseInt(splitInputValue);
+                        if (splitInputValue !== "" && (isNaN(val) || val < 2)) {
+                          return <p className="text-xs text-red-500">Minimum 2 logon ke beech split karna zaroori hai</p>;
+                        }
+                        if (!isNaN(val) && val > 30) {
+                          return <p className="text-xs text-red-500">Maximum 30 logon tak hi split kar sakte hain</p>;
+                        }
+                        return null;
+                      })()}
                     </div>
 
                     {/* Per person amount */}
