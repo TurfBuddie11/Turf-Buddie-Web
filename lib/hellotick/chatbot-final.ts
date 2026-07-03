@@ -594,18 +594,15 @@ async function processBooking(
     refCode,
   });
 
-  await adminDb
-    .collection("whatsappSessions")
-    .doc(phone)
-    .set(
-      {
-        lastCommand: "booked",
-        waitingFor: null,
-        availableSlots: null,
-        updatedAt: Date.now(),
-      },
-      { merge: true },
-    );
+  await adminDb.collection("whatsappSessions").doc(phone).set(
+    {
+      lastCommand: "booked",
+      waitingFor: null,
+      availableSlots: null,
+      updatedAt: Date.now(),
+    },
+    { merge: true },
+  );
 }
 
 // ─── owner panel: helpers (Turfs.timeSlots — same array the website reads) ────
@@ -857,15 +854,18 @@ async function verifyOwnerMobile(
   rawText: string,
   sessionRef: FirebaseFirestore.DocumentReference,
 ) {
+  // Accept any format: 9322580092, +91 93225 80092, 91-93225-80092, 0091…
+  // Strip everything but digits, take the last 10, and require a valid
+  // Indian mobile (starts with 6-9).
   const digits = rawText.replace(/\D/g, "");
-  if (digits.length < 10 || digits.length > 12) {
+  const last10 = digits.slice(-10);
+  if (digits.length < 10 || digits.length > 14 || !/^[6-9]/.test(last10)) {
     await hellotick.sendText({
       phone,
       message: `❌ That doesn't look like a valid mobile number.\n\nPlease send your *10-digit registered mobile number*.\nEg: 9876543210\n\n_Send *HI* to go back to the menu_`,
     });
     return;
   }
-  const last10 = digits.slice(-10);
 
   // Owners store mobiles in mixed formats (10-digit, +91…) — match on last 10 digits
   const ownersSnap = await adminDb.collection("owners").get();
