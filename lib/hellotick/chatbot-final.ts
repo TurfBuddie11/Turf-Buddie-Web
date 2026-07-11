@@ -10,6 +10,8 @@
  *   SLOTS TODAY / SLOTS 30APR  — slot availability for a date
  *   BOOK 5PM                   — offline booking on own turf
  *   BLOCK 10AM / UNBLOCK 7AM   — block / reopen a slot
+ *   (times are flexible: "6PM", "6 PM - 7 PM", "6 PM TO 7 PM", "6 TO 7",
+ *    "6-7 PM", "6 SE 7" — ranges like "6 TO 8 PM" act on multiple slots)
  *   CLOSE ALL / OPEN ALL       — bulk block / reopen a whole day
  *   REPORT TODAY               — bookings + revenue summary
  *   CANCEL TB-1234-5678        — cancel a booking by reference
@@ -176,30 +178,13 @@ async function getSlotsForToday(
 }
 
 /**
- * Parse "6 PM", "6 PM TODAY", "6:00 PM", "6PM" → "6 PM - 7 PM"
+ * Parse "6 PM", "6 PM TODAY", "6:00 PM", "6PM", "6 PM TO 7 PM", "6-7 PM"
+ * → "6 PM - 7 PM" (only when the input maps to exactly one slot)
  */
 function parseTimeSlotQuery(text: string): string | null {
-  const cleaned = text.replace(/\b(today|tonight|aaj)\b/gi, "").trim();
-  const m = cleaned.match(/^(\d{1,2})(?:[:.]00)?\s*(am|pm)$/i);
-  if (!m) return null;
-
-  const h = parseInt(m[1]);
-  const p = m[2].toUpperCase() as "AM" | "PM";
-  if (h < 1 || h > 12) return null;
-
-  let eh = h + 1;
-  let ep = p;
-  if (p === "AM" && h === 11) {
-    eh = 12;
-    ep = "PM";
-  } else if (p === "PM" && h === 12) {
-    eh = 1;
-    ep = "PM";
-  } else if (eh > 12) {
-    eh = eh - 12;
-  }
-
-  return `${h} ${p} - ${eh} ${ep}`;
+  const starts = parseSlotRange(text);
+  if (!starts || starts.length !== 1) return null;
+  return slotFullLabel(starts[0]);
 }
 
 // ─── shared flow helpers ─────────────────────────────────────────────────────
@@ -514,7 +499,20 @@ export async function handleIncomingMessage(
         });
         return;
       }
-      const slot = text.replace("BOOK ", "").trim();
+      const arg = text.replace("BOOK ", "").trim();
+      const starts = parseSlotRange(arg);
+      if (starts && starts.length > 1) {
+        const list = starts
+          .map((s, i) => `${i + 1}. BOOK ${slotFullLabel(s)}`)
+          .join("\n");
+        await hellotick.sendText({
+          phone,
+          message: `Please book one slot at a time:\n\n${list}`,
+        });
+        return;
+      }
+      // Normalize flexible input ("6PM", "6 to 7 pm") to the stored label
+      const slot = starts ? slotFullLabel(starts[0]) : arg;
       await processBooking(phone, session.selectedTurf, slot);
     }
 
@@ -619,9 +617,9 @@ interface OwnerCtx {
 const OWNER_COMMANDS =
   `*Commands:*\n` +
   `• *SLOTS TODAY* / *SLOTS 30APR* — view slots for a date\n` +
-  `• *BOOK 5PM* — book a slot (offline)\n` +
-  `• *BLOCK 10AM* — block a slot\n` +
-  `• *UNBLOCK 7AM* — reopen a blocked slot\n` +
+  `• *BOOK 5PM* / *BOOK 6 PM TO 8 PM* — offline booking\n` +
+  `• *BLOCK 10AM* / *BLOCK 6 TO 8 PM* — block slots\n` +
+  `• *UNBLOCK 7AM* — reopen blocked slots\n` +
   `• *CLOSE ALL* / *OPEN ALL* — block/open the whole day\n` +
   `• *REPORT TODAY* — daily bookings + revenue\n` +
   `• *CANCEL TB-1234-5678* — cancel a booking by ref\n` +
@@ -654,13 +652,78 @@ function slotFullLabel(start: string): string {
   return `${start} - ${SLOT_STARTS[i + 1] || "9 PM"}`;
 }
 
-/** Parse "5PM", "5 PM", "5:00 PM", "5 PM - 6 PM" → "5 PM" (or null if invalid) */
-function parseSlotTime(arg: string): string | null {
-  const first = (arg || "").trim().toUpperCase().split(" - ")[0];
-  const m = first.match(/^(\d{1,2})(?:[:.]00)?\s*(AM|PM)$/);
-  if (!m) return null;
-  const start = `${parseInt(m[1])} ${m[2]}`;
-  return SLOT_STARTS.includes(start) ? start : null;
+/**
+ * Flexible time parser → list of slot start labels.
+ *   "6PM" / "6 PM" / "6:00 PM"               → ["6 PM"]
+ *   "6 PM - 7 PM" / "6-7 PM" / "6PM-7PM"     → ["6 PM"]
+ *   "6 PM TO 7 PM" / "6 TO 7" / "6 SE 7"     → ["6 PM"]
+ *   "6 TO 8 PM"                              → ["6 PM", "7 PM"]
+ * A single time needs AM/PM (bare numbers clash with numeric menu replies).
+ * In a range a missing AM/PM is borrowed from the other side or inferred
+ * (9-11 → AM, 12 & 1-8 → PM), then validated against operating slots.
+ */
+function parseSlotRange(arg: string): string[] | null {
+  const cleaned = (arg || "")
+    .toUpperCase()
+    .replace(/\b(TODAY|TONIGHT|AAJ)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return null;
+
+  // Range separators: "-", "–", TO, TAK, SE, lone T ("6 T 7")
+  const parts = cleaned
+    .split(/\s*(?:–|-|\bTO\b|\bTAK\b|\bSE\b|\bT\b)\s*/)
+    .filter(Boolean);
+  if (parts.length === 0 || parts.length > 2) return null;
+
+  const parseOne = (s: string): { h: number; mer?: "AM" | "PM" } | null => {
+    const m = s.trim().match(/^(\d{1,2})(?:[:.]\d{2})?\s*(AM|PM)?$/);
+    if (!m) return null;
+    const h = parseInt(m[1]);
+    if (h < 1 || h > 12) return null;
+    return { h, mer: m[2] as "AM" | "PM" | undefined };
+  };
+
+  const startT = parseOne(parts[0]);
+  if (!startT) return null;
+  const endT = parts.length === 2 ? parseOne(parts[1]) : null;
+  if (parts.length === 2 && !endT) return null;
+
+  // A single bare number ("6") is too ambiguous — require AM/PM
+  if (!endT && !startT.mer) return null;
+
+  const guess = (h: number): "AM" | "PM" => (h >= 9 && h <= 11 ? "AM" : "PM");
+  const candidates = (
+    t: { h: number; mer?: "AM" | "PM" },
+    borrowed?: "AM" | "PM",
+  ): Array<"AM" | "PM"> => {
+    if (t.mer) return [t.mer];
+    const list = [borrowed, guess(t.h), "PM", "AM"].filter(Boolean) as Array<
+      "AM" | "PM"
+    >;
+    return Array.from(new Set(list));
+  };
+
+  // End time may be "9 PM" — one hour past the last bookable start
+  const endIndex = (label: string): number =>
+    label === "9 PM" ? SLOT_STARTS.length : SLOT_STARTS.indexOf(label);
+
+  // When AM/PM was guessed (not typed), cap the range at 3 slots so a typo
+  // like "7 TO 6 PM" can't silently become a huge 7 AM - 6 PM range.
+  const inferred = !startT.mer || (endT !== null && !endT.mer);
+
+  for (const sm of candidates(startT, endT?.mer)) {
+    const si = SLOT_STARTS.indexOf(`${startT.h} ${sm}`);
+    if (si === -1) continue;
+    if (!endT) return [SLOT_STARTS[si]];
+    for (const em of candidates(endT, sm)) {
+      const ei = endIndex(`${endT.h} ${em}`);
+      if (ei > si && (!inferred || ei - si <= 3)) {
+        return SLOT_STARTS.slice(si, ei);
+      }
+    }
+  }
+  return null;
 }
 
 interface OwnerDate {
@@ -1006,150 +1069,169 @@ async function ownerShowSlots(phone: string, ctx: OwnerCtx, dateArg?: string) {
 }
 
 async function ownerBook(phone: string, ctx: OwnerCtx, timeArg: string) {
-  const start = parseSlotTime(timeArg);
-  if (!start) {
+  const starts = parseSlotRange(timeArg);
+  if (!starts) {
     await hellotick.sendText({
       phone,
-      message: `❓ Couldn't read that time.\n\nTry: *BOOK 5PM*\n_Slots run 6 AM – 9 PM_`,
+      message: `❓ Couldn't read that time.\n\nTry: *BOOK 5PM* or *BOOK 6 PM TO 7 PM*\n_Slots run 6 AM – 9 PM_`,
     });
     return;
   }
   const date = parseDateArg("")!;
-  const full = slotFullLabel(start);
+  const fulls = starts.map(slotFullLabel);
   const refCode = makeRefCode();
 
-  type BookResult = { ok: boolean; status: string; price: number };
+  type BookResult = { ok: boolean; taken: string[]; total: number };
   const out = await mutateTurfSlots<BookResult>(
     ctx.turfId,
     (slots, turfData) => {
-      const status = slotStatusFor(slots, date, start);
-      if (status !== "available")
-        return { result: { ok: false, status, price: 0 } };
+      const taken = starts.filter(
+        (s) => slotStatusFor(slots, date, s) !== "available",
+      );
+      if (taken.length)
+        return {
+          result: { ok: false, taken: taken.map(slotFullLabel), total: 0 },
+        };
       const price = Number(turfData.price) || 800;
-      slots.push({
-        turfId: ctx.turfId,
-        timeSlot: full,
-        daySlot: date.weekday,
-        monthSlot: date.label,
-        userUid: `owner_offline_${ctx.ownerId || phone}`,
-        status: "booked_offline",
-        price,
-        refCode,
-        transactionId: refCode,
-        paid: "Collected by Owner",
-        source: "whatsapp_owner",
-        bookingDate: new Date().toISOString(),
-      });
-      return { slots, result: { ok: true, status: "booked", price } };
+      starts.forEach((s) =>
+        slots.push({
+          turfId: ctx.turfId,
+          timeSlot: slotFullLabel(s),
+          daySlot: date.weekday,
+          monthSlot: date.label,
+          userUid: `owner_offline_${ctx.ownerId || phone}`,
+          status: "booked_offline",
+          price,
+          refCode,
+          transactionId: refCode,
+          paid: "Collected by Owner",
+          source: "whatsapp_owner",
+          bookingDate: new Date().toISOString(),
+        }),
+      );
+      return {
+        slots,
+        result: { ok: true, taken: [], total: price * starts.length },
+      };
     },
   );
 
   if (!out.ok) {
     await hellotick.sendText({
       phone,
-      message: `❌ *${full}* is already ${out.status} today.\n\nSend *SLOTS TODAY* to see availability.`,
+      message: `❌ Already booked/blocked today: *${out.taken.join("*, *")}*\n\nSend *SLOTS TODAY* to see availability.`,
     });
     return;
   }
   await hellotick.sendText({
     phone,
     message:
-      `⚡ *Booking Confirmed!*\n\n📍 ${ctx.turfName}\n📅 Today, ${full}\n💰 ₹${out.price}\n🆔 Ref: *${refCode}*\n\n` +
-      `✅ Website updated instantly — slot now shows unavailable.\n\n` +
+      `⚡ *Booking Confirmed!*\n\n📍 ${ctx.turfName}\n📅 Today, ${fulls.join(" • ")}\n💰 ₹${out.total}\n🆔 Ref: *${refCode}*\n\n` +
+      `✅ Website updated instantly — slot${fulls.length > 1 ? "s" : ""} now show${fulls.length > 1 ? "" : "s"} unavailable.\n\n` +
       `_Send *CANCEL ${refCode}* to undo_`,
   });
-  await logChat(phone, "owner_booked", `Offline booking ${full}`, {
+  await logChat(phone, "owner_booked", `Offline booking ${fulls.join(", ")}`, {
     refCode,
     turfId: ctx.turfId,
   });
 }
 
 async function ownerBlock(phone: string, ctx: OwnerCtx, timeArg: string) {
-  const start = parseSlotTime(timeArg);
-  if (!start) {
+  const starts = parseSlotRange(timeArg);
+  if (!starts) {
     await hellotick.sendText({
       phone,
-      message: `❓ Couldn't read that time.\n\nTry: *BLOCK 10AM*\n_Slots run 6 AM – 9 PM_`,
+      message: `❓ Couldn't read that time.\n\nTry: *BLOCK 10AM* or *BLOCK 6 PM TO 8 PM*\n_Slots run 6 AM – 9 PM_`,
     });
     return;
   }
   const date = parseDateArg("")!;
-  const full = slotFullLabel(start);
 
-  const out = await mutateTurfSlots(ctx.turfId, (slots) => {
-    const status = slotStatusFor(slots, date, start);
-    if (status !== "available") return { result: status };
-    slots.push({
-      turfId: ctx.turfId,
-      timeSlot: full,
-      daySlot: date.weekday,
-      monthSlot: date.label,
-      userUid: `owner_blocked_${ctx.ownerId || phone}`,
-      status: "blocked",
-      blockedBy: "owner",
-      blockedVia: "whatsapp",
-      bookingDate: new Date().toISOString(),
+  type BlockResult = { blocked: string[]; booked: string[]; already: string[] };
+  const out = await mutateTurfSlots<BlockResult>(ctx.turfId, (slots) => {
+    const result: BlockResult = { blocked: [], booked: [], already: [] };
+    starts.forEach((s) => {
+      const status = slotStatusFor(slots, date, s);
+      if (status === "booked") {
+        result.booked.push(slotFullLabel(s));
+        return;
+      }
+      if (status === "blocked") {
+        result.already.push(slotFullLabel(s));
+        return;
+      }
+      result.blocked.push(slotFullLabel(s));
+      slots.push({
+        turfId: ctx.turfId,
+        timeSlot: slotFullLabel(s),
+        daySlot: date.weekday,
+        monthSlot: date.label,
+        userUid: `owner_blocked_${ctx.ownerId || phone}`,
+        status: "blocked",
+        blockedBy: "owner",
+        blockedVia: "whatsapp",
+        bookingDate: new Date().toISOString(),
+      });
     });
-    return { slots, result: "done" as const };
+    return result.blocked.length ? { slots, result } : { result };
   });
 
-  if (out === "booked") {
-    await hellotick.sendText({
-      phone,
-      message: `❌ *${full}* is already booked by a player — it can't be blocked.\n\nUse *CANCEL [REF]* first if needed (see *REPORT TODAY*).`,
-    });
-  } else if (out === "blocked") {
-    await hellotick.sendText({
-      phone,
-      message: `*${full}* is already blocked.\n\nSend *UNBLOCK ${start.replace(" ", "")}* to reopen it.`,
-    });
-  } else {
-    await hellotick.sendText({
-      phone,
-      message: `🚫 *${full} BLOCKED*\n\n✅ Website updated instantly\n📲 Players will now see this slot as unavailable.\n\n_Send *UNBLOCK ${start.replace(" ", "")}* to reopen_`,
-    });
-    await logChat(phone, "slot_blocked", `Blocked ${full}`, {
+  const lines: string[] = [];
+  if (out.blocked.length)
+    lines.push(
+      `🚫 *BLOCKED: ${out.blocked.join(", ")}*\n\n✅ Website updated instantly\n📲 Players will now see ${out.blocked.length > 1 ? "these slots" : "this slot"} as unavailable.`,
+    );
+  if (out.booked.length)
+    lines.push(
+      `❌ Already booked by a player (can't block): *${out.booked.join(", ")}*\nUse *CANCEL [REF]* first if needed (see *REPORT TODAY*).`,
+    );
+  if (out.already.length)
+    lines.push(`Already blocked: *${out.already.join(", ")}*`);
+  lines.push(`_Send *UNBLOCK [time]* to reopen_`);
+
+  await hellotick.sendText({ phone, message: lines.join("\n\n") });
+  if (out.blocked.length) {
+    await logChat(phone, "slot_blocked", `Blocked ${out.blocked.join(", ")}`, {
       turfId: ctx.turfId,
     });
   }
 }
 
 async function ownerUnblock(phone: string, ctx: OwnerCtx, timeArg: string) {
-  const start = parseSlotTime(timeArg);
-  if (!start) {
+  const starts = parseSlotRange(timeArg);
+  if (!starts) {
     await hellotick.sendText({
       phone,
-      message: `❓ Couldn't read that time.\n\nTry: *UNBLOCK 7AM*`,
+      message: `❓ Couldn't read that time.\n\nTry: *UNBLOCK 7AM* or *UNBLOCK 6 PM TO 8 PM*`,
     });
     return;
   }
   const date = parseDateArg("")!;
-  const full = slotFullLabel(start);
 
-  const removed = await mutateTurfSlots(ctx.turfId, (slots) => {
-    const idx = slots.findIndex(
-      (e) =>
-        entryOnDate(e, date) &&
-        entryHasSlot(e, start) &&
-        String(e.status || "").toLowerCase() === "blocked",
-    );
-    if (idx === -1) return { result: false };
-    slots.splice(idx, 1);
-    return { slots, result: true };
+  const unblocked = await mutateTurfSlots<string[]>(ctx.turfId, (slots) => {
+    const isBlockedEntry = (e: SlotEntry, s: string) =>
+      entryOnDate(e, date) &&
+      entryHasSlot(e, s) &&
+      String(e.status || "").toLowerCase() === "blocked";
+    const found = starts.filter((s) => slots.some((e) => isBlockedEntry(e, s)));
+    if (!found.length) return { result: [] };
+    const kept = slots.filter((e) => !found.some((s) => isBlockedEntry(e, s)));
+    return { slots: kept, result: found.map(slotFullLabel) };
   });
 
-  if (!removed) {
+  if (!unblocked.length) {
+    const fulls = starts.map(slotFullLabel).join(", ");
     await hellotick.sendText({
       phone,
-      message: `*${full}* is not blocked today.\n\nSend *SLOTS TODAY* to see current status.`,
+      message: `*${fulls}* is not blocked today.\n\nSend *SLOTS TODAY* to see current status.`,
     });
     return;
   }
   await hellotick.sendText({
     phone,
-    message: `✅ *${full} UNBLOCKED*\n\n✅ Website updated instantly\n📲 Slot is now open for booking.\n\n_Send *SLOTS TODAY* to see status_`,
+    message: `✅ *${unblocked.join(", ")} UNBLOCKED*\n\n✅ Website updated instantly\n📲 ${unblocked.length > 1 ? "Slots are" : "Slot is"} now open for booking.\n\n_Send *SLOTS TODAY* to see status_`,
   });
-  await logChat(phone, "slot_unblocked", `Unblocked ${full}`, {
+  await logChat(phone, "slot_unblocked", `Unblocked ${unblocked.join(", ")}`, {
     turfId: ctx.turfId,
   });
 }
@@ -1317,27 +1399,36 @@ async function ownerCancel(phone: string, ctx: OwnerCtx, refArg: string) {
   }
 
   const out = await mutateTurfSlots(ctx.turfId, (slots) => {
-    const idx = slots.findIndex((e) => {
-      const r = String(e.refCode || e.transactionId || "").toUpperCase();
-      const st = String(e.status || "").toLowerCase();
-      return (
-        r === ref && (ACTIVE_BOOKED_STATUSES.includes(st) || st === "blocked")
-      );
+    // A range booking creates one entry per slot sharing the same ref —
+    // cancel every entry that matches.
+    const matches = slots
+      .map((e, i) => ({ e, i }))
+      .filter(({ e }) => {
+        const r = String(e.refCode || e.transactionId || "").toUpperCase();
+        const st = String(e.status || "").toLowerCase();
+        return (
+          r === ref && (ACTIVE_BOOKED_STATUSES.includes(st) || st === "blocked")
+        );
+      });
+    if (!matches.length) return { result: null };
+
+    const labels: string[] = [];
+    let wasPaid = false;
+    matches.forEach(({ e, i }) => {
+      labels.push(...entryLabels(e));
+      if (String(e.status || "").toLowerCase() === "confirmed") wasPaid = true;
+      slots[i] = {
+        ...e,
+        status: "cancelled",
+        cancelledAt: new Date().toISOString(),
+        cancelledVia: "whatsapp_owner",
+      };
     });
-    if (idx === -1) return { result: null };
-    const entry = slots[idx];
-    const wasPaid = String(entry.status || "").toLowerCase() === "confirmed";
-    slots[idx] = {
-      ...entry,
-      status: "cancelled",
-      cancelledAt: new Date().toISOString(),
-      cancelledVia: "whatsapp_owner",
-    };
     return {
       slots,
       result: {
-        label: entryLabels(entry).join(", "),
-        monthSlot: String(entry.monthSlot || ""),
+        label: labels.join(", "),
+        monthSlot: String(matches[0].e.monthSlot || ""),
         wasPaid,
       },
     };
