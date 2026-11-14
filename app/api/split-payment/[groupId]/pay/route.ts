@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import Razorpay from "razorpay";
-import { getAuth } from "firebase-admin/auth";
-import { cookies } from "next/headers";
 import { SplitGroup, SplitMember } from "@/lib/types/split-payment";
+import { getRequestUid } from "@/lib/auth/request-user";
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID!,
@@ -20,31 +19,35 @@ export async function POST(
         const { memberIndex, paymentId, orderId, signature } = await request.json();
 
         // ── STEP 1: Create order (memberIndex provided, no paymentId) ──
-        if (memberIndex !== undefined && !paymentId) {
+        if (!Number.isInteger(memberIndex) || memberIndex < 0) {
+            return NextResponse.json({ error: "Invalid member" }, { status: 400 });
+        }
+
+        if (!paymentId) {
             return await createMemberOrder(groupId, memberIndex, request);
         }
 
         // ── STEP 2: Verify payment (paymentId + orderId + signature provided) ──
-        if (paymentId && orderId && signature) {
+        if (orderId && signature) {
             return await verifyMemberPayment(groupId, memberIndex, paymentId, orderId, signature);
         }
 
         return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     } catch (error) {
         console.error("Split pay error:", error);
-        return NextResponse.json({ error: "Payment processing failed" }, { status: 500 });
+        return NextResponse.json(
+            { error: error instanceof Error ? error.message : "Payment processing failed" },
+            { status: 500 },
+        );
     }
 }
 
 async function createMemberOrder(groupId: string, memberIndex: number, request: NextRequest) {
     // Auth check — member must be logged in
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session")?.value;
-    if (!sessionCookie) {
-        return NextResponse.json({ error: "Login required to pay" }, { status: 401 });
+    const uid = await getRequestUid(request);
+    if (!uid) {
+        return NextResponse.json({ error: "Please login to pay your share" }, { status: 401 });
     }
-    const decodedToken = await getAuth().verifySessionCookie(sessionCookie, true);
-    const uid = decodedToken.uid;
 
     const groupRef = adminDb.collection("splitGroups").doc(groupId);
     const groupSnap = await groupRef.get();
@@ -80,10 +83,21 @@ async function createMemberOrder(groupId: string, memberIndex: number, request: 
         receipt: `split_${groupId}_${memberIndex}_${Date.now()}`,
     });
 
-    // Save order id to member
-    const updatedMembers = [...group.members];
-    updatedMembers[memberIndex] = { ...member, orderId: order.id, uid };
-    await groupRef.update({ members: updatedMembers });
+    // Save order id to member (and link the payer's uid if not linked yet).
+    // Done in a transaction so two members paying at once don't overwrite
+    // each other's order ids.
+    await adminDb.runTransaction(async (tx) => {
+        const fresh = await tx.get(groupRef);
+        const freshMembers = [...((fresh.data() as SplitGroup).members || [])];
+        const freshMember = freshMembers[memberIndex];
+        if (!freshMember) throw new Error("Member not found");
+        freshMembers[memberIndex] = {
+            ...freshMember,
+            orderId: order.id,
+            uid: freshMember.uid || uid,
+        };
+        tx.update(groupRef, { members: freshMembers });
+    });
 
     return NextResponse.json({
         orderId: order.id,
@@ -124,6 +138,12 @@ async function verifyMemberPayment(
 
         if (!member || member.status === "paid") {
             throw new Error("Already paid or member not found");
+        }
+
+        // The signed order must be the one created for THIS member's share,
+        // otherwise someone could reuse a cheaper order for another share.
+        if (member.orderId !== orderId) {
+            throw new Error("Payment does not match this member's order");
         }
 
         // Mark member as paid
@@ -180,22 +200,44 @@ async function confirmSplitBooking(groupId: string, group: SplitGroup, lastPayme
         const commission = pricePerSlot * 0.05;
         const payout = pricePerSlot - commission;
 
+        const confirmedFields = {
+            status: "confirmed",
+            transactionId: lastPaymentId,
+            price: Math.round(pricePerSlot * 100) / 100,
+            commission: Math.round(commission * 100) / 100,
+            payout: Math.round(payout * 100) / 100,
+            paid: "Not Paid to Owner",
+            bookingDate: new Date().toISOString(),
+        };
+
+        let matched = 0;
         const updated = allSlots.map((s) => {
             const slot = s as { splitGroupId?: string; status?: string; timeSlot?: string };
             if (slot.splitGroupId === groupId && slot.status === "blocked") {
-                return {
-                    ...s,
-                    status: "confirmed",
-                    transactionId: lastPaymentId,
-                    price: Math.round(pricePerSlot * 100) / 100,
-                    commission: Math.round(commission * 100) / 100,
-                    payout: Math.round(payout * 100) / 100,
-                    paid: "Not Paid to Owner",
-                    bookingDate: new Date().toISOString(),
-                };
+                matched++;
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { holdExpiresAt, ...rest } = s as Record<string, unknown>;
+                return { ...rest, ...confirmedFields };
             }
             return s;
         });
+
+        // The 30-min hold may already have been released (expired) before the
+        // last member paid. Everyone has paid, so add the confirmed slots back.
+        if (matched === 0) {
+            for (const timeSlot of group.timeSlots) {
+                updated.push({
+                    turfId: group.turfId,
+                    timeSlot,
+                    daySlot: group.daySlot,
+                    monthSlot: group.monthSlot,
+                    userUid: group.organizerUid,
+                    splitGroupId: groupId,
+                    ...confirmedFields,
+                });
+            }
+            console.warn(`[split-pay] group ${groupId} paid after hold expired — re-added slots as confirmed`);
+        }
 
         await turfRef.update({ timeSlots: updated });
     } catch (err) {

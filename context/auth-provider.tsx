@@ -35,84 +35,98 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Subscribe ONCE and handle every auth change (login/logout) so the UI
+  // updates immediately — e.g. logging in from the booking checkout without
+  // a page reload. Previously only the first event was processed.
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout | null = null;
-    let didFire = false;
+    let resolvedOnce = false;
+    let eventSeq = 0;
 
     // Failsafe: if Firebase doesn't respond in 3s, unblock the UI
-    timeoutId = setTimeout(() => {
-      if (!didFire) {
-        didFire = true;
-        setLoading(false);
-      }
+    const timeoutId = setTimeout(() => {
+      if (!resolvedOnce) setLoading(false);
     }, 3000);
 
     const unsubscribe = onAuthStateChanged(
       auth,
-      async (user) => {
-        if (didFire) return;
-        didFire = true;
-        if (timeoutId) clearTimeout(timeoutId);
+      async (firebaseUser) => {
+        resolvedOnce = true;
+        clearTimeout(timeoutId);
+        const seq = ++eventSeq;
 
-        if (user) {
-          if (!user.emailVerified) {
-            setUser(user);
-            setProfile(null);
-            const publicPaths = ["/", "/login", "/signup", "/explore", "/tournaments", "/about", "/contact", "/privacy", "/terms"];
-            const isPublic = publicPaths.some(p => pathname === p || pathname.startsWith("/turfs/"));
-            if (!isPublic && !pathname.includes("owner") && !pathname.includes("admin")) {
-              router.push("/login");
-            }
-          } else {
-            try {
-              const userProfileSnap = await getUserProfile(user.uid);
-              const userProfile = userProfileSnap?.data() as
-                | UserProfile
-                | null;
-
-              if (userProfileSnap?.exists() && userProfile?.mobile) {
-                setUser(user);
-                setProfile(userProfile);
-
-                if (["/login", "/signup"].includes(pathname)) {
-                  if (user.email === "turfbuddie@gmail.com") {
-                    router.push("/admin");
-                  } else {
-                    router.push("/");
-                  }
-                }
-              } else {
-                setUser(user);
-                setProfile(null);
-              }
-            } catch {
-              setUser(user);
-              setProfile(null);
-            }
-          }
-        } else {
+        if (!firebaseUser) {
           setUser(null);
           setProfile(null);
+          setLoading(false);
+          return;
         }
 
+        if (!firebaseUser.emailVerified) {
+          setUser(firebaseUser);
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
+
+        let nextProfile: UserProfile | null = null;
+        try {
+          const snap = await getUserProfile(firebaseUser.uid);
+          const data = snap?.data() as UserProfile | undefined;
+          if (snap?.exists() && data?.mobile) nextProfile = data;
+        } catch {
+          nextProfile = null;
+        }
+
+        // A newer auth event arrived while we were loading — drop this one.
+        if (seq !== eventSeq) return;
+        setUser(firebaseUser);
+        setProfile(nextProfile);
         setLoading(false);
       },
       (err) => {
         // Auth error — still unblock the UI
         console.warn("[auth] state change error:", err);
-        if (!didFire) {
-          didFire = true;
-          if (timeoutId) clearTimeout(timeoutId);
-          setLoading(false);
-        }
+        resolvedOnce = true;
+        clearTimeout(timeoutId);
+        setLoading(false);
       },
     );
 
     return () => {
-      if (timeoutId) clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
       unsubscribe();
     };
-  }, [pathname, router]);
+  }, []);
+
+  // Route guards, re-evaluated on navigation and on auth changes.
+  useEffect(() => {
+    if (loading || !user) return;
+
+    if (!user.emailVerified) {
+      const publicPaths = ["/", "/login", "/signup", "/explore", "/tournaments", "/about", "/contact", "/privacy", "/terms"];
+      const isPublic =
+        publicPaths.some((p) => pathname === p) ||
+        pathname.startsWith("/turfs/") ||
+        pathname.startsWith("/split-pay/");
+      if (!isPublic && !pathname.includes("owner") && !pathname.includes("admin")) {
+        router.push("/login");
+      }
+      return;
+    }
+
+    if (profile && ["/login", "/signup"].includes(pathname)) {
+      const redirect = new URLSearchParams(window.location.search).get(
+        "redirect",
+      );
+      const safeRedirect =
+        redirect && redirect.startsWith("/") && !redirect.startsWith("//")
+          ? redirect
+          : "/";
+      router.push(
+        user.email === "turfbuddie@gmail.com" ? "/admin" : safeRedirect,
+      );
+    }
+  }, [loading, user, profile, pathname, router]);
 
   // Always render children — pages can check `loading` for user-specific UI
   return (

@@ -56,18 +56,31 @@ const createUserProfile = async (
   if (!snap.exists()) {
     if (!user.email) throw new Error("Email missing");
 
+    // Drop undefined values (Firestore rejects them). The form's
+    // `referralCode` is the code the user *entered*, so store it as
+    // `referredBy` instead of overwriting the user's own generated code.
+    const { referralCode: enteredReferral, ...rest } = Object.fromEntries(
+      Object.entries(profileData).filter(([, v]) => v !== undefined),
+    ) as Partial<UserProfile>;
+
     const profile: UserProfile = {
       uid: user.uid,
       email: user.email,
       name: user.displayName ?? profileData.name ?? "",
       createdAt: Timestamp.now(),
       emailVerified: user.emailVerified,
+      ...rest,
       referralCode: nanoid(8).toUpperCase(),
-      ...profileData,
+      ...(enteredReferral ? { referredBy: enteredReferral } : {}),
     };
 
     await setDoc(ref, profile);
-    await createLoyaltyAccount(user.uid);
+    try {
+      await createLoyaltyAccount(user.uid);
+    } catch (err) {
+      // Welcome bonus is non-critical; never block signup on it.
+      console.error("[signup] loyalty account creation failed:", err);
+    }
     return profile;
   }
 
@@ -163,22 +176,74 @@ export const signInWithGoogle = async (): Promise<UserCredential> => {
    EMAIL / PASSWORD
 ============================== */
 
+const signupErrorMessage = (error: unknown): string => {
+  if (error instanceof FirebaseError) {
+    switch (error.code) {
+      case "auth/email-already-in-use":
+        return "This email is already registered. Please log in instead.";
+      case "auth/invalid-email":
+        return "Please enter a valid email address.";
+      case "auth/weak-password":
+        return "Password must be at least 6 characters.";
+      case "auth/operation-not-allowed":
+        return "Email/password signup is disabled in Firebase. Enable it in Firebase Console → Authentication → Sign-in method.";
+      case "auth/invalid-api-key":
+      case "auth/api-key-not-valid.-please-pass-a-valid-api-key.":
+        return "Firebase is not configured (invalid or missing NEXT_PUBLIC_FIREBASE_* env variables).";
+      case "auth/network-request-failed":
+        return "Network error. Please check your internet connection and try again.";
+      case "auth/too-many-requests":
+        return "Too many attempts. Please wait a few minutes and try again.";
+      case "auth/admin-restricted-operation":
+        return "New sign-ups are disabled in Firebase. Enable 'Allow creation (sign-up)' in Firebase Console → Authentication → Settings → User actions.";
+      case "auth/password-does-not-meet-requirements":
+        return "Password doesn't meet the project's password policy (check uppercase/lowercase/number/special-character rules in Firebase Console → Authentication → Settings → Password policy).";
+      case "auth/configuration-not-found":
+        return "Firebase Authentication is not set up for this project. Enable it in Firebase Console → Authentication.";
+      case "permission-denied":
+        return "Account was created but saving your profile was blocked by Firestore rules. Please contact support.";
+      default:
+        return error.message;
+    }
+  }
+  return error instanceof Error ? error.message : "Signup failed.";
+};
+
 export const registerWithEmail = async (
   email: string,
   password: string,
   profile: SignupFormData,
 ) => {
-  const { user } = await createUserWithEmailAndPassword(auth, email, password);
+  try {
+    const { user } = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password,
+    );
 
-  await sendEmailVerification(user);
+    // Save the profile first so a failed verification email can never leave
+    // an Auth account without a Firestore profile.
+    const savedProfile =
+      profile.role === "owner"
+        ? await createOwnerProfile(user, profile)
+        : await createUserProfile(user, profile);
 
-  if (profile.role === "owner") {
-    const ownerProfile = await createOwnerProfile(user, profile);
-    return { user, profile: ownerProfile };
+    try {
+      await sendEmailVerification(user);
+    } catch (err) {
+      // User can resend from the login page; don't fail the whole signup.
+      console.error("[signup] verification email failed:", err);
+    }
+
+    return { user, profile: savedProfile };
+  } catch (error) {
+    console.error(
+      "[signup] failed:",
+      error instanceof FirebaseError ? error.code : "",
+      error,
+    );
+    throw new Error(signupErrorMessage(error));
   }
-
-  const userProfile = await createUserProfile(user, profile);
-  return { user, profile: userProfile };
 };
 
 export const login = async (

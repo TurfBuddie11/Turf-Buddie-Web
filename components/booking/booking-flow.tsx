@@ -32,6 +32,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
+import { InlineLoginForm } from "@/components/auth/inline-login-form";
+import { getUserProfile } from "@/lib/firebase/auth";
+import Link from "next/link";
 
 const ALL_POSSIBLE_SLOTS: Omit<TimeSlot, "price" | "isAvailable">[] =
   Array.from({ length: 13 }, (_, i) => {
@@ -73,16 +76,20 @@ export function BookingFlow({
   const [bookedSlots, setBookedSlots] = useState<Set<string>>(new Set());
   const [isFetchingSlots, setIsFetchingSlots] = useState(true);
   const { user, profile } = useAuth();
+  // Unverified accounts are signed in to Firebase but must not book yet.
+  const isLoggedIn = !!user && user.emailVerified;
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [redeemPoints, setRedeemPoints] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [splitCount, setSplitCount] = useState(2);
   const [splitInputValue, setSplitInputValue] = useState("2");
   const [teamMembers, setTeamMembers] = useState<
-    { phone: string; name: string; email: string; amount: number }[]
-  >([]);
-  const [customAmounts, setCustomAmounts] = useState<number[]>([]);
+    { phone: string; name: string; email: string }[]
+  >([{ phone: "", name: "", email: "" }]);
   const [splitGroupId, setSplitGroupId] = useState<string | null>(null);
+  const [splitShares, setSplitShares] = useState<
+    { name: string; phone: string; amount: number }[]
+  >([]);
   const [isCreatingSplitGroup, setIsCreatingSplitGroup] = useState(false);
 
   // Coupon state
@@ -109,6 +116,30 @@ export function BookingFlow({
       });
     }
   }, [profile]);
+
+  // Prefill details for users without a complete profile (e.g. right after
+  // logging in from the checkout). Only fills empty fields.
+  useEffect(() => {
+    if (!isLoggedIn || !user || profile) return;
+    let cancelled = false;
+    const fill = (name?: string, email?: string, phone?: string) =>
+      setUserDetails((prev) => ({
+        name: prev.name || name || "",
+        email: prev.email || email || "",
+        phone: prev.phone || phone || "",
+      }));
+    fill(user.displayName || "", user.email || "");
+    getUserProfile(user.uid)
+      .then((snap) => {
+        if (cancelled || !snap.exists()) return;
+        const data = snap.data() as { name?: string; email?: string; mobile?: string };
+        fill(data.name, data.email, data.mobile);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, user, profile]);
 
   useEffect(() => {
     if (user) {
@@ -163,15 +194,17 @@ export function BookingFlow({
     [basePrice, discount, couponDiscount, turf.price],
   );
 
-  const perPersonPrice = useMemo(
-    () => Math.ceil(totalPrice / splitCount),
-    [totalPrice, splitCount],
-  );
+  // Same rule as the server: whole rupees, remainder paid by the organizer,
+  // so the shares always add up exactly to the total.
+  const splitTotal = Math.round(totalPrice);
+  const perPersonPrice = Math.floor(splitTotal / splitCount);
+  const organizerShare = perPersonPrice + (splitTotal - perPersonPrice * splitCount);
 
-  const customTotal = useMemo(
-    () => customAmounts.reduce((sum, a) => sum + a, 0),
-    [customAmounts],
-  );
+  // Any change to the booking invalidates a previously created split group.
+  useEffect(() => {
+    setSplitGroupId(null);
+    setSplitShares([]);
+  }, [selectedSlots, selectedDate]);
 
   // Fetch Booked Slots
   useEffect(() => {
@@ -228,10 +261,12 @@ export function BookingFlow({
   );
 
   const handleBooking = useCallback(async () => {
-    if (selectedSlots.length === 0 || !user) {
-      toast.info(
-        "Please select at least one slot and ensure you are logged in.",
-      );
+    if (selectedSlots.length === 0) {
+      toast.info("Please select at least one slot.");
+      return;
+    }
+    if (!user || !user.emailVerified) {
+      toast.info("Please login to complete your booking.");
       return;
     }
 
@@ -259,13 +294,19 @@ export function BookingFlow({
 
       const orderResponse = await fetch("/api/payment/create-order", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${await user.getIdToken()}`,
+        },
         body: JSON.stringify({
           amount: totalPrice,
           bookingDetails: initialBookingData,
         }),
       });
-      if (!orderResponse.ok) throw new Error("Failed to create payment order.");
+      if (!orderResponse.ok) {
+        const err = await orderResponse.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to create payment order.");
+      }
       const { orderId, amount } = await orderResponse.json();
 
       const { paymentId, signature } = await initiatePayment({
@@ -341,10 +382,23 @@ export function BookingFlow({
   ]);
 
   const handleCreateSplitGroup = useCallback(async () => {
-    if (!user || selectedSlots.length === 0) {
-      toast.info(
-        "Please select at least one slot and ensure you are logged in.",
-      );
+    if (selectedSlots.length === 0) {
+      toast.info("Please select at least one slot.");
+      return;
+    }
+    if (!user || !user.emailVerified) {
+      toast.info("Please login to create a split group.");
+      return;
+    }
+    if (teamMembers.length + 1 !== splitCount) {
+      toast.error("Please enter a valid number of people (2–30).");
+      return;
+    }
+    const missingContact = teamMembers.findIndex(
+      (m) => !m.name.trim() || (m.phone.length !== 10 && !m.email.trim()),
+    );
+    if (missingContact !== -1) {
+      toast.error(`Add a name and phone/email for Player ${missingContact + 2}.`);
       return;
     }
 
@@ -356,76 +410,71 @@ export function BookingFlow({
       const day = dateObj.toLocaleDateString("en-US", { day: "numeric" });
       const month = dateObj.toLocaleDateString("en-US", { month: "short" });
 
-      // Build members array: organizer first, then teammates
+      // Organizer first, then teammates. Amounts are computed on the server.
       const allMembers = [
         {
           name: userDetails.name || profile?.name || "Organizer",
           phone: userDetails.phone || profile?.mobile || "",
-          email: userDetails.email || profile?.email || "",
-          amount: customAmounts[0] || perPersonPrice,
+          email: userDetails.email || profile?.email || user.email || "",
         },
         ...teamMembers.map((m, i) => ({
-          name: m.name || `Player ${i + 2}`,
+          name: m.name.trim() || `Player ${i + 2}`,
           phone: m.phone,
-          email: m.email,
-          amount: customAmounts[i + 1] || perPersonPrice,
+          email: m.email.trim(),
         })),
       ];
 
       const res = await fetch("/api/split-payment/create-group", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${await user.getIdToken()}`,
+        },
         body: JSON.stringify({
           turfId: turf.id,
           turfName: turf.name,
           timeSlots: timeSlotLabels,
           daySlot: dateObj.toLocaleDateString("en-US", { weekday: "long" }),
           monthSlot: `${day} ${month}`,
-          totalAmount: totalPrice,
+          totalAmount: splitTotal,
           members: allMembers,
         }),
       });
 
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Failed to create split group");
       }
 
       const data = await res.json();
       setSplitGroupId(data.groupId);
+      setSplitShares(
+        (data.group?.members || []).map(
+          (m: { name: string; phone: string; amount: number }) => ({
+            name: m.name,
+            phone: m.phone,
+            amount: m.amount,
+          }),
+        ),
+      );
+
+      // Show the slots as held right away.
+      setBookedSlots((prev) => {
+        const next = new Set(prev);
+        timeSlotLabels.forEach((label) => next.add(label));
+        return next;
+      });
 
       const emailsSentCount: number = Array.isArray(data.emailsSentTo)
         ? data.emailsSentTo.length
         : 0;
-      const teammatesWithEmail = allMembers
-        .slice(1)
-        .filter((m) => m.email && /\S+@\S+\.\S+/.test(m.email)).length;
 
-      toast.success("Split group created! Slot blocked for 30 minutes.", {
+      toast.success("Split group created! Slot held for 30 minutes.", {
         description:
           emailsSentCount > 0
-            ? `Payment link emailed to ${emailsSentCount} teammate${emailsSentCount > 1 ? "s" : ""}. Share via WhatsApp too.`
-            : "Share the payment link with your teammates.",
+            ? `Payment link emailed to ${emailsSentCount} member${emailsSentCount > 1 ? "s" : ""}. Send WhatsApp links below.`
+            : "Send the payment link to your teammates below.",
       });
-
-      // Send individual WhatsApp messages to each teammate (skip those whose email was already sent? we still send WA if phone exists)
-      allMembers.slice(1).forEach((member) => {
-        if (member.phone) {
-          const link = `${window.location.origin}/split-pay/${data.groupId}`;
-          const msg = `🏟 Hey ${member.name}! ${userDetails.name || "Your friend"} has booked ${turf.name} on ${day} ${month}.\n💰 Your share: ₹${member.amount}\n🔗 Pay here: ${link}\n⏰ Please pay within 30 minutes to confirm the slot.`;
-          window.open(
-            `https://wa.me/${member.phone.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`,
-            "_blank",
-          );
-        }
-      });
-
-      // Optional: log if some teammates had email missing
-      if (teammatesWithEmail === 0 && allMembers.length > 1) {
-        console.info(
-          "[split-pay] No teammate emails provided — only WhatsApp links opened. Add an email for a one-click pay link.",
-        );
-      }
     } catch (error) {
       toast.error("Failed to create split group", {
         description:
@@ -439,13 +488,31 @@ export function BookingFlow({
     selectedSlots,
     dateObj,
     turf,
-    totalPrice,
-    perPersonPrice,
+    splitTotal,
+    splitCount,
     teamMembers,
-    customAmounts,
     userDetails,
     profile,
   ]);
+
+  const splitPayLink =
+    splitGroupId && typeof window !== "undefined"
+      ? `${window.location.origin}/split-pay/${splitGroupId}`
+      : "";
+
+  const openWhatsAppForMember = (member: {
+    name: string;
+    phone: string;
+    amount: number;
+  }) => {
+    const msg = `🏟 Hey ${member.name}! ${userDetails.name || "Your friend"} has booked ${turf.name} on ${displayDate}.\n💰 Your share: ₹${member.amount}\n🔗 Pay here: ${splitPayLink}\n⏰ Please pay within 30 minutes to confirm the slot.`;
+    const phone = member.phone.replace(/\D/g, "");
+    const target = phone.length === 10 ? `91${phone}` : phone;
+    window.open(
+      `https://wa.me/${target}?text=${encodeURIComponent(msg)}`,
+      "_blank",
+    );
+  };
 
   const handleApplyCoupon = useCallback(async () => {
     if (!couponInput.trim()) return;
@@ -761,6 +828,17 @@ export function BookingFlow({
                   </CardContent>
                 </Card>
 
+                {!isLoggedIn ? (
+                  <Card className="border-green-200 dark:border-green-800">
+                    <CardContent className="pt-6">
+                      <InlineLoginForm
+                        title="Login to complete your booking"
+                        description="No page reload — your selected slots stay as they are."
+                      />
+                    </CardContent>
+                  </Card>
+                ) : (
+                <>
                 {/* User Details Form */}
                 <Card>
                   <CardHeader className="pb-3">
@@ -838,20 +916,16 @@ export function BookingFlow({
                             const val = parseInt(raw);
                             if (!isNaN(val) && val >= 2 && val <= 30) {
                               setSplitCount(val);
-                              setTeamMembers(
-                                Array.from({ length: val - 1 }, () => ({
-                                  phone: "",
-                                  name: "",
-                                  email: "",
-                                  amount: 0,
-                                })),
-                              );
-                              setCustomAmounts(
+                              // Keep already-entered teammates; add/trim rows.
+                              setTeamMembers((prev) =>
                                 Array.from(
-                                  { length: val },
-                                  () => perPersonPrice,
+                                  { length: val - 1 },
+                                  (_, i) =>
+                                    prev[i] ?? { phone: "", name: "", email: "" },
                                 ),
                               );
+                              setSplitGroupId(null);
+                              setSplitShares([]);
                             }
                           }}
                           className="w-16 rounded-lg border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm font-bold text-center focus:outline-none focus:border-green-400 bg-white dark:bg-gray-800"
@@ -884,7 +958,7 @@ export function BookingFlow({
                     {/* Per person amount */}
                     <div className="bg-green-50 dark:bg-green-950/20 rounded-xl p-3 flex justify-between items-center">
                       <span className="text-sm text-gray-600">
-                        ₹{totalPrice} ÷ {splitCount} =
+                        ₹{splitTotal} ÷ {splitCount} =
                       </span>
                       <span className="font-bold text-green-700 text-lg">
                         ₹{perPersonPrice} each
@@ -911,7 +985,7 @@ export function BookingFlow({
                           </span>
                         </span>
                         <span className="text-sm font-bold text-gray-900">
-                          ₹{perPersonPrice}
+                          ₹{organizerShare}
                         </span>
                       </div>
 
@@ -926,9 +1000,10 @@ export function BookingFlow({
                             <Input
                               value={member.name}
                               onChange={(e) => {
-                                const updated = [...teamMembers];
-                                updated[i].name = e.target.value;
-                                setTeamMembers(updated);
+                                const name = e.target.value;
+                                setTeamMembers((prev) =>
+                                  prev.map((m, j) => (j === i ? { ...m, name } : m)),
+                                );
                               }}
                               className="h-8 text-xs flex-1"
                               placeholder={`Player ${i + 2} name`}
@@ -936,11 +1011,12 @@ export function BookingFlow({
                             <Input
                               value={member.phone}
                               onChange={(e) => {
-                                const updated = [...teamMembers];
-                                updated[i].phone = e.target.value
+                                const phone = e.target.value
                                   .replace(/\D/g, "")
-                                  .slice(0, 10);
-                                setTeamMembers(updated);
+                                  .slice(-10);
+                                setTeamMembers((prev) =>
+                                  prev.map((m, j) => (j === i ? { ...m, phone } : m)),
+                                );
                               }}
                               className="h-8 text-xs w-24"
                               placeholder="Phone"
@@ -966,9 +1042,10 @@ export function BookingFlow({
                             <Input
                               value={member.email}
                               onChange={(e) => {
-                                const updated = [...teamMembers];
-                                updated[i].email = e.target.value;
-                                setTeamMembers(updated);
+                                const email = e.target.value;
+                                setTeamMembers((prev) =>
+                                  prev.map((m, j) => (j === i ? { ...m, email } : m)),
+                                );
                               }}
                               className="h-7 text-xs flex-1"
                               placeholder="Email (optional, for one-click pay link)"
@@ -981,36 +1058,59 @@ export function BookingFlow({
 
                     {/* Create Group button */}
                     {splitGroupId ? (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="rounded-xl bg-green-50 border border-green-200 p-3 text-center">
                           <p className="text-xs font-semibold text-green-700 mb-1">
-                            ✅ Split group created! Share link with teammates:
+                            ✅ Split group created! Slot held for 30 minutes.
                           </p>
                           <p className="text-xs text-gray-500 break-all">
-                            {typeof window !== "undefined"
-                              ? `${window.location.origin}/split-pay/${splitGroupId}`
-                              : ""}
+                            {splitPayLink}
                           </p>
-                        </div>
-                        <Button
-                          variant="outline"
-                          className="w-full gap-2 border-green-600 text-green-700 hover:bg-green-50"
-                          onClick={() => {
-                            const link = `${window.location.origin}/split-pay/${splitGroupId}`;
-                            const msg = `🏟 Hey! Pay your share for ${turf.name} on ${displayDate}.\n💰 Each person: ₹${perPersonPrice}\n🔗 Pay here: ${link}`;
-                            window.open(
-                              `https://wa.me/?text=${encodeURIComponent(msg)}`,
-                              "_blank",
-                            );
-                          }}
-                        >
-                          <svg
-                            viewBox="0 0 24 24"
-                            className="w-4 h-4 fill-current"
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard
+                                .writeText(splitPayLink)
+                                .then(() => toast.success("Link copied!"))
+                                .catch(() => toast.error("Could not copy link"));
+                            }}
+                            className="mt-1 text-xs font-semibold text-green-700 hover:underline"
                           >
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                          </svg>
-                          Send WhatsApp Payment Links
+                            Copy link
+                          </button>
+                        </div>
+
+                        {/* One WhatsApp button per teammate (browsers block
+                            multiple pop-ups opened automatically). */}
+                        <div className="space-y-1.5">
+                          {splitShares.slice(1).map((m, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2"
+                            >
+                              <span className="text-xs font-medium truncate">
+                                {m.name} · ₹{m.amount}
+                              </span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-7 border-green-600 text-green-700 hover:bg-green-50 text-xs shrink-0"
+                                onClick={() => openWhatsAppForMember(m)}
+                              >
+                                WhatsApp link
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+
+                        <Button
+                          asChild
+                          className="w-full bg-green-600 hover:bg-green-700"
+                        >
+                          <Link href={`/split-pay/${splitGroupId}`}>
+                            Pay my share (₹{splitShares[0]?.amount ?? organizerShare}) →
+                          </Link>
                         </Button>
                       </div>
                     ) : (
@@ -1059,11 +1159,7 @@ export function BookingFlow({
                     `Pay ₹${totalPrice} & Confirm Booking`
                   )}
                 </Button>
-
-                {!user && (
-                  <p className="text-center text-sm text-muted-foreground">
-                    Please login to complete your booking
-                  </p>
+                </>
                 )}
               </div>
             </DialogContent>

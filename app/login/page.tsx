@@ -124,8 +124,13 @@ export default function LoginPage() {
       });
 
       toast.success("Logged in successfully!");
+      const redirect = new URLSearchParams(window.location.search).get(
+        "redirect",
+      );
       if (loggedInUser.email === "turfbuddie@gmail.com") {
         router.push("/admin");
+      } else if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
+        router.push(redirect);
       } else {
         router.push("/");
       }

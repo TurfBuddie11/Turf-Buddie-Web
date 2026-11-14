@@ -1,8 +1,7 @@
 import { adminDb } from "@/lib/firebase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
-import { getAuth } from "firebase-admin/auth";
-import { cookies } from "next/headers";
+import { getRequestUid } from "@/lib/auth/request-user";
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -11,20 +10,13 @@ const razorpay = new Razorpay({
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session")?.value;
-
-    if (!sessionCookie) {
-      return new NextResponse("Unauthorized: No session cookie", {
-        status: 401,
-      });
+    const uid = await getRequestUid(request);
+    if (!uid) {
+      return NextResponse.json(
+        { error: "Please login again to continue." },
+        { status: 401 },
+      );
     }
-
-    const decodedToken = await getAuth().verifySessionCookie(
-      sessionCookie,
-      true,
-    );
-    const uid = decodedToken.uid;
 
     const { amount, bookingDetails } = await request.json();
 

@@ -12,6 +12,12 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+  console.error(
+    "[firebase] Missing NEXT_PUBLIC_FIREBASE_* env variables — signup/login will fail. Add them to .env.local (or your hosting env) and restart the server.",
+  );
+}
+
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 const auth: Auth = getAuth(app);

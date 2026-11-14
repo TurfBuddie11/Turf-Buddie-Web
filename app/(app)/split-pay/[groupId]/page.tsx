@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useAuth } from "@/context/auth-provider";
 import { initiatePayment } from "@/lib/razorpay/payment";
 import { toast } from "sonner";
@@ -9,11 +9,13 @@ import { Spinner } from "@/components/ui/spinner";
 import { CheckCircle, Clock, Users, MapPin, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { SplitGroup } from "@/lib/types/split-payment";
+import { InlineLoginForm } from "@/components/auth/inline-login-form";
+import { normalizePhone } from "@/lib/split-payment/utils";
 
 export default function SplitPayPage() {
     const { groupId } = useParams<{ groupId: string }>();
     const { user, profile } = useAuth();
-    const router = useRouter();
+    const isLoggedIn = !!user && user.emailVerified;
 
     const [group, setGroup] = useState<SplitGroup | null>(null);
     const [loading, setLoading] = useState(true);
@@ -32,14 +34,27 @@ export default function SplitPayPage() {
             const data = await res.json();
             setGroup(data.group);
 
-            // Find which member index matches current user (by phone or uid)
+            // Find which member is the current user: uid first, then email,
+            // then phone (normalised, so "+91 98..." matches "98...").
             if (user && data.group) {
-                const idx = data.group.members.findIndex(
-                    (m: { uid?: string; phone?: string }) =>
-                        m.uid === user.uid ||
-                        (profile?.mobile && m.phone === profile.mobile),
-                );
+                const members: { uid?: string; phone?: string; email?: string }[] =
+                    data.group.members;
+                const myEmail = (user.email || "").toLowerCase();
+                const myPhone = normalizePhone(profile?.mobile);
+                let idx = members.findIndex((m) => m.uid === user.uid);
+                if (idx < 0 && myEmail) {
+                    idx = members.findIndex(
+                        (m) => !m.uid && (m.email || "").toLowerCase() === myEmail,
+                    );
+                }
+                if (idx < 0 && myPhone) {
+                    idx = members.findIndex(
+                        (m) => !m.uid && normalizePhone(m.phone) === myPhone,
+                    );
+                }
                 setMyIndex(idx >= 0 ? idx : null);
+            } else {
+                setMyIndex(null);
             }
         } catch {
             setError("Failed to load split group");
@@ -56,18 +71,21 @@ export default function SplitPayPage() {
     }, [fetchGroup]);
 
     const handlePay = async (memberIndex: number) => {
-        if (!user) {
+        if (!user || !user.emailVerified) {
             toast.error("Please login to pay your share");
-            router.push(`/login?redirect=/split-pay/${groupId}`);
             return;
         }
 
         setPayingIndex(memberIndex);
         try {
             // Step 1: Create order for this member
+            const authHeaders = {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${await user.getIdToken()}`,
+            };
             const orderRes = await fetch(`/api/split-payment/${groupId}/pay`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: authHeaders,
                 body: JSON.stringify({ memberIndex }),
             });
 
@@ -93,7 +111,7 @@ export default function SplitPayPage() {
             // Step 3: Verify
             const verifyRes = await fetch(`/api/split-payment/${groupId}/pay`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: authHeaders,
                 body: JSON.stringify({ memberIndex, paymentId, orderId, signature }),
             });
 
@@ -140,7 +158,10 @@ export default function SplitPayPage() {
     }
 
     const paidCount = group.members.filter((m) => m.status === "paid").length;
-    const progressPct = Math.round((group.collectedAmount / group.totalAmount) * 100);
+    const progressPct = Math.min(
+        100,
+        Math.round((group.collectedAmount / group.totalAmount) * 100),
+    );
     const isConfirmed = group.status === "confirmed";
     const isExpired = group.status === "expired";
 
@@ -241,7 +262,14 @@ export default function SplitPayPage() {
 
                     {group.members.map((member, i) => {
                         const isMe = myIndex === i;
-                        const canPay = !isConfirmed && !isExpired && member.status === "pending" && isMe;
+                        const isOpen = !isConfirmed && !isExpired && member.status === "pending";
+                        // Pay your own share; if we couldn't auto-detect you,
+                        // pick your name from the list. You can also cover a
+                        // friend's share.
+                        const canPay = isLoggedIn && isOpen;
+                        const payLabel = isMe || myIndex === null
+                            ? `Pay ₹${member.amount}`
+                            : `Pay for them ₹${member.amount}`;
 
                         return (
                             <div
@@ -294,13 +322,16 @@ export default function SplitPayPage() {
                                     {canPay && (
                                         <button
                                             onClick={() => handlePay(i)}
-                                            disabled={payingIndex === i}
-                                            className="rounded-xl bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-xs font-bold transition-colors disabled:opacity-60 flex items-center gap-1.5"
+                                            disabled={payingIndex !== null}
+                                            className={`rounded-xl px-4 py-2 text-xs font-bold transition-colors disabled:opacity-60 flex items-center gap-1.5 ${isMe || myIndex === null
+                                                    ? "bg-green-600 hover:bg-green-700 text-white"
+                                                    : "border border-green-600 text-green-700 hover:bg-green-50"
+                                                }`}
                                         >
                                             {payingIndex === i ? (
                                                 <><Spinner className="w-3 h-3" /> Paying...</>
                                             ) : (
-                                                `Pay ₹${member.amount}`
+                                                payLabel
                                             )}
                                         </button>
                                     )}
@@ -310,17 +341,20 @@ export default function SplitPayPage() {
                     })}
                 </div>
 
-                {/* Not logged in — show login prompt */}
-                {!user && !isConfirmed && (
-                    <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 text-center">
-                        <p className="text-sm text-gray-600 mb-3">Login to pay your share</p>
-                        <Link
-                            href={`/login?redirect=/split-pay/${groupId}`}
-                            className="inline-block rounded-xl bg-green-600 hover:bg-green-700 text-white px-6 py-3 text-sm font-bold transition-colors"
-                        >
-                            🔒 Login to Pay
-                        </Link>
+                {/* Not logged in — login right here, no redirect/reload */}
+                {!isLoggedIn && !isConfirmed && !isExpired && (
+                    <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 text-gray-900">
+                        <InlineLoginForm
+                            title="Login to pay your share"
+                            description="You'll come right back to this page."
+                        />
                     </div>
+                )}
+
+                {isLoggedIn && myIndex === null && !isConfirmed && !isExpired && (
+                    <p className="text-xs text-center text-gray-500">
+                        Couldn&apos;t match your account to a member — tap Pay next to your name.
+                    </p>
                 )}
 
                 {/* Share link */}
@@ -345,7 +379,7 @@ export default function SplitPayPage() {
                         </div>
                         <button
                             onClick={() => {
-                                const msg = `🏟 Hey! Pay your share for ${group.turfName} booking.\n💰 Your share: ₹${group.perPersonAmount}\n🔗 Pay here: ${window.location.origin}/split-pay/${groupId}`;
+                                const msg = `🏟 Hey! Pay your share for ${group.turfName} booking.\n💰 Per person: ₹${group.perPersonAmount}\n🔗 Pay here: ${window.location.origin}/split-pay/${groupId}`;
                                 window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
                             }}
                             className="w-full mt-2 flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white py-2.5 text-sm font-bold transition-colors"

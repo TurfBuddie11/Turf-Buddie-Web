@@ -1,24 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
-import { getAuth } from "firebase-admin/auth";
-import { cookies } from "next/headers";
 import { FieldValue } from "firebase-admin/firestore";
 import { SplitGroup, SplitMember } from "@/lib/types/split-payment";
 import { sendSplitPaymentEmail } from "@/lib/email/send-split-payment";
+import { getRequestUid } from "@/lib/auth/request-user";
+import { isSlotHoldActive } from "@/lib/split-payment/utils";
 
 export async function POST(request: NextRequest) {
   try {
     // 1. Auth check
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session")?.value;
-    if (!sessionCookie) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const organizerUid = await getRequestUid(request);
+    if (!organizerUid) {
+      return NextResponse.json(
+        { error: "Please login again to create a split group." },
+        { status: 401 },
+      );
     }
-    const decodedToken = await getAuth().verifySessionCookie(
-      sessionCookie,
-      true,
-    );
-    const organizerUid = decodedToken.uid;
 
     const {
       turfId,
@@ -37,6 +34,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!Array.isArray(members) || members.length < 2 || members.length > 30) {
+      return NextResponse.json(
+        { error: "A split needs between 2 and 30 people." },
+        { status: 400 },
+      );
+    }
+
+    const total = Math.round(Number(totalAmount));
+    if (!Number.isFinite(total) || total <= 0) {
+      return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+    }
+
     // 2. Check slot availability — no existing confirmed/pending/blocked booking
     const turfRef = adminDb.collection("Turfs").doc(turfId);
     const turfSnap = await turfRef.get();
@@ -50,6 +59,7 @@ export async function POST(request: NextRequest) {
       monthSlot?: string;
       daySlot?: string;
       status?: string;
+      holdExpiresAt?: string;
     }[] = [];
     if (Array.isArray(turfData.timeSlots)) {
       existingBookings = turfData.timeSlots;
@@ -69,7 +79,8 @@ export async function POST(request: NextRequest) {
           b.timeSlot === slot &&
           b.monthSlot === monthSlot &&
           b.daySlot === daySlot &&
-          blockingStatuses.includes(b.status || ""),
+          blockingStatuses.includes(b.status || "") &&
+          isSlotHoldActive(b),
       ),
     );
 
@@ -87,26 +98,32 @@ export async function POST(request: NextRequest) {
       .get();
     const organizerData = organizerDoc.data() || {};
 
-    // 4. Build group document
+    // 4. Build group document.
+    // Shares are computed here (never trusted from the client) in whole
+    // rupees; any remainder goes to the organizer so shares add up exactly
+    // to the total.
     const splitCount = members.length;
-    const perPersonAmount = Math.ceil(totalAmount / splitCount);
+    const perPersonAmount = Math.floor(total / splitCount);
+    const remainder = total - perPersonAmount * splitCount;
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 30 * 60 * 1000); // 30 min TTL
 
     const groupMembers: SplitMember[] = members.map(
-      (
-        m: { name: string; phone: string; email?: string; amount: number },
-        i: number,
-      ) => ({
-        uid: i === 0 ? organizerUid : undefined,
-        name:
-          m.name ||
-          (i === 0 ? organizerData.name || "Organizer" : `Player ${i + 1}`),
-        phone: m.phone,
-        email: m.email || undefined,
-        amount: m.amount || perPersonAmount,
-        status: "pending" as const,
-      }),
+      (m: { name?: string; phone?: string; email?: string }, i: number) => {
+        const email = (m.email || "").trim();
+        const member: SplitMember = {
+          name:
+            (m.name || "").trim() ||
+            (i === 0 ? organizerData.name || "Organizer" : `Player ${i + 1}`),
+          phone: (m.phone || "").replace(/\D/g, "").slice(-10),
+          amount: perPersonAmount + (i === 0 ? remainder : 0),
+          status: "pending",
+        };
+        // Firestore rejects `undefined`, so only set optional fields when present.
+        if (i === 0) member.uid = organizerUid;
+        if (email && /\S+@\S+\.\S+/.test(email)) member.email = email;
+        return member;
+      },
     );
 
     const groupRef = adminDb.collection("splitGroups").doc();
@@ -118,7 +135,7 @@ export async function POST(request: NextRequest) {
       timeSlots,
       daySlot,
       monthSlot,
-      totalAmount,
+      totalAmount: total,
       perPersonAmount,
       splitCount,
       organizerUid,
@@ -140,6 +157,7 @@ export async function POST(request: NextRequest) {
       userUid: organizerUid,
       status: "blocked",
       splitGroupId: groupId,
+      holdExpiresAt: expiresAt.toISOString(),
       price: 0,
       transactionId: `split_${groupId}`,
       commission: 0,

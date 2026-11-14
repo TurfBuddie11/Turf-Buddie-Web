@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { Timestamp } from "firebase-admin/firestore";
+import { isSlotHoldActive } from "@/lib/split-payment/utils";
 
 type BookingSlot = {
   bookingDate?: Timestamp | { _seconds: number; _nanoseconds: number } | string;
@@ -14,6 +15,7 @@ type BookingSlot = {
   commission?: number;
   payout?: number;
   paid?: string;
+  holdExpiresAt?: string;
 };
 
 export async function GET(request: NextRequest) {
@@ -77,7 +79,8 @@ export async function GET(request: NextRequest) {
         "blocked",
       ].includes(status);
 
-      return isSameDay && isBlockingStatus;
+      // Expired split-payment holds no longer block the slot.
+      return isSameDay && isBlockingStatus && isSlotHoldActive(booking);
     });
 
     const bookedSlots = dailyBookings.flatMap((booking: BookingSlot) => {

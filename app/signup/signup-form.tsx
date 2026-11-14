@@ -70,8 +70,7 @@ const optionalString = (regex?: RegExp, message?: string) => {
 };
 // --- Zod Schema (TypeScript-native) ---
 const genderOptions = ["Male", "Female", "Other"] as const;
-const signupSchema = z
-  .object({
+const baseSignupSchema = z.object({
     email: z.string().email("Enter a valid email"),
     password: z.string().optional(),
     confirmPassword: z.string().optional(),
@@ -101,10 +100,14 @@ const signupSchema = z
     city: optionalString(),
     state: optionalString(),
     referralCode: optionalString(),
-  })
-  .superRefine((data, ctx) => {
-    if (!data.password && data.confirmPassword) return;
-    if (data.password && data.password.length < 0) {
+  });
+
+// Password is only required for a fresh email signup. The profile-completion
+// flow (already logged-in user) has no password step.
+const makeSignupSchema = (requirePassword: boolean) =>
+  baseSignupSchema.superRefine((data, ctx) => {
+    if (!requirePassword) return;
+    if (!data.password || data.password.length < 6) {
       ctx.addIssue({
         code: "too_small",
         minimum: 6,
@@ -124,7 +127,7 @@ const signupSchema = z
   });
 
 // --- Type Definitions ---
-type SignUpFormData = z.infer<typeof signupSchema>;
+type SignUpFormData = z.infer<typeof baseSignupSchema>;
 // type Locality = { name: string };
 // type PincodeResponse = [
 //   {
@@ -166,7 +169,7 @@ export default function SignUpForm() {
   const isCompletionFlow = flow === "completeProfile";
 
   const form = useForm<SignUpFormData>({
-    resolver: zodResolver(signupSchema),
+    resolver: zodResolver(makeSignupSchema(!isCompletionFlow)),
     defaultValues: {
       name: "",
       gender: undefined,
@@ -186,11 +189,6 @@ export default function SignUpForm() {
   //eslint-disable-next-line
   const { trigger, handleSubmit, setValue, watch } = form;
 
-  useEffect(() => {
-    if (Object.keys(form.formState.errors)) {
-      console.log("Form Errors : " + JSON.stringify(form.formState.errors));
-    }
-  }, [form.formState.errors]);
 
   useEffect(() => {
     // Wait for the auth state to be resolved.
@@ -262,12 +260,51 @@ export default function SignUpForm() {
   //   }
   // };
 
+  // Zod skips the object-level password refinement while step-2 fields
+  // (gender/dob) are still empty, so step 1 must check passwords itself.
+  const validatePasswords = (): boolean => {
+    if (isCompletionFlow) return true;
+    const { password, confirmPassword } = form.getValues();
+    let ok = true;
+    if (!password || password.length < 6) {
+      form.setError(
+        "password",
+        { type: "manual", message: "Password must be at least 6 characters" },
+        { shouldFocus: true },
+      );
+      ok = false;
+    }
+    if (password !== confirmPassword) {
+      form.setError("confirmPassword", {
+        type: "manual",
+        message: "Passwords do not match",
+      });
+      ok = false;
+    }
+    return ok;
+  };
+
   const handleNextStep = async (): Promise<void> => {
     const fields = steps[currentStep].fields;
     const output = await trigger(fields as FieldName<SignUpFormData>[], {
       shouldFocus: true,
     });
-    if (output) setCurrentStep((step) => step + 1);
+    if (!output) return;
+    if (currentStep === 0 && !validatePasswords()) return;
+    setCurrentStep((step) => step + 1);
+  };
+
+  // If submit fails validation on a field from an earlier (hidden) step,
+  // jump back to that step so the user can actually see the error.
+  const onInvalid = (errors: Record<string, unknown>): void => {
+    const errorFields = Object.keys(errors);
+    const stepIndex = steps.findIndex((s) =>
+      s.fields.some((f) => errorFields.includes(f)),
+    );
+    if (stepIndex !== -1 && stepIndex !== currentStep) {
+      setCurrentStep(stepIndex);
+    }
+    toast.error("Please fix the highlighted fields.");
   };
 
   const handlePrevStep = (): void => {
@@ -275,7 +312,6 @@ export default function SignUpForm() {
   };
 
   const processForm = async (data: SignUpFormData): Promise<void> => {
-    console.log(data);
     setLoading(true);
     try {
       const userData = {
@@ -427,7 +463,7 @@ export default function SignUpForm() {
                     </div>
                     <Form {...form}>
                       <form
-                        onSubmit={handleSubmit(processForm)}
+                        onSubmit={handleSubmit(processForm, onInvalid)}
                         className="space-y-5"
                       >
                         <AnimatePresence mode="wait">
@@ -547,7 +583,7 @@ export default function SignUpForm() {
                                       <FormLabel>Gender</FormLabel>
                                       <Select
                                         onValueChange={field.onChange}
-                                        value={field.value}
+                                        value={field.value ?? ""}
                                       >
                                         <FormControl>
                                           <SelectTrigger>
