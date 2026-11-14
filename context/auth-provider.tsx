@@ -72,7 +72,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const snap = await getUserProfile(firebaseUser.uid);
           const data = snap?.data() as UserProfile | undefined;
-          if (snap?.exists() && data?.mobile) nextProfile = data;
+          // Profile exists → user is fully signed in. (Mobile is optional
+          // now that signup no longer asks for it; requiring it left the
+          // header with neither a Login button nor an account menu.)
+          if (snap?.exists() && data) nextProfile = data;
         } catch {
           nextProfile = null;
         }
@@ -115,9 +118,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (profile && ["/login", "/signup"].includes(pathname)) {
-      const redirect = new URLSearchParams(window.location.search).get(
-        "redirect",
-      );
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("flow") === "completeProfile") return;
+      const redirect = params.get("redirect");
       const safeRedirect =
         redirect && redirect.startsWith("/") && !redirect.startsWith("//")
           ? redirect

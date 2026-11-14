@@ -22,6 +22,10 @@ export default function LandingPageHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, profile } = useAuth();
+  // Show the account menu for any signed-in user, even if their profile
+  // document is incomplete or still loading.
+  const accountName =
+    profile?.name || user?.displayName || user?.email?.split("@")[0] || "Account";
   const router = useRouter();
 
   useEffect(() => {
@@ -100,16 +104,16 @@ export default function LandingPageHeader() {
               </Button>
             </>
           ) : (
-            profile && (
+            (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-3 pl-4 border-l border-slate-800 focus:outline-none">
                     <Avatar>
                       <AvatarFallback className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center font-bold text-sm">
-                        {(profile.name ?? "").charAt(0).toUpperCase()}
+                        {accountName.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm  font-medium">{profile.name}</span>
+                    <span className="text-sm  font-medium">{accountName}</span>
                   </button>
                 </DropdownMenuTrigger>
 
@@ -197,13 +201,13 @@ export default function LandingPageHeader() {
               </Button>
             </>
           ) : (
-            profile && (
+            (
               <>
                 <Link
                   href="/profile"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {profile.name}
+                  {accountName}
                 </Link>
                 <button
                   className="text-red-400 hover:text-red-300 text-left"

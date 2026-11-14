@@ -9,19 +9,15 @@ import { Menu, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { HeaderAuth } from "@/components/header-auth";
 
 export default function AppHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, profile } = useAuth();
+  // Show the account menu for any signed-in user, even if their profile
+  // document is incomplete or still loading.
+  const accountName =
+    profile?.name || user?.displayName || user?.email?.split("@")[0] || "Account";
   const router = useRouter();
 
   useEffect(() => {
@@ -39,6 +35,7 @@ export default function AppHeader() {
   const handleLogout = async () => {
     const { logout } = await import("@/lib/firebase/auth");
     await logout();
+    fetch("/api/auth/session", { method: "DELETE" }).catch(() => undefined);
     router.push("/login");
   };
 
@@ -75,47 +72,7 @@ export default function AppHeader() {
         {/* Right: Theme + Auth + Book Now (desktop) */}
         <div className="hidden md:flex items-center gap-2 shrink-0">
           <ThemeToggle />
-          {!user ? (
-            <>
-              <Button variant="ghost" asChild>
-                <Link href="/login">Log In</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/signup">Sign Up</Link>
-              </Button>
-            </>
-          ) : (
-            profile && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <Avatar className="size-9">
-                      <AvatarFallback className="bg-green-100 text-green-700 font-bold">
-                        {(profile.name ?? "U").charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">Profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/bookings">My Bookings</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleLogout}
-                    className="text-red-500 hover:text-red-600 cursor-pointer"
-                  >
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )
-          )}
+          <HeaderAuth />
           <Button
             className="bg-green-600 hover:bg-green-700 text-white font-semibold"
             onClick={() => router.push("/explore")}
@@ -163,14 +120,14 @@ export default function AppHeader() {
                   </Button>
                 </>
               ) : (
-                profile && (
+                (
                   <>
                     <Link
                       href="/profile"
                       className="text-sm font-medium text-gray-700 dark:text-gray-300 py-2"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      {profile.name}
+                      {accountName}
                     </Link>
                     <Button variant="outline" size="sm" onClick={handleLogout} className="w-full">
                       Logout

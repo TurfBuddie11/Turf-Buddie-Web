@@ -32,6 +32,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/context/auth-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { HeaderAuth } from "@/components/header-auth";
 import { cn } from "@/lib/utils";
 
 const stats = [
@@ -461,6 +462,8 @@ export default function TurfBuddieLanding() {
             </DropdownMenu>
             {/* Dark/Light toggle */}
             <ThemeToggle />
+            {/* Log In / Sign Up, or account menu when signed in */}
+            <HeaderAuth />
             {/* Book Now — hidden on mobile */}
             <Button onClick={scrollToBrowse} className="hidden md:inline-flex bg-green-600 hover:bg-green-700 text-white">Book Now</Button>
           </div>

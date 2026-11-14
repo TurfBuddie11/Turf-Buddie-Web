@@ -33,3 +33,10 @@ export async function POST(request: Request) {
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
+
+// Logout: clear the session cookie.
+export async function DELETE() {
+  const cookieStore = await cookies();
+  cookieStore.delete("session");
+  return NextResponse.json({ status: "success" });
+}
