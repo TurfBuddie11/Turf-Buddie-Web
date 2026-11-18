@@ -5,6 +5,7 @@ import {
   deleteFileFromStorage,
 } from "@/lib/firebase/storage-admin";
 import { Timestamp } from "firebase-admin/firestore";
+import { isAdminAuthenticated, unauthorizedResponse } from "@/lib/auth/admin";
 
 export async function GET(
   req: Request,
@@ -25,7 +26,7 @@ export async function GET(
 
     if (turfData.ownerId) {
       try {
-        const ownerDoc = await adminDb.collection("Owners").doc(turfData.ownerId).get();
+        const ownerDoc = await adminDb.collection("owners").doc(turfData.ownerId).get();
         if (ownerDoc.exists) {
           const owner = ownerDoc.data();
           ownerName = owner?.name || "Unknown";
@@ -53,6 +54,8 @@ export async function PUT(
   req: Request,
   context: RouteContext<'/api/turfs/[turfId]'>,
 ) {
+  if (!(await isAdminAuthenticated())) return unauthorizedResponse();
+
   const { turfId } = await context.params;
 
   try {

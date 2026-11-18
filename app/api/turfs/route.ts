@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { uploadFileToStorage } from "@/lib/firebase/storage-admin";
 import { Timestamp } from "firebase-admin/firestore";
+import { isAdminAuthenticated, unauthorizedResponse } from "@/lib/auth/admin";
 
 export async function GET() {
   try {
@@ -15,7 +16,7 @@ export async function GET() {
         if (turfData.ownerId) {
           try {
             const ownerDoc = await adminDb
-              .collection("Owners")
+              .collection("owners")
               .doc(turfData.ownerId)
               .get();
             if (ownerDoc.exists) {
@@ -46,6 +47,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  if (!(await isAdminAuthenticated())) return unauthorizedResponse();
+
   try {
     const formData = await req.formData();
     const name = formData.get("name") as string;

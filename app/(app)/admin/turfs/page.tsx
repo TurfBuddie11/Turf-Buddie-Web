@@ -28,9 +28,11 @@ import {
   Loader2,
   Search,
   Download,
+  UserPlus,
 } from "lucide-react";
 import { Turf } from "@/lib/types/turf";
 import { Pagination } from "@/components/admin/pagination";
+import { CreateOwnerDialog } from "@/components/admin/create-owner-dialog";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -75,6 +77,7 @@ export default function AdminTurfsPage() {
   const [editingTurfId, setEditingTurfId] = useState<string | null>(null);
   const [dialogMode, setDialogMode] = useState<"add" | "edit">("add");
   const [owners, setOwners] = useState<{ uid: string; name: string; email: string }[]>([]);
+  const [isOwnerDialogOpen, setIsOwnerDialogOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [showCoords, setShowCoords] = useState(false);
   const [cityFilter, setCityFilter] = useState<string>("all");
@@ -547,7 +550,17 @@ export default function AdminTurfsPage() {
                   </Field>
 
                   <Field>
-                    <FieldLabel>Owner</FieldLabel>
+                    <FieldLabel className="flex items-center justify-between">
+                      Owner
+                      <button
+                        type="button"
+                        onClick={() => setIsOwnerDialogOpen(true)}
+                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                      >
+                        <UserPlus className="h-3 w-3" />
+                        New owner
+                      </button>
+                    </FieldLabel>
                     <select
                       value={formData.ownerId}
                       onChange={(e) =>
@@ -601,6 +614,18 @@ export default function AdminTurfsPage() {
               </form>
             </DialogContent>
           </Dialog>
+          {/* Rendered outside the turf <form> so its submit can't trigger the turf form. */}
+          <CreateOwnerDialog
+            open={isOwnerDialogOpen}
+            onOpenChange={setIsOwnerDialogOpen}
+            onCreated={(owner) => {
+              setOwners((prev) => [
+                ...prev,
+                { uid: owner.uid, name: owner.name, email: owner.email },
+              ]);
+              setFormData((p) => ({ ...p, ownerId: owner.uid }));
+            }}
+          />
         </div>
       </div>
 

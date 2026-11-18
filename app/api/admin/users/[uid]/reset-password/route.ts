@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase/admin";
+import { isAdminAuthenticated, unauthorizedResponse } from "@/lib/auth/admin";
 
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ uid: string }> }
 ) {
+  if (!(await isAdminAuthenticated())) return unauthorizedResponse();
+
   try {
     const { uid } = await params;
     const { password } = await req.json();

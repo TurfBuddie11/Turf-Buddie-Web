@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
+import { isAdminAuthenticated, unauthorizedResponse } from "@/lib/auth/admin";
 
 export async function GET() {
+  if (!(await isAdminAuthenticated())) return unauthorizedResponse();
+
   try {
     const collections = ["users", "owners", "User", "Owner", "Users", "Owners"];
     const results: Record<string, unknown[]> = {};

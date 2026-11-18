@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
+import { isAdminAuthenticated, unauthorizedResponse } from "@/lib/auth/admin";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ uid: string }> }
 ) {
+  if (!(await isAdminAuthenticated())) return unauthorizedResponse();
+
   try {
     const { uid } = await params;
 

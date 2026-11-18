@@ -8,6 +8,7 @@ import {
   Trophy,
   MapPin,
   Users,
+  UserCog,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -30,6 +31,7 @@ const adminNavItems: SidebarItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Tournaments", href: "/admin/tournaments", icon: Trophy },
   { label: "Turfs", href: "/admin/turfs", icon: MapPin },
+  { label: "Owners", href: "/admin/owners", icon: UserCog },
   { label: "Users", href: "/admin/users", icon: Users },
 ];
 
