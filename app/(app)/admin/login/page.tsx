@@ -9,7 +9,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 
-import { loginAdmin } from "@/lib/firebase/auth";
+import { loginAdmin, logout } from "@/lib/firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
@@ -53,7 +53,11 @@ export default function AdminLoginPage() {
         body: JSON.stringify({ idToken }),
       });
 
-      if (!response.ok) throw new Error("Failed to create session");
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        await logout();
+        throw new Error(data.error || "Failed to create session");
+      }
 
       toast.success("Welcome back, Admin");
       router.push("/admin/tournaments/manage");
@@ -140,7 +144,11 @@ export default function AdminLoginPage() {
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        {showPassword ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
                       </button>
                     </div>
                     <FieldError>{fieldState.error?.message}</FieldError>
@@ -187,7 +195,9 @@ export default function AdminLoginPage() {
                 className="w-full h-10 text-sm font-medium"
                 onClick={async () => {
                   try {
-                    const res = await fetch("/api/auth/debug-login", { method: "POST" });
+                    const res = await fetch("/api/auth/debug-login", {
+                      method: "POST",
+                    });
                     if (res.ok) {
                       toast.success("Debug login successful");
                       router.push("/admin/tournaments/manage");
@@ -213,7 +223,9 @@ export default function AdminLoginPage() {
           {/* DEV ONLY — debug bypass */}
           {process.env.NODE_ENV === "development" && (
             <div className="mt-6 border-t pt-4">
-              <p className="text-xs text-center text-muted-foreground mb-2">🛠 Dev Debug Access</p>
+              <p className="text-xs text-center text-muted-foreground mb-2">
+                🛠 Dev Debug Access
+              </p>
               <button
                 type="button"
                 onClick={async () => {

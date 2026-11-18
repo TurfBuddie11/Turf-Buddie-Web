@@ -113,20 +113,6 @@ const createOwnerProfile = async (
   return snap.data() as OwnerProfile;
 };
 
-const createAdminProfile = async (user: User) => {
-  const ref = doc(db, "admins", user.uid);
-  const snap = await getDoc(ref);
-
-  if (!snap.exists()) {
-    await setDoc(ref, {
-      uid: user.uid,
-      email: user.email,
-      createdAt: Timestamp.now(),
-      emailVerified: user.emailVerified,
-    });
-  }
-};
-
 /* ==============================
    GOOGLE SIGN-IN
 ============================== */
@@ -282,9 +268,9 @@ export const loginAdmin = async (
   email: string,
   password: string,
 ): Promise<UserCredential> => {
-  const cred = await signInWithEmailAndPassword(auth, email, password);
-  await createAdminProfile(cred.user);
-  return cred;
+  // Admin access is decided server-side by the `admin` custom claim
+  // (see /api/auth/admin-session), not by a client-written document.
+  return signInWithEmailAndPassword(auth, email, password);
 };
 
 /* ==============================
