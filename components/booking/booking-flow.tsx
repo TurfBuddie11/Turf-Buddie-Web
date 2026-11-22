@@ -34,29 +34,11 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { InlineLoginForm } from "@/components/auth/inline-login-form";
 import { getUserProfile } from "@/lib/firebase/auth";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ALL_POSSIBLE_SLOTS, getSlotLabel } from "@/lib/booking/slots";
 import Link from "next/link";
 
-const ALL_POSSIBLE_SLOTS: Omit<TimeSlot, "price" | "isAvailable">[] =
-  Array.from({ length: 13 }, (_, i) => {
-    const hour = 9 + i;
-    const startTime = `${String(hour).padStart(2, "0")}:00`;
-    const endTime = `${String(hour + 1).padStart(2, "0")}:00`;
-    return { id: `ts${String(hour).padStart(2, "0")}00`, startTime, endTime };
-  });
-
-// Convert 24h → 12h with AM/PM
-const formatTo12Hour = (time24: string) => {
-  const [hours, minutes] = time24.split(":").map(Number);
-  if (isNaN(hours)) return "Invalid";
-  const period = hours >= 12 ? "PM" : "AM";
-  const hours12 = hours % 12 || 12;
-  return `${hours12}${
-    minutes ? `:${String(minutes).padStart(2, "0")}` : ""
-  } ${period}`;
-};
-
-const getSlotLabel = (startTime: string, endTime: string) =>
-  `${formatTo12Hour(startTime)} - ${formatTo12Hour(endTime)}`;
+type PaymentMode = "full" | "split";
 
 interface BookingFlowProps {
   turf: Turf;
@@ -81,6 +63,7 @@ export function BookingFlow({
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [redeemPoints, setRedeemPoints] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>("full");
   const [splitCount, setSplitCount] = useState(2);
   const [splitInputValue, setSplitInputValue] = useState("2");
   const [teamMembers, setTeamMembers] = useState<
@@ -132,7 +115,11 @@ export function BookingFlow({
     getUserProfile(user.uid)
       .then((snap) => {
         if (cancelled || !snap.exists()) return;
-        const data = snap.data() as { name?: string; email?: string; mobile?: string };
+        const data = snap.data() as {
+          name?: string;
+          email?: string;
+          mobile?: string;
+        };
         fill(data.name, data.email, data.mobile);
       })
       .catch(() => undefined);
@@ -198,7 +185,8 @@ export function BookingFlow({
   // so the shares always add up exactly to the total.
   const splitTotal = Math.round(totalPrice);
   const perPersonPrice = Math.floor(splitTotal / splitCount);
-  const organizerShare = perPersonPrice + (splitTotal - perPersonPrice * splitCount);
+  const organizerShare =
+    perPersonPrice + (splitTotal - perPersonPrice * splitCount);
 
   // Any change to the booking invalidates a previously created split group.
   useEffect(() => {
@@ -289,7 +277,8 @@ export function BookingFlow({
         status: "pending" as const,
         paid: "Not Paid to Owner" as const,
         userDetails: userDetails,
-        splitCount,
+        // This handler is only used for "Pay Full Amount".
+        splitCount: 1,
       };
 
       const orderResponse = await fetch("/api/payment/create-order", {
@@ -378,7 +367,6 @@ export function BookingFlow({
     redeemPoints,
     loyaltyPoints,
     userDetails,
-    splitCount,
   ]);
 
   const handleCreateSplitGroup = useCallback(async () => {
@@ -398,7 +386,9 @@ export function BookingFlow({
       (m) => !m.name.trim() || (m.phone.length !== 10 && !m.email.trim()),
     );
     if (missingContact !== -1) {
-      toast.error(`Add a name and phone/email for Player ${missingContact + 2}.`);
+      toast.error(
+        `Add a name and phone/email for Player ${missingContact + 2}.`,
+      );
       return;
     }
 
@@ -838,328 +828,403 @@ export function BookingFlow({
                     </CardContent>
                   </Card>
                 ) : (
-                <>
-                {/* User Details Form */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center">
-                      <User className="w-4 h-4 mr-2" />
-                      Your Details
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="name">Full Name</Label>
-                        <Input
-                          id="name"
-                          value={userDetails.name}
-                          onChange={(e) =>
-                            handleUserDetailChange("name", e.target.value)
-                          }
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={userDetails.email}
-                          onChange={(e) =>
-                            handleUserDetailChange("email", e.target.value)
-                          }
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          value={userDetails.phone}
-                          onChange={(e) =>
-                            handleUserDetailChange("phone", e.target.value)
-                          }
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Split 'n Pay */}
-                <Card className="border-green-200 dark:border-green-800">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <span>Split &apos;n Pay</span>
-                      <Badge variant="secondary" className="text-xs">
-                        Invite Friends
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Split count */}
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium">
-                          Split between:
-                        </span>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={splitInputValue}
-                          onChange={(e) => {
-                            const raw = e.target.value.replace(/[^0-9]/g, "");
-                            setSplitInputValue(raw);
-                            const val = parseInt(raw);
-                            if (!isNaN(val) && val >= 2 && val <= 30) {
-                              setSplitCount(val);
-                              // Keep already-entered teammates; add/trim rows.
-                              setTeamMembers((prev) =>
-                                Array.from(
-                                  { length: val - 1 },
-                                  (_, i) =>
-                                    prev[i] ?? { phone: "", name: "", email: "" },
-                                ),
-                              );
-                              setSplitGroupId(null);
-                              setSplitShares([]);
-                            }
-                          }}
-                          className="w-16 rounded-lg border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm font-bold text-center focus:outline-none focus:border-green-400 bg-white dark:bg-gray-800"
-                        />
-                        <span className="text-sm text-muted-foreground">
-                          people
-                        </span>
-                      </div>
-                      {(() => {
-                        const val = parseInt(splitInputValue);
-                        if (splitInputValue === "" || isNaN(val) || val < 2) {
-                          return (
-                            <p className="text-xs text-red-500">
-                              A minimum of 2 people are required to split the
-                              amount.
-                            </p>
-                          );
-                        }
-                        if (val > 30) {
-                          return (
-                            <p className="text-xs text-red-500">
-                              Maximum 30 people can split the amount.
-                            </p>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </div>
-
-                    {/* Per person amount */}
-                    <div className="bg-green-50 dark:bg-green-950/20 rounded-xl p-3 flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        ₹{splitTotal} ÷ {splitCount} =
-                      </span>
-                      <span className="font-bold text-green-700 text-lg">
-                        ₹{perPersonPrice} each
-                      </span>
-                    </div>
-
-                    {/* Member inputs */}
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Add teammates
-                      </p>
-
-                      {/* Organizer row (you) */}
-                      <div className="flex items-center gap-2 p-2 rounded-lg bg-green-50 border border-green-200">
-                        <div className="w-7 h-7 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
-                          {(profile?.name || userDetails.name || "Y")
-                            .charAt(0)
-                            .toUpperCase()}
-                        </div>
-                        <span className="text-sm font-medium flex-1 text-gray-800">
-                          {profile?.name || userDetails.name || "You"}{" "}
-                          <span className="text-xs text-green-600">
-                            (Organizer)
-                          </span>
-                        </span>
-                        <span className="text-sm font-bold text-gray-900">
-                          ₹{organizerShare}
-                        </span>
-                      </div>
-
-                      {teamMembers.map((member, i) => (
-                        <div key={i} className="space-y-1.5">
-                          <div className="flex gap-2 items-center">
-                            <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold shrink-0">
-                              {member.name
-                                ? member.name.charAt(0).toUpperCase()
-                                : i + 2}
-                            </div>
+                  <>
+                    {/* User Details Form */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg flex items-center">
+                          <User className="w-4 h-4 mr-2" />
+                          Your Details
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-3">
+                          <div>
+                            <Label htmlFor="name">Full Name</Label>
                             <Input
-                              value={member.name}
-                              onChange={(e) => {
-                                const name = e.target.value;
-                                setTeamMembers((prev) =>
-                                  prev.map((m, j) => (j === i ? { ...m, name } : m)),
-                                );
-                              }}
-                              className="h-8 text-xs flex-1"
-                              placeholder={`Player ${i + 2} name`}
+                              id="name"
+                              value={userDetails.name}
+                              onChange={(e) =>
+                                handleUserDetailChange("name", e.target.value)
+                              }
+                              className="mt-1"
                             />
+                          </div>
+                          <div>
+                            <Label htmlFor="email">Email</Label>
                             <Input
-                              value={member.phone}
-                              onChange={(e) => {
-                                const phone = e.target.value
-                                  .replace(/\D/g, "")
-                                  .slice(-10);
-                                setTeamMembers((prev) =>
-                                  prev.map((m, j) => (j === i ? { ...m, phone } : m)),
-                                );
-                              }}
-                              className="h-8 text-xs w-24"
-                              placeholder="Phone"
+                              id="email"
+                              type="email"
+                              value={userDetails.email}
+                              onChange={(e) =>
+                                handleUserDetailChange("email", e.target.value)
+                              }
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="phone">Phone Number</Label>
+                            <Input
+                              id="phone"
                               type="tel"
+                              value={userDetails.phone}
+                              onChange={(e) =>
+                                handleUserDetailChange("phone", e.target.value)
+                              }
+                              className="mt-1"
                             />
-                            <span className="text-xs font-bold text-gray-700 w-14 text-right shrink-0">
-                              ₹{perPersonPrice}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Payment option: pay full alone, or split with friends */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold">Payment Option</p>
+                      <RadioGroup
+                        value={paymentMode}
+                        onValueChange={(v) => setPaymentMode(v as PaymentMode)}
+                        disabled={!!splitGroupId}
+                        className="grid grid-cols-2 gap-2"
+                      >
+                        {(
+                          [
+                            { value: "full", label: "Pay Full Amount" },
+                            { value: "split", label: "Split 'n Pay" },
+                          ] as const
+                        ).map((opt) => (
+                          <Label
+                            key={opt.value}
+                            htmlFor={`pay-mode-${opt.value}`}
+                            className={cn(
+                              "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium cursor-pointer transition-colors whitespace-nowrap",
+                              paymentMode === opt.value
+                                ? "border-green-600 bg-green-50 text-green-800 dark:bg-green-950/30 dark:text-green-300"
+                                : "hover:border-green-400",
+                              splitGroupId && "cursor-not-allowed opacity-70",
+                            )}
+                          >
+                            <RadioGroupItem
+                              id={`pay-mode-${opt.value}`}
+                              value={opt.value}
+                              className="border-green-600 text-green-600 [&_svg]:fill-green-600"
+                            />
+                            {opt.label}
+                          </Label>
+                        ))}
+                      </RadioGroup>
+                      {splitGroupId && (
+                        <p className="text-xs text-muted-foreground">
+                          Split group already created for these slots.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Split 'n Pay */}
+                    {paymentMode === "split" && (
+                      <Card className="border-green-200 dark:border-green-800">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            <span>Split &apos;n Pay</span>
+                            <Badge variant="secondary" className="text-xs">
+                              Invite Friends
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {/* Split count */}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium">
+                                Split between:
+                              </span>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={splitInputValue}
+                                onChange={(e) => {
+                                  const raw = e.target.value.replace(
+                                    /[^0-9]/g,
+                                    "",
+                                  );
+                                  setSplitInputValue(raw);
+                                  const val = parseInt(raw);
+                                  if (!isNaN(val) && val >= 2 && val <= 30) {
+                                    setSplitCount(val);
+                                    // Keep already-entered teammates; add/trim rows.
+                                    setTeamMembers((prev) =>
+                                      Array.from(
+                                        { length: val - 1 },
+                                        (_, i) =>
+                                          prev[i] ?? {
+                                            phone: "",
+                                            name: "",
+                                            email: "",
+                                          },
+                                      ),
+                                    );
+                                    setSplitGroupId(null);
+                                    setSplitShares([]);
+                                  }
+                                }}
+                                className="w-16 rounded-lg border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm font-bold text-center focus:outline-none focus:border-green-400 bg-white dark:bg-gray-800"
+                              />
+                              <span className="text-sm text-muted-foreground">
+                                people
+                              </span>
+                            </div>
+                            {(() => {
+                              const val = parseInt(splitInputValue);
+                              if (
+                                splitInputValue === "" ||
+                                isNaN(val) ||
+                                val < 2
+                              ) {
+                                return (
+                                  <p className="text-xs text-red-500">
+                                    A minimum of 2 people are required to split
+                                    the amount.
+                                  </p>
+                                );
+                              }
+                              if (val > 30) {
+                                return (
+                                  <p className="text-xs text-red-500">
+                                    Maximum 30 people can split the amount.
+                                  </p>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
+
+                          {/* Per person amount */}
+                          <div className="bg-green-50 dark:bg-green-950/20 rounded-xl p-3 flex justify-between items-center">
+                            <span className="text-sm text-gray-600">
+                              ₹{splitTotal} ÷ {splitCount} =
+                            </span>
+                            <span className="font-bold text-green-700 text-lg">
+                              ₹{perPersonPrice} each
                             </span>
                           </div>
-                          <div className="flex gap-2 items-center pl-9">
-                            <svg
-                              viewBox="0 0 24 24"
-                              className="w-3.5 h-3.5 text-gray-400 shrink-0"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <rect x="3" y="5" width="18" height="14" rx="2" />
-                              <path d="m3 7 9 6 9-6" />
-                            </svg>
-                            <Input
-                              value={member.email}
-                              onChange={(e) => {
-                                const email = e.target.value;
-                                setTeamMembers((prev) =>
-                                  prev.map((m, j) => (j === i ? { ...m, email } : m)),
-                                );
-                              }}
-                              className="h-7 text-xs flex-1"
-                              placeholder="Email (optional, for one-click pay link)"
-                              type="email"
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
 
-                    {/* Create Group button */}
-                    {splitGroupId ? (
-                      <div className="space-y-3">
-                        <div className="rounded-xl bg-green-50 border border-green-200 p-3 text-center">
-                          <p className="text-xs font-semibold text-green-700 mb-1">
-                            ✅ Split group created! Slot held for 30 minutes.
-                          </p>
-                          <p className="text-xs text-gray-500 break-all">
-                            {splitPayLink}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard
-                                .writeText(splitPayLink)
-                                .then(() => toast.success("Link copied!"))
-                                .catch(() => toast.error("Could not copy link"));
-                            }}
-                            className="mt-1 text-xs font-semibold text-green-700 hover:underline"
-                          >
-                            Copy link
-                          </button>
-                        </div>
+                          {/* Member inputs */}
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                              Add teammates
+                            </p>
 
-                        {/* One WhatsApp button per teammate (browsers block
-                            multiple pop-ups opened automatically). */}
-                        <div className="space-y-1.5">
-                          {splitShares.slice(1).map((m, i) => (
-                            <div
-                              key={i}
-                              className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2"
-                            >
-                              <span className="text-xs font-medium truncate">
-                                {m.name} · ₹{m.amount}
+                            {/* Organizer row (you) */}
+                            <div className="flex items-center gap-2 p-2 rounded-lg bg-green-50 border border-green-200">
+                              <div className="w-7 h-7 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                                {(profile?.name || userDetails.name || "Y")
+                                  .charAt(0)
+                                  .toUpperCase()}
+                              </div>
+                              <span className="text-sm font-medium flex-1 text-gray-800">
+                                {profile?.name || userDetails.name || "You"}{" "}
+                                <span className="text-xs text-green-600">
+                                  (Organizer)
+                                </span>
                               </span>
+                              <span className="text-sm font-bold text-gray-900">
+                                ₹{organizerShare}
+                              </span>
+                            </div>
+
+                            {teamMembers.map((member, i) => (
+                              <div key={i} className="space-y-1.5">
+                                <div className="flex gap-2 items-center">
+                                  <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold shrink-0">
+                                    {member.name
+                                      ? member.name.charAt(0).toUpperCase()
+                                      : i + 2}
+                                  </div>
+                                  <Input
+                                    value={member.name}
+                                    onChange={(e) => {
+                                      const name = e.target.value;
+                                      setTeamMembers((prev) =>
+                                        prev.map((m, j) =>
+                                          j === i ? { ...m, name } : m,
+                                        ),
+                                      );
+                                    }}
+                                    className="h-8 text-xs flex-1"
+                                    placeholder={`Player ${i + 2} name`}
+                                  />
+                                  <Input
+                                    value={member.phone}
+                                    onChange={(e) => {
+                                      const phone = e.target.value
+                                        .replace(/\D/g, "")
+                                        .slice(-10);
+                                      setTeamMembers((prev) =>
+                                        prev.map((m, j) =>
+                                          j === i ? { ...m, phone } : m,
+                                        ),
+                                      );
+                                    }}
+                                    className="h-8 text-xs w-24"
+                                    placeholder="Phone"
+                                    type="tel"
+                                  />
+                                  <span className="text-xs font-bold text-gray-700 w-14 text-right shrink-0">
+                                    ₹{perPersonPrice}
+                                  </span>
+                                </div>
+                                <div className="flex gap-2 items-center pl-9">
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    className="w-3.5 h-3.5 text-gray-400 shrink-0"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <rect
+                                      x="3"
+                                      y="5"
+                                      width="18"
+                                      height="14"
+                                      rx="2"
+                                    />
+                                    <path d="m3 7 9 6 9-6" />
+                                  </svg>
+                                  <Input
+                                    value={member.email}
+                                    onChange={(e) => {
+                                      const email = e.target.value;
+                                      setTeamMembers((prev) =>
+                                        prev.map((m, j) =>
+                                          j === i ? { ...m, email } : m,
+                                        ),
+                                      );
+                                    }}
+                                    className="h-7 text-xs flex-1"
+                                    placeholder="Email (optional, for one-click pay link)"
+                                    type="email"
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Create Group button */}
+                          {splitGroupId ? (
+                            <div className="space-y-3">
+                              <div className="rounded-xl bg-green-50 border border-green-200 p-3 text-center">
+                                <p className="text-xs font-semibold text-green-700 mb-1">
+                                  ✅ Split group created! Slot held for 30
+                                  minutes.
+                                </p>
+                                <p className="text-xs text-gray-500 break-all">
+                                  {splitPayLink}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard
+                                      .writeText(splitPayLink)
+                                      .then(() => toast.success("Link copied!"))
+                                      .catch(() =>
+                                        toast.error("Could not copy link"),
+                                      );
+                                  }}
+                                  className="mt-1 text-xs font-semibold text-green-700 hover:underline"
+                                >
+                                  Copy link
+                                </button>
+                              </div>
+
+                              {/* One WhatsApp button per teammate (browsers block
+                            multiple pop-ups opened automatically). */}
+                              <div className="space-y-1.5">
+                                {splitShares.slice(1).map((m, i) => (
+                                  <div
+                                    key={i}
+                                    className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2"
+                                  >
+                                    <span className="text-xs font-medium truncate">
+                                      {m.name} · ₹{m.amount}
+                                    </span>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 border-green-600 text-green-700 hover:bg-green-50 text-xs shrink-0"
+                                      onClick={() => openWhatsAppForMember(m)}
+                                    >
+                                      WhatsApp link
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+
                               <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="h-7 border-green-600 text-green-700 hover:bg-green-50 text-xs shrink-0"
-                                onClick={() => openWhatsAppForMember(m)}
+                                asChild
+                                className="w-full bg-green-600 hover:bg-green-700"
                               >
-                                WhatsApp link
+                                <Link href={`/split-pay/${splitGroupId}`}>
+                                  Pay my share (₹
+                                  {splitShares[0]?.amount ?? organizerShare}) →
+                                </Link>
                               </Button>
                             </div>
-                          ))}
-                        </div>
+                          ) : (
+                            <Button
+                              onClick={handleCreateSplitGroup}
+                              disabled={
+                                isCreatingSplitGroup ||
+                                selectedSlots.length === 0
+                              }
+                              className="w-full bg-green-600 hover:bg-green-700 gap-2"
+                            >
+                              {isCreatingSplitGroup ? (
+                                <>
+                                  <Spinner className="w-4 h-4" /> Creating
+                                  group...
+                                </>
+                              ) : (
+                                "💸 Create Split Group & Block Slot"
+                              )}
+                            </Button>
+                          )}
 
-                        <Button
-                          asChild
-                          className="w-full bg-green-600 hover:bg-green-700"
-                        >
-                          <Link href={`/split-pay/${splitGroupId}`}>
-                            Pay my share (₹{splitShares[0]?.amount ?? organizerShare}) →
-                          </Link>
-                        </Button>
-                      </div>
-                    ) : (
+                          <p className="text-xs text-gray-400 text-center">
+                            Slot is held for 30 minutes. Booking confirms when
+                            all members pay.
+                          </p>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Payment Button */}
+                    {paymentMode === "full" && (
                       <Button
-                        onClick={handleCreateSplitGroup}
+                        onClick={handleBooking}
                         disabled={
-                          isCreatingSplitGroup || selectedSlots.length === 0
+                          isLoading ||
+                          !userDetails.name ||
+                          !userDetails.email ||
+                          !userDetails.phone
                         }
-                        className="w-full bg-green-600 hover:bg-green-700 gap-2"
+                        className="w-full bg-green-500 hover:bg-green-600 font-semibold py-6"
+                        size="lg"
                       >
-                        {isCreatingSplitGroup ? (
+                        {isLoading ? (
                           <>
-                            <Spinner className="w-4 h-4" /> Creating group...
+                            <Spinner className="animate-spin h-4 w-4 mr-2" />
+                            Processing Payment...
                           </>
                         ) : (
-                          "💸 Create Split Group & Block Slot"
+                          `Pay ₹${totalPrice} & Confirm Booking`
                         )}
                       </Button>
                     )}
-
-                    <p className="text-xs text-gray-400 text-center">
-                      Slot is held for 30 minutes. Booking confirms when all
-                      members pay.
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* Payment Button */}
-                <Button
-                  onClick={handleBooking}
-                  disabled={
-                    isLoading ||
-                    !userDetails.name ||
-                    !userDetails.email ||
-                    !userDetails.phone
-                  }
-                  className="w-full bg-green-500 hover:bg-green-600 font-semibold py-6"
-                  size="lg"
-                >
-                  {isLoading ? (
-                    <>
-                      <Spinner className="animate-spin h-4 w-4 mr-2" />
-                      Processing Payment...
-                    </>
-                  ) : (
-                    `Pay ₹${totalPrice} & Confirm Booking`
-                  )}
-                </Button>
-                </>
+                  </>
                 )}
               </div>
             </DialogContent>

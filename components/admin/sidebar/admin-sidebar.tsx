@@ -9,6 +9,7 @@ import {
   MapPin,
   Users,
   UserCog,
+  CalendarPlus,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -29,6 +30,7 @@ interface SidebarItem {
 
 const adminNavItems: SidebarItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+  { label: "Book Slot", href: "/admin/bookings", icon: CalendarPlus },
   { label: "Tournaments", href: "/admin/tournaments", icon: Trophy },
   { label: "Turfs", href: "/admin/turfs", icon: MapPin },
   { label: "Owners", href: "/admin/owners", icon: UserCog },
@@ -40,7 +42,10 @@ interface AdminSidebarProps {
   onToggle?: () => void;
 }
 
-export function AdminSidebar({ collapsed = false, onToggle }: AdminSidebarProps) {
+export function AdminSidebar({
+  collapsed = false,
+  onToggle,
+}: AdminSidebarProps) {
   const pathname = usePathname();
 
   const isActive = (href: string) => {
@@ -54,13 +59,13 @@ export function AdminSidebar({ collapsed = false, onToggle }: AdminSidebarProps)
     <aside
       className={cn(
         "relative flex flex-col h-dvh bg-sidebar border-r border-sidebar-border transition-all duration-300 flex-shrink-0",
-        collapsed ? "w-14" : "w-56"
+        collapsed ? "w-14" : "w-56",
       )}
     >
       <div
         className={cn(
           "flex items-center h-16 px-4 border-b border-sidebar-border",
-          collapsed ? "justify-center" : "justify-between"
+          collapsed ? "justify-center" : "justify-between",
         )}
       >
         {!collapsed && (
@@ -75,7 +80,9 @@ export function AdminSidebar({ collapsed = false, onToggle }: AdminSidebarProps)
         )}
         {collapsed && (
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">TB</span>
+            <span className="text-primary-foreground font-bold text-sm">
+              TB
+            </span>
           </div>
         )}
       </div>
@@ -93,18 +100,16 @@ export function AdminSidebar({ collapsed = false, onToggle }: AdminSidebarProps)
                 active
                   ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                collapsed && "justify-center"
+                collapsed && "justify-center",
               )}
             >
               <Icon
                 className={cn(
                   "h-5 w-5 flex-shrink-0",
-                  active && "text-sidebar-primary-foreground"
+                  active && "text-sidebar-primary-foreground",
                 )}
               />
-              {!collapsed && (
-                <span className="text-sm">{item.label}</span>
-              )}
+              {!collapsed && <span className="text-sm">{item.label}</span>}
             </Link>
           );
 
@@ -130,7 +135,7 @@ export function AdminSidebar({ collapsed = false, onToggle }: AdminSidebarProps)
               variant="ghost"
               className={cn(
                 "w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                collapsed && "justify-center px-2"
+                collapsed && "justify-center px-2",
               )}
             >
               <LogOut className="h-5 w-5 mr-3 flex-shrink-0" />
@@ -147,7 +152,7 @@ export function AdminSidebar({ collapsed = false, onToggle }: AdminSidebarProps)
         onClick={onToggle}
         className={cn(
           "absolute -right-3 top-20 w-6 h-6 rounded-full bg-sidebar border border-sidebar-border flex items-center justify-center shadow-sm hover:bg-sidebar-accent transition-colors z-10",
-          collapsed && "-right-3"
+          collapsed && "-right-3",
         )}
       >
         {collapsed ? (
